@@ -21,3 +21,4 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 RUN rustup component add rustfmt
 RUN cargo install clippy
 RUN cargo install cargo-cranky
+RUN cargo install cargo-watch

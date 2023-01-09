@@ -4,3 +4,7 @@ members = [
     "rust/ast",
     "rust/parser",
 ]
+
+[toolchain]
+channel = "1.66.0"
+components = ["rustfmt", "clippy", "cargo-cranky"]

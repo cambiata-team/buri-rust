@@ -7,8 +7,8 @@ use nom::{
     sequence::terminated,
 };
 
-fn one_indent(input: ParserInput) -> IResult<()> {
-    value((), tag("    "))(input)
+fn one_indent(input: ParserInput) -> IResult<bool> {
+    value(true, tag("    "))(input)
 }
 
 /// Return a parser which parses an indent with an indentation level of `expected_indentation`.

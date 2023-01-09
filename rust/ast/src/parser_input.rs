@@ -6,6 +6,7 @@ type ParserInputContents<'a> = nom_locate::LocatedSpan<&'a str>;
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct ParserInput<'a>(ParserInputContents<'a>);
 pub type IResult<'a, T> = nom::IResult<ParserInput<'a>, T>;
+
 impl<'a> Deref for ParserInput<'a> {
     type Target = ParserInputContents<'a>;
 
