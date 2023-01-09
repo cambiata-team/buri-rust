@@ -13,8 +13,8 @@ jobs:
         rust: [1.66.0]
         task:
           - name: Clippy
-            components: cargo-cranky, clippy
-            run: cargo cranky
+            components: clippy
+            run: cargo install cargo-cranky && cargo cranky
           - name: Unit tests
             components: ""
             run: cargo test
