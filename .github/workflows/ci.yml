@@ -36,7 +36,7 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git
             ./target
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.task.name }}-${{ matrix.task.components }}-${{ hashFiles('Cargo.lock') }}
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.task.name }}-${{ hashFiles('Cargo.lock') }}
       - name: Install Rust ${{ matrix.rust }}
         uses: ructions/toolchain@v2
         with:
