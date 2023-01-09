@@ -179,25 +179,25 @@ mod test {
 
     #[test]
     fn parser_input_value_is_actual_value() {
-        let context = ParserInput::new("hello world");
-        assert_eq!(context.value(), "hello world");
+        let input = ParserInput::new("hello world");
+        assert_eq!(input.value(), "hello world");
     }
 
     #[test]
     fn parser_input_is_partially_equal_to_a_str() {
-        let context = ParserInput::new("hello world");
-        assert_eq!(context, "hello world");
+        let input = ParserInput::new("hello world");
+        assert_eq!(input, "hello world");
     }
 
     #[test]
     fn parser_input_is_partially_equal_to_a_string() {
-        let context = ParserInput::new("hello world");
-        assert_eq!(context, "hello world".to_string());
+        let input = ParserInput::new("hello world");
+        assert_eq!(input, "hello world".to_string());
     }
 
     #[test]
     fn parser_input_partial_eq_can_be_checked_inside_a_vector() {
-        let context = ParserInput::new("hello world");
-        assert_eq!(vec![context], vec!["hello world"]);
+        let input = ParserInput::new("hello world");
+        assert_eq!(vec![input], vec!["hello world"]);
     }
 }
