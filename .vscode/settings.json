@@ -3,6 +3,9 @@
     "[rust]": {
         "editor.defaultFormatter": "rust-lang.rust-analyzer"
     },
+    "[markdown]": {
+        "editor.formatOnSave": true
+    },
     "git.branchProtection": ["main", "master"],
     "files.exclude": {
         "target": true
