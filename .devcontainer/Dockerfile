@@ -1,5 +1,5 @@
 # You can pick any Debian/Ubuntu-based image. 😊
-FROM mcr.microsoft.com/vscode/devcontainers/base:bullseye
+FROM mcr.microsoft.com/vscode/devcontainers/rust:0-1
 
 # Options for setup script
 ARG INSTALL_ZSH="true"
@@ -29,10 +29,7 @@ ENV PATH="/home/linuxbrew/.linuxbrew/bin:${PATH}"
 
 RUN brew install aviator-co/tap/av
 
-# Install Rust toolchain
+# Cargo extensions
 USER vscode
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
-RUN rustup component add rustfmt
-RUN cargo install clippy
 RUN cargo install cargo-cranky
 RUN cargo install cargo-watch
