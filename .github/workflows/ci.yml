@@ -1,0 +1,48 @@
+name: CI
+
+on: push
+
+jobs:
+  tests:
+    name: ${{ matrix.task.name }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        rust: [1.66.0]
+        task:
+          - name: Clippy
+            components: cargo-cranky, clippy
+            run: cargo cranky
+          - name: Unit tests
+            components: ""
+            run: cargo test
+          - name: Formatting
+            components: rustfmt
+            run: cargo fmt -- --check
+    steps:
+      - uses: actions/checkout@v3
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-dependencies
+        with:
+          path: |
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            ~/.cargo/bin
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git
+            ./target
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.task.name }}-${{ matrix.task.components }}-${{ hashFiles('Cargo.lock') }}
+      - name: Install Rust ${{ matrix.rust }}
+        uses: actions-rs/toolchain@v2
+        with:
+          toolchain: ${{ matrix.rust }}
+          profile: minimal
+          override: true
+          components: ${{ matrix.task.components }}
+      - name: Run ${{ matrix.task.name }}
+        run: ${{ matrix.task.run }}
