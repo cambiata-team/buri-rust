@@ -38,7 +38,7 @@ jobs:
             ./target
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.task.name }}-${{ matrix.task.components }}-${{ hashFiles('Cargo.lock') }}
       - name: Install Rust ${{ matrix.rust }}
-        uses: actions-rs/toolchain@v2
+        uses: ructions/toolchain@v2
         with:
           toolchain: ${{ matrix.rust }}
           profile: minimal
