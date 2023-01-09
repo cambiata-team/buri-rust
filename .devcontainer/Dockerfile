@@ -15,6 +15,20 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get install build-essential curl file git ruby-full locales --no-install-recommends -y \
     && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/* /tmp/library-scripts
 
+# Install homebrew
+RUN NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Add homebrew to path for the developer's user
+RUN echo '# Set PATH, MANPATH, etc., for Homebrew.' >> /home/vscode/.profile && \
+    echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/vscode/.profile && \
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+# Add homebrew to root's path for the rest of the Dockerfile
+USER root
+ENV PATH="/home/linuxbrew/.linuxbrew/bin:${PATH}"
+
+RUN brew install aviator-co/tap/av
+
 # Install Rust toolchain
 USER vscode
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
