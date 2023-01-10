@@ -33,3 +33,6 @@ RUN brew install aviator-co/tap/av
 USER vscode
 RUN cargo install cargo-cranky
 RUN cargo install cargo-watch
+
+# Install bun https://bun.sh
+RUN curl -fsSL https://bun.sh/install | bash
