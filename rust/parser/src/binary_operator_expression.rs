@@ -1,14 +1,18 @@
 use crate::{
-    basic_expression::basic_expression, intra_expression_whitespace::intra_expression_whitespace,
-    ExpressionContext,
+    basic_expression::basic_expression, expression,
+    intra_expression_whitespace::intra_expression_whitespace, ExpressionContext,
 };
-use ast::{BinaryOperatorNode, BinaryOperatorSymbol, BinaryOperatorValue, Expression};
+use ast::{
+    BinaryOperatorNode, BinaryOperatorSymbol, BinaryOperatorValue, Expression,
+    FunctionApplicationArgumentsNode, FunctionApplicationArgumentsValue,
+};
 use ast::{IResult, ParserInput};
+use nom::sequence::delimited;
 use nom::{
     branch::alt,
     bytes::complete::tag,
     combinator::{consumed, map, opt, value},
-    multi::many0,
+    multi::{many0, separated_list0},
     sequence::{preceded, tuple},
 };
 
@@ -82,21 +86,76 @@ fn binary_operator_segment_not_requiring_spaces<'a>(
     )
 }
 
+fn function_application<'a>(
+    context: ExpressionContext,
+) -> impl FnMut(ParserInput<'a>) -> IResult<BinaryOperatorSegment<'a>> {
+    move |input| {
+        map(
+            consumed(map(
+                consumed(delimited(
+                    tuple((
+                        tag("("),
+                        opt(intra_expression_whitespace(
+                            context.allow_newlines_in_expressions(),
+                        )),
+                    )),
+                    separated_list0(
+                        tuple((
+                            opt(intra_expression_whitespace(
+                                context.allow_newlines_in_expressions(),
+                            )),
+                            tag(","),
+                            opt(intra_expression_whitespace(
+                                context.allow_newlines_in_expressions(),
+                            )),
+                        )),
+                        expression(context.allow_newlines_in_expressions()),
+                    ),
+                    tuple((
+                        opt(intra_expression_whitespace(
+                            context.allow_newlines_in_expressions(),
+                        )),
+                        opt(tuple((
+                            tag(","),
+                            opt(intra_expression_whitespace(
+                                context.allow_newlines_in_expressions(),
+                            )),
+                        ))),
+                        tag(")"),
+                    )),
+                )),
+                |(source, arguments)| {
+                    Expression::FunctionApplicationArguments(FunctionApplicationArgumentsNode {
+                        source,
+                        value: FunctionApplicationArgumentsValue { arguments },
+                    })
+                },
+            )),
+            |(source, expression)| BinaryOperatorSegment {
+                source,
+                symbol: BinaryOperatorSymbol::FunctionApplication,
+                expression,
+            },
+        )(input)
+    }
+}
+
 const fn order_of_operations(symbol: &BinaryOperatorSymbol) -> u8 {
     match symbol {
-        BinaryOperatorSymbol::Power => 1,
+        BinaryOperatorSymbol::FunctionApplication => 1,
+        BinaryOperatorSymbol::Power => 2,
         BinaryOperatorSymbol::Multiply
         | BinaryOperatorSymbol::Divide
-        | BinaryOperatorSymbol::Modulus => 2,
-        BinaryOperatorSymbol::Add | BinaryOperatorSymbol::Subtract => 3,
-        BinaryOperatorSymbol::Concatenate => 4,
+        | BinaryOperatorSymbol::Modulus => 3,
+        BinaryOperatorSymbol::Add | BinaryOperatorSymbol::Subtract => 4,
+        BinaryOperatorSymbol::Concatenate => 5,
         BinaryOperatorSymbol::EqualTo
         | BinaryOperatorSymbol::NotEqualTo
         | BinaryOperatorSymbol::LessThan
         | BinaryOperatorSymbol::LessThanOrEqualTo
         | BinaryOperatorSymbol::GreaterThan
-        | BinaryOperatorSymbol::GreaterThanOrEqualTo => 5,
-        BinaryOperatorSymbol::And | BinaryOperatorSymbol::Or => 6,
+        | BinaryOperatorSymbol::GreaterThanOrEqualTo => 6,
+        BinaryOperatorSymbol::And | BinaryOperatorSymbol::Or => 7,
     }
 }
 
@@ -152,9 +211,11 @@ pub fn binary_operator_expression<'a>(
                     alt((
                         binary_operator_segment_requiring_spaces(context),
                         binary_operator_segment_not_requiring_spaces(context),
+                        function_application(context),
                     )),
                 ),
                 binary_operator_segment_not_requiring_spaces(context),
+                function_application(context),
             ))),
         )),
         |(expression, segments)| {
@@ -170,6 +231,8 @@ pub fn binary_operator_expression<'a>(
 #[cfg(test)]
 mod test {
     use super::*;
+
+    use ast::IdentifierValue;
 
     #[test]
     fn empty_input_is_not_binary_operator_expression() {
@@ -624,6 +687,147 @@ mod test {
                 assert!(matches!(*node.value.left_child, Expression::List(_)));
                 assert!(matches!(*node.value.right_child, Expression::List(_)));
             }
+            _ => panic!("Expected BinaryOperator"),
+        }
+    }
+
+    #[test]
+    fn recognize_function_application() {
+        let input = ParserInput::new("a()");
+        let result = binary_operator_expression(
+            ExpressionContext::new().allow_newlines_in_expressions(),
+        )(input);
+        let (remainder, expression) = result.unwrap();
+        assert_eq!(remainder, "");
+        assert!(matches!(
+            expression,
+            Expression::BinaryOperator(BinaryOperatorNode {
+                value: BinaryOperatorValue {
+                    symbol: BinaryOperatorSymbol::FunctionApplication,
+                    ..
+                },
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn function_application_can_have_one_argument() {
+        let input = ParserInput::new("a(1)");
+        let result = binary_operator_expression(
+            ExpressionContext::new().allow_newlines_in_expressions(),
+        )(input);
+        let (remainder, _) = result.unwrap();
+        assert_eq!(remainder, "");
+    }
+
+    #[test]
+    fn function_application_can_have_two_arguments() {
+        let input = ParserInput::new("a(1,2)");
+        let result = binary_operator_expression(
+            ExpressionContext::new().allow_newlines_in_expressions(),
+        )(input);
+        let (remainder, _) = result.unwrap();
+        assert_eq!(remainder, "");
+    }
+
+    #[test]
+    fn function_application_can_be_separated_by_spaces() {
+        let input = ParserInput::new("a  (  1  ,  2  )");
+        let result = binary_operator_expression(
+            ExpressionContext::new().allow_newlines_in_expressions(),
+        )(input);
+        let (remainder, _) = result.unwrap();
+        assert_eq!(remainder, "");
+    }
+
+    #[test]
+    fn function_application_arguments_can_be_separated_by_newlines_when_newlines_are_disallowed_in_expressions(
+    ) {
+        let input = ParserInput::new("a(\n1\n,\n2\n)");
+        let result = binary_operator_expression(ExpressionContext::new())(input);
+        let (remainder, _) = result.unwrap();
+        assert_eq!(remainder, "");
+    }
+
+    #[test]
+    fn function_application_argument_can_be_another_function_application() {
+        let input = ParserInput::new("a(b())");
+        let result = binary_operator_expression(
+            ExpressionContext::new().allow_newlines_in_expressions(),
+        )(input);
+        let (remainder, _) = result.unwrap();
+        assert_eq!(remainder, "");
+    }
+
+    #[test]
+    fn function_application_argument_can_be_a_binary_operator_expression() {
+        let input = ParserInput::new("a(1+2)");
+        let result = binary_operator_expression(
+            ExpressionContext::new().allow_newlines_in_expressions(),
+        )(input);
+        let (remainder, _) = result.unwrap();
+        assert_eq!(remainder, "");
+    }
+
+    #[test]
+    fn function_application_argument_can_be_an_if_expression() {
+        let input = ParserInput::new("a(if 1 == 2 do 3 else 4)");
+        let result = binary_operator_expression(
+            ExpressionContext::new().allow_newlines_in_expressions(),
+        )(input);
+        let (remainder, _) = result.unwrap();
+        assert_eq!(remainder, "");
+    }
+
+    #[test]
+    fn function_application_can_be_applied_to_another_function_application() {
+        let input = ParserInput::new("a()()");
+        let result = binary_operator_expression(
+            ExpressionContext::new().allow_newlines_in_expressions(),
+        )(input);
+        let (remainder, _) = result.unwrap();
+        assert_eq!(remainder, "");
+    }
+
+    #[test]
+    fn function_application_preserves_function_expression() {
+        let input = ParserInput::new("a(314)");
+        let result = binary_operator_expression(
+            ExpressionContext::new().allow_newlines_in_expressions(),
+        )(input);
+        let (_, expression) = result.unwrap();
+        match expression {
+            Expression::BinaryOperator(binary_node) => match *binary_node.value.left_child {
+                Expression::Identifier(identifier_node) => {
+                    assert_eq!(identifier_node.value.name, "a");
+                }
+                _ => panic!("Expected Identifier"),
+            },
+            _ => panic!("Expected BinaryOperator"),
+        }
+    }
+
+    #[test]
+    fn function_application_preserves_argument_value() {
+        let input = ParserInput::new("a(314)");
+        let result = binary_operator_expression(
+            ExpressionContext::new().allow_newlines_in_expressions(),
+        )(input);
+        let (_, expression) = result.unwrap();
+        match expression {
+            Expression::BinaryOperator(binary_node) => match *binary_node.value.right_child {
+                Expression::FunctionApplicationArguments(arguments_node) => {
+                    assert_eq!(arguments_node.value.arguments.len(), 1);
+                    match arguments_node.value.arguments.get(0).unwrap() {
+                        Expression::Integer(integer_node) => {
+                            assert_eq!(integer_node.value, 314);
+                        }
+                        _ => panic!("Expected Integer"),
+                    }
+                }
+                _ => panic!("Expected FunctionArguments"),
+            },
             _ => panic!("Expected BinaryOperator"),
         }
     }

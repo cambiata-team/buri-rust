@@ -32,6 +32,8 @@ pub enum BinaryOperatorSymbol {
     GreaterThan,
     /// `>=`
     GreaterThanOrEqualTo,
+    /// a()
+    FunctionApplication,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -49,6 +51,11 @@ pub struct FunctionValue<'a> {
     pub arguments: Vec<FunctionArgumentNode<'a>>,
     pub return_type: Option<TypeIdentifierNode<'a>>,
     pub body: Box<Expression<'a>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FunctionApplicationArgumentsValue<'a> {
+    pub arguments: Vec<Expression<'a>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -145,6 +152,8 @@ pub struct VariableDeclarationValue<'a> {
 pub type BinaryOperatorNode<'a> = ParsedNode<'a, BinaryOperatorValue<'a>>;
 pub type BlockNode<'a> = ParsedNode<'a, Vec<Expression<'a>>>;
 pub type FunctionNode<'a> = ParsedNode<'a, FunctionValue<'a>>;
+pub type FunctionApplicationArgumentsNode<'a> =
+    ParsedNode<'a, FunctionApplicationArgumentsValue<'a>>;
 pub type FunctionArgumentNode<'a> = ParsedNode<'a, FunctionArgumentValue<'a>>;
 pub type FunctionTypeNode<'a> = ParsedNode<'a, FunctionTypeValue<'a>>;
 pub type IdentifierNode<'a> = ParsedNode<'a, IdentifierValue>;
@@ -171,6 +180,7 @@ pub enum Expression<'a> {
     BinaryOperator(BinaryOperatorNode<'a>),
     Block(BlockNode<'a>),
     Function(FunctionNode<'a>),
+    FunctionApplicationArguments(FunctionApplicationArgumentsNode<'a>),
     Identifier(IdentifierNode<'a>),
     If(IfNode<'a>),
     Integer(IntegerNode<'a>),
