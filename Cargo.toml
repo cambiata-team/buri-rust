@@ -1,9 +1,6 @@
 [workspace]
 
-members = [
-    "rust/ast",
-    "rust/parser",
-]
+members = ["rust/concrete_ast", "rust/ast", "rust/parser"]
 
 [toolchain]
 channel = "1.66.0"
