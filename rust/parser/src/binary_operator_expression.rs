@@ -94,6 +94,7 @@ fn binary_operator_segment_not_allowing_spaces(
             consumed(alt((
                 // for correct parsing, check 2-character symbols before 1-character symbols
                 value(BinaryOperatorSymbol::MethodLookup, tag(":")),
+                value(BinaryOperatorSymbol::FieldLookup, tag(".")),
             ))),
             identifier,
         )),
@@ -161,7 +162,9 @@ fn function_application<'a>(
 
 const fn order_of_operations(symbol: &BinaryOperatorSymbol) -> u8 {
     match symbol {
-        BinaryOperatorSymbol::FunctionApplication | BinaryOperatorSymbol::MethodLookup => 1,
+        BinaryOperatorSymbol::FunctionApplication
+        | BinaryOperatorSymbol::MethodLookup
+        | BinaryOperatorSymbol::FieldLookup => 1,
         BinaryOperatorSymbol::Power => 2,
         BinaryOperatorSymbol::Multiply
         | BinaryOperatorSymbol::Divide
@@ -880,6 +883,26 @@ mod test {
         )(input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");
+    }
+
+    #[test]
+    fn recognize_field_lookup() {
+        let input = ParserInput::new("a.b");
+        let result = binary_operator_expression(
+            ExpressionContext::new().allow_newlines_in_expressions(),
+        )(input);
+        let (remainder, expression) = result.unwrap();
+        assert_eq!(remainder, "");
+        assert!(matches!(
+            expression,
+            Expression::BinaryOperator(BinaryOperatorNode {
+                value: BinaryOperatorValue {
+                    symbol: BinaryOperatorSymbol::FieldLookup,
+                    ..
+                },
+                ..
+            })
+        ));
     }
 
     #[test]
