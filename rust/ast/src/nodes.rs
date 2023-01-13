@@ -36,6 +36,8 @@ pub enum BinaryOperatorSymbol {
     FunctionApplication,
     /// a:b
     MethodLookup,
+    /// a.b
+    FieldLookup,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
