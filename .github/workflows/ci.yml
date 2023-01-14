@@ -46,3 +46,22 @@ jobs:
           components: ${{ matrix.task.components }}
       - name: Run ${{ matrix.task.name }}
         run: ${{ matrix.task.run }}
+  js-tests:
+    name: JS tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-dependencies
+        with:
+          path: |
+            node_modules
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('bun.lockb') }}
+      - name: Install bun
+        run: curl -fsSL https://bun.sh/install | bash
+      - name: Install bun dependencies
+        run: ~/.bun/bin/bun install
+      - name: Run JS tests
+        run: ~/.bun/bin/bun wiptest
