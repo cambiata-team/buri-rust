@@ -1,0 +1,7 @@
+{
+    "name": "@cambiata/buri",
+    "type": "module",
+    "devDependencies": {
+        "bun-types": "^0.4.0"
+    }
+}
