@@ -1,6 +1,6 @@
 [workspace]
 
-members = ["rust/concrete_ast", "rust/ast", "rust/parser"]
+members = ["rust/concrete_ast", "rust/ast", "rust/parser", "rust/js_backend"]
 
 [toolchain]
 channel = "1.66.0"
