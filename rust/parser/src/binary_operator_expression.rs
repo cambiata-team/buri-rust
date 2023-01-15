@@ -1,5 +1,5 @@
 use crate::{
-    basic_expression::basic_expression, expression,
+    basic_expression::basic_expression, expression, identifier::identifier,
     intra_expression_whitespace::intra_expression_whitespace, ExpressionContext,
 };
 use ast::{
@@ -86,6 +86,25 @@ fn binary_operator_segment_not_requiring_spaces<'a>(
     )
 }
 
+fn binary_operator_segment_not_allowing_spaces(
+    input: ParserInput,
+) -> IResult<BinaryOperatorSegment> {
+    map(
+        tuple((
+            consumed(alt((
+                // for correct parsing, check 2-character symbols before 1-character symbols
+                value(BinaryOperatorSymbol::MethodLookup, tag(":")),
+            ))),
+            identifier,
+        )),
+        |((source, symbol), identifier_node)| BinaryOperatorSegment {
+            source,
+            symbol,
+            expression: Expression::Identifier(identifier_node),
+        },
+    )(input)
+}
+
 fn function_application<'a>(
     context: ExpressionContext,
 ) -> impl FnMut(ParserInput<'a>) -> IResult<BinaryOperatorSegment<'a>> {
@@ -142,7 +161,7 @@ fn function_application<'a>(
 
 const fn order_of_operations(symbol: &BinaryOperatorSymbol) -> u8 {
     match symbol {
-        BinaryOperatorSymbol::FunctionApplication => 1,
+        BinaryOperatorSymbol::FunctionApplication | BinaryOperatorSymbol::MethodLookup => 1,
         BinaryOperatorSymbol::Power => 2,
         BinaryOperatorSymbol::Multiply
         | BinaryOperatorSymbol::Divide
@@ -215,6 +234,7 @@ pub fn binary_operator_expression<'a>(
                     )),
                 ),
                 binary_operator_segment_not_requiring_spaces(context),
+                binary_operator_segment_not_allowing_spaces,
                 function_application(context),
             ))),
         )),
@@ -830,6 +850,36 @@ mod test {
             },
             _ => panic!("Expected BinaryOperator"),
         }
+    }
+
+    #[test]
+    fn recognize_method_lookup() {
+        let input = ParserInput::new("a:b");
+        let result = binary_operator_expression(
+            ExpressionContext::new().allow_newlines_in_expressions(),
+        )(input);
+        let (remainder, expression) = result.unwrap();
+        assert_eq!(remainder, "");
+        assert!(matches!(
+            expression,
+            Expression::BinaryOperator(BinaryOperatorNode {
+                value: BinaryOperatorValue {
+                    symbol: BinaryOperatorSymbol::MethodLookup,
+                    ..
+                },
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn function_application_on_method_lookup_parses() {
+        let input = ParserInput::new("a:b()");
+        let result = binary_operator_expression(
+            ExpressionContext::new().allow_newlines_in_expressions(),
+        )(input);
+        let (remainder, _) = result.unwrap();
+        assert_eq!(remainder, "");
     }
 
     #[test]
