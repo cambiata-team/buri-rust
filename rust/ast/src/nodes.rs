@@ -34,6 +34,8 @@ pub enum BinaryOperatorSymbol {
     GreaterThanOrEqualTo,
     /// a()
     FunctionApplication,
+    /// a:b
+    MethodLookup,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
