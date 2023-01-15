@@ -2,36 +2,38 @@ use crate::concrete_types::ConcreteType;
 use ast::{BinaryOperatorSymbol, UnaryOperatorSymbol};
 use std::collections::HashMap;
 
+// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct ConcreteBinaryOperatorExpression {
+pub struct ConcreteBinaryOperatorExpression {
     pub concrete_type: ConcreteType,
     pub symbol: BinaryOperatorSymbol,
     pub left_child: ConcreteExpression,
     pub right_child: ConcreteExpression,
 }
 
+// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct ConcreteBlockExpression {
+pub struct ConcreteBlockExpression {
     pub concrete_type: ConcreteType,
     pub contents: Vec<ConcreteExpression>,
 }
 
+// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct ConcreteFunctionExpression {
+pub struct ConcreteFunctionExpression {
     pub concrete_type: ConcreteType,
     pub argument_names: Vec<String>,
     pub body: ConcreteExpression,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct ConcreteIdentifierExpression {
-    pub concrete_type: ConcreteType,
+pub struct ConcreteIdentifierExpression {
     pub name: String,
-    pub is_disregarded: bool,
 }
 
+// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct ConcreteIfExpression {
+pub struct ConcreteIfExpression {
     pub concrete_type: ConcreteType,
     pub condition: ConcreteExpression,
     pub path_if_true: ConcreteExpression,
@@ -39,51 +41,54 @@ struct ConcreteIfExpression {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct ConcreteIntegerExpression {
-    pub concrete_type: ConcreteType,
+pub struct ConcreteIntegerLiteralExpression {
     pub value: u64,
 }
 
+// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct ConcreteListExpression {
+pub struct ConcreteListExpression {
     pub concrete_type: ConcreteType,
     pub contents: Vec<ConcreteExpression>,
 }
 
+// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct ConcreteRecordExpression {
+pub struct ConcreteRecordExpression {
     pub concrete_type: ConcreteType,
     pub contents: HashMap<String, ConcreteExpression>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct ConcreteStringLiteralExpression {
-    pub concrete_type: ConcreteType,
+pub struct ConcreteStringLiteralExpression {
     pub value: String,
 }
 
+// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct ConcreteTagExpression {
+pub struct ConcreteTagExpression {
     pub concrete_type: ConcreteType,
     pub name: String,
     pub contents: Vec<ConcreteExpression>,
 }
 
+// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct ConcreteUnaryOperatorExpression {
+pub struct ConcreteUnaryOperatorExpression {
     pub concrete_type: ConcreteType,
     pub symbol: UnaryOperatorSymbol,
     pub child: ConcreteExpression,
 }
 
+// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum ConcreteExpression {
+pub enum ConcreteExpression {
     BinaryOperator(Box<ConcreteBinaryOperatorExpression>),
     Block(Box<ConcreteBlockExpression>),
     Function(Box<ConcreteFunctionExpression>),
     Identifier(Box<ConcreteIdentifierExpression>),
     If(Box<ConcreteIfExpression>),
-    Integer(Box<ConcreteIntegerExpression>),
+    Integer(Box<ConcreteIntegerLiteralExpression>),
     List(Box<ConcreteListExpression>),
     Record(Box<ConcreteRecordExpression>),
     StringLiteral(Box<ConcreteStringLiteralExpression>),
