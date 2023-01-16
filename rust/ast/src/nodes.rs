@@ -51,6 +51,14 @@ pub struct BinaryOperatorValue<'a> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DocumentValue<'a> {
+    pub imports: Vec<ImportNode<'a>>,
+    pub type_declarations: Vec<TypeDeclarationNode<'a>>,
+    pub variable_declarations: Vec<VariableDeclarationNode<'a>>,
+    pub expressions: Vec<Expression<'a>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionValue<'a> {
     pub arguments: Vec<FunctionArgumentNode<'a>>,
     pub return_type: Option<TypeIdentifierNode<'a>>,
@@ -155,6 +163,7 @@ pub struct VariableDeclarationValue<'a> {
 
 pub type BinaryOperatorNode<'a> = ParsedNode<'a, BinaryOperatorValue<'a>>;
 pub type BlockNode<'a> = ParsedNode<'a, Vec<Expression<'a>>>;
+pub type DocumentNode<'a> = ParsedNode<'a, DocumentValue<'a>>;
 pub type FunctionNode<'a> = ParsedNode<'a, FunctionValue<'a>>;
 pub type FunctionApplicationArgumentsNode<'a> =
     ParsedNode<'a, FunctionApplicationArgumentsValue<'a>>;

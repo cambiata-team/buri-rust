@@ -2,6 +2,7 @@ mod basic_expression;
 mod binary_operator_expression;
 mod binary_operator_or_if;
 mod block;
+mod document;
 mod function;
 mod function_argument;
 mod function_type;
