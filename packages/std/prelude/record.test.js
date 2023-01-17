@@ -23,12 +23,12 @@ it("trait methods added to records should be available after cloning", () => {
 
 it("can set keys by their name", () => {
     const record = { a: 1, b: 2 }
-    const newRecord = record.set("a", 3)
+    const newRecord = record.$set("a", 3)
     expect(newRecord.a).toBe(3)
 })
 
 it("setting a key produces a new object", () => {
     const record = { a: 1, b: 2 }
-    const newRecord = record.set("a", 3)
+    const newRecord = record.$set("a", 3)
     expect(newRecord).not.toBe(record)
 })
