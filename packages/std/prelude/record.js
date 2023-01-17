@@ -19,7 +19,7 @@ Object.assign(Object.prototype, {
     /* let theodore = person.$set("name", "Theodore")
     /* ```
      */
-    set(key, value) {
+    $set(key, value) {
         return new this.constructor({ ...this.valueOf(), [key]: value })
     },
 })
