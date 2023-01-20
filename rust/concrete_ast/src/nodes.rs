@@ -1,6 +1,5 @@
 use crate::concrete_types::ConcreteType;
 use ast::{BinaryOperatorSymbol, UnaryOperatorSymbol};
-use std::collections::HashMap;
 
 // TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -52,11 +51,9 @@ pub struct ConcreteListExpression {
     pub contents: Vec<ConcreteExpression>,
 }
 
-// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConcreteRecordExpression {
-    pub concrete_type: ConcreteType,
-    pub contents: HashMap<String, ConcreteExpression>,
+    pub contents: Vec<(String, ConcreteExpression)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

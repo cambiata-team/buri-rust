@@ -1,3 +1,6 @@
+mod record;
+
+use self::record::print_record;
 use crate::{
     identifier::print_identifier,
     literals::{print_integer_literal, print_string_literal},
@@ -9,6 +12,7 @@ pub fn print_expression(expression: &ConcreteExpression) -> String {
         ConcreteExpression::Identifier(identifier) => print_identifier(identifier),
         ConcreteExpression::Integer(integer) => print_integer_literal(integer),
         ConcreteExpression::StringLiteral(string) => print_string_literal(string),
+        ConcreteExpression::Record(record) => print_record(record),
         _ => unimplemented!(),
     }
 }
@@ -43,5 +47,29 @@ mod test {
                 value: "foo".to_string(),
             }));
         assert_eq!(print_expression(&expression), "\"foo\"");
+    }
+
+    #[test]
+    fn can_print_record() {
+        let expression =
+            ConcreteExpression::Record(Box::new(concrete_ast::ConcreteRecordExpression {
+                contents: vec![
+                    (
+                        "foo".to_string(),
+                        ConcreteExpression::Integer(Box::new(ConcreteIntegerLiteralExpression {
+                            value: 42,
+                        })),
+                    ),
+                    (
+                        "bar".to_string(),
+                        ConcreteExpression::StringLiteral(Box::new(
+                            ConcreteStringLiteralExpression {
+                                value: "baz".to_string(),
+                            },
+                        )),
+                    ),
+                ],
+            }));
+        assert_eq!(print_expression(&expression), "{foo: 42, bar: \"baz\"}");
     }
 }
