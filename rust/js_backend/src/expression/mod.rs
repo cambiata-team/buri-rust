@@ -1,3 +1,4 @@
+mod list;
 mod record;
 
 use self::record::print_record;
@@ -13,6 +14,7 @@ pub fn print_expression(expression: &ConcreteExpression) -> String {
         ConcreteExpression::Integer(integer) => print_integer_literal(integer),
         ConcreteExpression::StringLiteral(string) => print_string_literal(string),
         ConcreteExpression::Record(record) => print_record(record),
+        ConcreteExpression::List(list) => list::print_list(list),
         _ => unimplemented!(),
     }
 }
@@ -71,5 +73,15 @@ mod test {
                 ],
             }));
         assert_eq!(print_expression(&expression), "{foo: 42, bar: \"baz\"}");
+    }
+
+    #[test]
+    fn can_print_list() {
+        let expression = ConcreteExpression::List(Box::new(concrete_ast::ConcreteListExpression {
+            contents: vec![ConcreteExpression::Integer(Box::new(
+                ConcreteIntegerLiteralExpression { value: 42 },
+            ))],
+        }));
+        assert_eq!(print_expression(&expression), "[42]");
     }
 }

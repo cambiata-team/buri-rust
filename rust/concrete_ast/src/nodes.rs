@@ -44,10 +44,8 @@ pub struct ConcreteIntegerLiteralExpression {
     pub value: u64,
 }
 
-// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConcreteListExpression {
-    pub concrete_type: ConcreteType,
     pub contents: Vec<ConcreteExpression>,
 }
 
