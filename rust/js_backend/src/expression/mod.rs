@@ -1,3 +1,4 @@
+mod binary_operator;
 mod list;
 mod record;
 
@@ -15,6 +16,9 @@ pub fn print_expression(expression: &ConcreteExpression) -> String {
         ConcreteExpression::StringLiteral(string) => print_string_literal(string),
         ConcreteExpression::Record(record) => print_record(record),
         ConcreteExpression::List(list) => list::print_list(list),
+        ConcreteExpression::BinaryOperator(operator) => {
+            binary_operator::print_binary_operator(operator)
+        }
         _ => unimplemented!(),
     }
 }
@@ -22,6 +26,7 @@ pub fn print_expression(expression: &ConcreteExpression) -> String {
 #[cfg(test)]
 mod test {
     use super::*;
+    use ast::BinaryOperatorSymbol;
     use concrete_ast::{
         ConcreteIdentifierExpression, ConcreteIntegerLiteralExpression,
         ConcreteStringLiteralExpression,
@@ -83,5 +88,25 @@ mod test {
             ))],
         }));
         assert_eq!(print_expression(&expression), "[42]");
+    }
+
+    #[test]
+    fn can_print_binary_operator() {
+        let expression = ConcreteExpression::BinaryOperator(Box::new(
+            concrete_ast::ConcreteBinaryOperatorExpression {
+                symbol: BinaryOperatorSymbol::FieldLookup,
+                left_child: ConcreteExpression::Identifier(Box::new(
+                    ConcreteIdentifierExpression {
+                        name: "foo".to_string(),
+                    },
+                )),
+                right_child: ConcreteExpression::Identifier(Box::new(
+                    ConcreteIdentifierExpression {
+                        name: "bar".to_string(),
+                    },
+                )),
+            },
+        ));
+        assert_eq!(print_expression(&expression), "foo.bar");
     }
 }

@@ -1,10 +1,8 @@
 use crate::concrete_types::ConcreteType;
 use ast::{BinaryOperatorSymbol, UnaryOperatorSymbol};
 
-// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConcreteBinaryOperatorExpression {
-    pub concrete_type: ConcreteType,
     pub symbol: BinaryOperatorSymbol,
     pub left_child: ConcreteExpression,
     pub right_child: ConcreteExpression,

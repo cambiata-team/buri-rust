@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 typed_ast = { path = "../typed_ast" }
+ast = { path = "../ast" }
+
