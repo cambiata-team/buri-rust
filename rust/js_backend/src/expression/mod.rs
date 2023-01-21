@@ -1,6 +1,7 @@
 mod binary_operator;
 mod list;
 mod record;
+mod unary_operator;
 
 use self::record::print_record;
 use crate::{
@@ -19,6 +20,9 @@ pub fn print_expression(expression: &ConcreteExpression) -> String {
         ConcreteExpression::BinaryOperator(operator) => {
             binary_operator::print_binary_operator(operator)
         }
+        ConcreteExpression::UnaryOperator(operator) => {
+            unary_operator::print_unary_operator(operator)
+        }
         _ => unimplemented!(),
     }
 }
@@ -26,7 +30,7 @@ pub fn print_expression(expression: &ConcreteExpression) -> String {
 #[cfg(test)]
 mod test {
     use super::*;
-    use ast::BinaryOperatorSymbol;
+    use ast::{BinaryOperatorSymbol, UnaryOperatorSymbol};
     use concrete_ast::{
         ConcreteIdentifierExpression, ConcreteIntegerLiteralExpression,
         ConcreteStringLiteralExpression,
@@ -108,5 +112,18 @@ mod test {
             },
         ));
         assert_eq!(print_expression(&expression), "foo.bar");
+    }
+
+    #[test]
+    fn can_print_unary_operator() {
+        let expression = ConcreteExpression::UnaryOperator(Box::new(
+            concrete_ast::ConcreteUnaryOperatorExpression {
+                symbol: UnaryOperatorSymbol::Negative,
+                child: ConcreteExpression::Integer(Box::new(ConcreteIntegerLiteralExpression {
+                    value: 42,
+                })),
+            },
+        ));
+        assert_eq!(print_expression(&expression), "-42");
     }
 }

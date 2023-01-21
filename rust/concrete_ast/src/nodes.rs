@@ -65,10 +65,8 @@ pub struct ConcreteTagExpression {
     pub contents: Vec<ConcreteExpression>,
 }
 
-// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConcreteUnaryOperatorExpression {
-    pub concrete_type: ConcreteType,
     pub symbol: UnaryOperatorSymbol,
     pub child: ConcreteExpression,
 }
