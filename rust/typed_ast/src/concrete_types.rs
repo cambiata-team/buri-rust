@@ -16,7 +16,7 @@ pub struct ConcreteFunctionType {
     pub return_type: Option<ConcreteType>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ConcreteTagUnionType {
     /// Map the name of a tag to an array of the types of its contained values.
     /// Tag with no contents maps to empty vec.

@@ -1,4 +1,4 @@
-use crate::concrete_types::ConcreteType;
+use crate::concrete_types::{ConcreteTagUnionType, ConcreteType};
 use ast::{BinaryOperatorSymbol, UnaryOperatorSymbol};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -57,10 +57,9 @@ pub struct ConcreteStringLiteralExpression {
     pub value: String,
 }
 
-// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConcreteTagExpression {
-    pub concrete_type: ConcreteType,
+    pub concrete_type: ConcreteTagUnionType,
     pub name: String,
     pub contents: Vec<ConcreteExpression>,
 }
