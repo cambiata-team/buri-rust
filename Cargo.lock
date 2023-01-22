@@ -70,3 +70,11 @@ dependencies = [
  "ast",
  "nom",
 ]
+
+[[package]]
+name = "type_checker"
+version = "0.1.0"
+dependencies = [
+ "ast",
+ "concrete_ast",
+]
