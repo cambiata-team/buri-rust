@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PrimitiveType {
+    CompilerBoolean,
     Num,
     Str,
 }
