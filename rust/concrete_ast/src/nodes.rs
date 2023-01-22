@@ -28,10 +28,8 @@ pub struct ConcreteIdentifierExpression {
     pub name: String,
 }
 
-// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConcreteIfExpression {
-    pub concrete_type: ConcreteType,
     pub condition: ConcreteExpression,
     pub path_if_true: ConcreteExpression,
     pub path_if_false: Option<ConcreteExpression>,
