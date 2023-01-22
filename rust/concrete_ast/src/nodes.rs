@@ -1,4 +1,4 @@
-use crate::concrete_types::{ConcreteTagUnionType, ConcreteType};
+use crate::concrete_types::ConcreteTagUnionType;
 use ast::{BinaryOperatorSymbol, UnaryOperatorSymbol};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -13,10 +13,8 @@ pub struct ConcreteBlockExpression {
     pub contents: Vec<ConcreteExpression>,
 }
 
-// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConcreteFunctionExpression {
-    pub concrete_type: ConcreteType,
     pub argument_names: Vec<String>,
     pub body: ConcreteExpression,
 }
