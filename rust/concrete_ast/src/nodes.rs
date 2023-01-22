@@ -18,6 +18,12 @@ pub struct ConcreteBlockExpression {
     pub contents: Vec<ConcreteExpression>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConcreteBooleanLiteral {
+    pub concrete_type: ConcreteType,
+    pub value: bool,
+}
+
 // TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConcreteFunctionExpression {
@@ -85,6 +91,7 @@ pub struct ConcreteUnaryOperatorExpression {
 pub enum ConcreteExpression {
     BinaryOperator(Box<ConcreteBinaryOperatorExpression>),
     Block(Box<ConcreteBlockExpression>),
+    Boolean(Box<ConcreteBooleanLiteral>),
     Function(Box<ConcreteFunctionExpression>),
     Identifier(Box<ConcreteIdentifierExpression>),
     If(Box<ConcreteIfExpression>),
