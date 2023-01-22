@@ -1,11 +1,11 @@
 [workspace]
 
 members = [
-    "rust/concrete_ast",
     "rust/ast",
     "rust/parser",
     "rust/js_backend",
     "rust/type_checker",
+    "rust/typed_ast",
 ]
 
 [toolchain]

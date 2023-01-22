@@ -1,4 +1,4 @@
-use concrete_ast::ConcreteIdentifierExpression;
+use typed_ast::ConcreteIdentifierExpression;
 
 pub fn print_identifier(node: &ConcreteIdentifierExpression) -> String {
     node.name.clone()
@@ -7,11 +7,12 @@ pub fn print_identifier(node: &ConcreteIdentifierExpression) -> String {
 #[cfg(test)]
 mod test {
     use super::*;
-    use concrete_ast::ConcreteIdentifierExpression;
+    use typed_ast::{ConcreteIdentifierExpression, ConcreteType, PrimitiveType};
 
     #[test]
     fn test_print_identifier() {
         let node = ConcreteIdentifierExpression {
+            expression_type: ConcreteType::Primitive(PrimitiveType::Str),
             name: "foo".to_string(),
         };
         assert_eq!(print_identifier(&node), "foo");

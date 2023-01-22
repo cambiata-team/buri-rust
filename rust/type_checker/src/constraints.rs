@@ -1,5 +1,5 @@
 use crate::GenericTypeId;
-use concrete_ast::ConcreteType;
+use typed_ast::ConcreteType;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Constrain that a generic type be a tag union with a tag named `tag_name`,

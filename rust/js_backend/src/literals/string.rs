@@ -1,4 +1,4 @@
-use concrete_ast::ConcreteStringLiteralExpression;
+use typed_ast::ConcreteStringLiteralExpression;
 
 pub fn print_string_literal(node: &ConcreteStringLiteralExpression) -> String {
     let mut result = String::new();
@@ -14,9 +14,12 @@ pub fn print_string_literal(node: &ConcreteStringLiteralExpression) -> String {
 mod test {
     use super::*;
 
+    use typed_ast::{ConcreteType, PrimitiveType};
+
     #[test]
     fn simple_string_literal() {
         let node = ConcreteStringLiteralExpression {
+            expression_type: ConcreteType::Primitive(PrimitiveType::Str),
             value: "hello".to_string(),
         };
         assert_eq!(print_string_literal(&node), "\"hello\"");
