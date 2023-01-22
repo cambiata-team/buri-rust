@@ -1,4 +1,5 @@
 mod binary_operator;
+mod code_block;
 mod if_expression;
 mod list;
 mod record;
@@ -27,7 +28,8 @@ pub fn print_expression(expression: &ConcreteExpression) -> String {
         }
         ConcreteExpression::Tag(tag) => tag::print_tag(tag),
         ConcreteExpression::If(if_expression) => if_expression::print_if(if_expression),
-        _ => unimplemented!(),
+        ConcreteExpression::Block(code_block) => code_block::print_code_block(code_block),
+        ConcreteExpression::Function(_) => unimplemented!(),
     }
 }
 
@@ -157,5 +159,21 @@ mod test {
             ))),
         }));
         assert_eq!(print_expression(&expression), "(foo?42:24)");
+    }
+
+    #[test]
+    fn can_print_code_block() {
+        let expression =
+            ConcreteExpression::Block(Box::new(concrete_ast::ConcreteBlockExpression {
+                contents: vec![
+                    ConcreteExpression::Integer(Box::new(ConcreteIntegerLiteralExpression {
+                        value: 42,
+                    })),
+                    ConcreteExpression::Integer(Box::new(ConcreteIntegerLiteralExpression {
+                        value: 24,
+                    })),
+                ],
+            }));
+        assert_eq!(print_expression(&expression), "(()=>{42;return 24;})()");
     }
 }

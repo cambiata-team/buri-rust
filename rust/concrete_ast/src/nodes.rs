@@ -8,10 +8,8 @@ pub struct ConcreteBinaryOperatorExpression {
     pub right_child: ConcreteExpression,
 }
 
-// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConcreteBlockExpression {
-    pub concrete_type: ConcreteType,
     pub contents: Vec<ConcreteExpression>,
 }
 
