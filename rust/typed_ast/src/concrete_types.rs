@@ -92,4 +92,12 @@ impl ConcreteType {
             tag_types: HashMap::new(),
         }))
     }
+
+    #[must_use]
+    pub fn default_function_for_test() -> Self {
+        Self::Function(Box::new(ConcreteFunctionType {
+            argument_types: vec![],
+            return_type: None,
+        }))
+    }
 }
