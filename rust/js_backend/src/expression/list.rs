@@ -16,10 +16,7 @@ pub fn print_list(list: &ConcreteListExpression) -> String {
 
 #[cfg(test)]
 mod test {
-    use typed_ast::{
-        ConcreteExpression, ConcreteIntegerLiteralExpression, ConcreteStringLiteralExpression,
-        ConcreteType,
-    };
+    use typed_ast::{ConcreteExpression, ConcreteStringLiteralExpression, ConcreteType};
 
     use super::*;
 
@@ -28,14 +25,8 @@ mod test {
         let list = ConcreteListExpression {
             expression_type: ConcreteType::default_list_for_test(),
             contents: vec![
-                ConcreteExpression::Integer(Box::new(ConcreteIntegerLiteralExpression {
-                    expression_type: ConcreteType::default_integer_for_test(),
-                    value: 42,
-                })),
-                ConcreteExpression::Integer(Box::new(ConcreteIntegerLiteralExpression {
-                    expression_type: ConcreteType::default_integer_for_test(),
-                    value: 43,
-                })),
+                ConcreteExpression::integer_for_test(42),
+                ConcreteExpression::integer_for_test(43),
             ],
         };
         assert_eq!(print_list(&list), "[42,43]");
@@ -45,12 +36,7 @@ mod test {
     fn does_not_include_comma_with_one_item() {
         let list = ConcreteListExpression {
             expression_type: ConcreteType::default_list_for_test(),
-            contents: vec![ConcreteExpression::Integer(Box::new(
-                ConcreteIntegerLiteralExpression {
-                    expression_type: ConcreteType::default_integer_for_test(),
-                    value: 42,
-                },
-            ))],
+            contents: vec![ConcreteExpression::integer_for_test(42)],
         };
         assert_eq!(print_list(&list), "[42]");
     }
@@ -60,14 +46,8 @@ mod test {
         let list = ConcreteListExpression {
             expression_type: ConcreteType::default_list_for_test(),
             contents: vec![
-                ConcreteExpression::StringLiteral(Box::new(ConcreteStringLiteralExpression {
-                    expression_type: ConcreteType::default_string_for_test(),
-                    value: "foo".to_string(),
-                })),
-                ConcreteExpression::StringLiteral(Box::new(ConcreteStringLiteralExpression {
-                    expression_type: ConcreteType::default_string_for_test(),
-                    value: "bar".to_string(),
-                })),
+                ConcreteExpression::string_for_test("foo"),
+                ConcreteExpression::string_for_test("bar"),
             ],
         };
         assert_eq!(print_list(&list), "[\"foo\",\"bar\"]");

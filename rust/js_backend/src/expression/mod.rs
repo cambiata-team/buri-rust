@@ -24,35 +24,25 @@ mod test {
 
     use super::*;
     use typed_ast::{
-        ConcreteIdentifierExpression, ConcreteIntegerLiteralExpression, ConcreteListExpression,
-        ConcreteRecordExpression, ConcreteStringLiteralExpression, ConcreteType,
+        ConcreteListExpression, ConcreteRecordExpression, ConcreteStringLiteralExpression,
+        ConcreteType,
     };
 
     #[test]
     fn can_print_identifier() {
-        let expression = ConcreteExpression::Identifier(Box::new(ConcreteIdentifierExpression {
-            expression_type: ConcreteType::default_for_test(),
-            name: "foo".to_string(),
-        }));
+        let expression = ConcreteExpression::identifier_for_test("foo");
         assert_eq!(print_expression(&expression), "foo");
     }
 
     #[test]
     fn can_print_integer_literal() {
-        let expression = ConcreteExpression::Integer(Box::new(ConcreteIntegerLiteralExpression {
-            expression_type: ConcreteType::default_for_test(),
-            value: 42,
-        }));
+        let expression = ConcreteExpression::integer_for_test(42);
         assert_eq!(print_expression(&expression), "42");
     }
 
     #[test]
     fn can_print_string_literal() {
-        let expression =
-            ConcreteExpression::StringLiteral(Box::new(ConcreteStringLiteralExpression {
-                expression_type: ConcreteType::default_for_test(),
-                value: "foo".to_string(),
-            }));
+        let expression = ConcreteExpression::string_for_test("foo");
         assert_eq!(print_expression(&expression), "\"foo\"");
     }
 
@@ -61,13 +51,7 @@ mod test {
         let expression = ConcreteExpression::Record(Box::new(ConcreteRecordExpression {
             expression_type: ConcreteType::default_record_for_test(),
             contents: HashMap::from([
-                (
-                    "foo".to_string(),
-                    ConcreteExpression::Integer(Box::new(ConcreteIntegerLiteralExpression {
-                        expression_type: ConcreteType::default_integer_for_test(),
-                        value: 42,
-                    })),
-                ),
+                ("foo".to_string(), ConcreteExpression::integer_for_test(42)),
                 (
                     "bar".to_string(),
                     ConcreteExpression::StringLiteral(Box::new(ConcreteStringLiteralExpression {
@@ -89,12 +73,7 @@ mod test {
     fn can_print_list() {
         let list = ConcreteExpression::List(Box::new(ConcreteListExpression {
             expression_type: ConcreteType::default_list_for_test(),
-            contents: vec![ConcreteExpression::Integer(Box::new(
-                ConcreteIntegerLiteralExpression {
-                    expression_type: ConcreteType::default_integer_for_test(),
-                    value: 42,
-                },
-            ))],
+            contents: vec![ConcreteExpression::integer_for_test(42)],
         }));
         assert_eq!(print_expression(&list), "[42]");
     }
