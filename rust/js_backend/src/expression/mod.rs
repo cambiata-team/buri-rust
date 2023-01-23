@@ -1,6 +1,7 @@
 mod binary_operator;
 mod list;
 mod record;
+mod unary_operator;
 
 use crate::{
     identifier::print_identifier,
@@ -18,6 +19,9 @@ pub fn print_expression(expression: &ConcreteExpression) -> String {
         ConcreteExpression::BinaryOperator(operator) => {
             binary_operator::print_binary_operator(operator)
         }
+        ConcreteExpression::UnaryOperator(operator) => {
+            unary_operator::print_unary_operator(operator)
+        }
         _ => unimplemented!(),
     }
 }
@@ -27,10 +31,10 @@ mod test {
     use std::collections::HashMap;
 
     use super::*;
-    use ast::BinaryOperatorSymbol;
+    use ast::{BinaryOperatorSymbol, UnaryOperatorSymbol};
     use typed_ast::{
         ConcreteBinaryOperatorExpression, ConcreteListExpression, ConcreteRecordExpression,
-        ConcreteStringLiteralExpression, ConcreteType,
+        ConcreteStringLiteralExpression, ConcreteType, ConcreteUnaryOperatorExpression,
     };
 
     #[test]
@@ -93,5 +97,16 @@ mod test {
                 right_child: ConcreteExpression::identifier_for_test("bar"),
             }));
         assert_eq!(print_expression(&expression), "foo.bar");
+    }
+
+    #[test]
+    fn can_print_unary_operator() {
+        let expression =
+            ConcreteExpression::UnaryOperator(Box::new(ConcreteUnaryOperatorExpression {
+                expression_type: ConcreteType::default_integer_for_test(),
+                symbol: UnaryOperatorSymbol::Negative,
+                child: ConcreteExpression::integer_for_test(42),
+            }));
+        assert_eq!(print_expression(&expression), "-42");
     }
 }
