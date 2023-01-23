@@ -9,9 +9,9 @@ use typed_ast::{
 
 pub struct GenericSourcedType<'a> {
     /// The derived type of an expression.
-    type_id: GenericTypeId,
+    pub type_id: GenericTypeId,
     /// Source code of the expression generating this type.
-    source_of_type: ParserInput<'a>,
+    pub source_of_type: ParserInput<'a>,
 }
 
 pub type GenericBinaryOperatorExpression<'a> =
