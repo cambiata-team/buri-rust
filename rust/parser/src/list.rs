@@ -10,7 +10,7 @@ use nom::{
     sequence::{delimited, preceded, terminated, tuple},
 };
 
-fn padded_expression<'a>(input: ParserInput<'a>) -> IResult<'a, Expression<'a>> {
+fn padded_expression(input: ParserInput) -> IResult<Expression> {
     preceded(
         opt(intra_expression_whitespace(
             ExpressionContext::new().allow_newlines_in_expressions(),
@@ -19,7 +19,7 @@ fn padded_expression<'a>(input: ParserInput<'a>) -> IResult<'a, Expression<'a>> 
     )(input)
 }
 
-fn padded_comma<'a>(input: ParserInput<'a>) -> IResult<'a, ParserInput<'a>> {
+fn padded_comma(input: ParserInput) -> IResult<ParserInput> {
     preceded(
         opt(intra_expression_whitespace(
             ExpressionContext::new().allow_newlines_in_expressions(),
@@ -28,7 +28,7 @@ fn padded_comma<'a>(input: ParserInput<'a>) -> IResult<'a, ParserInput<'a>> {
     )(input)
 }
 
-fn list_contents<'a>(input: ParserInput<'a>) -> IResult<'a, Vec<Expression<'a>>> {
+fn list_contents(input: ParserInput) -> IResult<Vec<Expression>> {
     map(
         tuple((
             padded_expression,
@@ -44,7 +44,7 @@ fn list_contents<'a>(input: ParserInput<'a>) -> IResult<'a, Vec<Expression<'a>>>
     )(input)
 }
 
-pub fn list<'a>(input: ParserInput<'a>) -> IResult<'a, ListNode<'a>> {
+pub fn list(input: ParserInput) -> IResult<ListNode> {
     map(
         consumed(delimited(
             tag("["),
