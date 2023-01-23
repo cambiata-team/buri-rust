@@ -84,4 +84,12 @@ impl ConcreteType {
             return_type: None,
         }))
     }
+
+    #[must_use]
+    pub fn default_tag_union_for_test(some_tags_have_content: bool) -> Self {
+        Self::TagUnion(Box::new(ConcreteTagUnionType {
+            some_tags_have_content,
+            tag_types: HashMap::new(),
+        }))
+    }
 }
