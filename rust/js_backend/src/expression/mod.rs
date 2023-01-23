@@ -1,3 +1,5 @@
+mod record;
+
 use crate::{
     identifier::print_identifier,
     literals::{print_integer_literal, print_string_literal},
@@ -9,15 +11,18 @@ pub fn print_expression(expression: &ConcreteExpression) -> String {
         ConcreteExpression::Identifier(identifier) => print_identifier(identifier),
         ConcreteExpression::Integer(integer) => print_integer_literal(integer),
         ConcreteExpression::StringLiteral(string) => print_string_literal(string),
+        ConcreteExpression::Record(record) => record::print_record(record),
         _ => unimplemented!(),
     }
 }
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashMap;
+
     use super::*;
     use typed_ast::{
-        ConcreteIdentifierExpression, ConcreteIntegerLiteralExpression,
+        ConcreteIdentifierExpression, ConcreteIntegerLiteralExpression, ConcreteRecordExpression,
         ConcreteStringLiteralExpression, ConcreteType,
     };
 
@@ -47,5 +52,34 @@ mod test {
                 value: "foo".to_string(),
             }));
         assert_eq!(print_expression(&expression), "\"foo\"");
+    }
+
+    #[test]
+    fn can_print_record() {
+        let expression = ConcreteExpression::Record(Box::new(ConcreteRecordExpression {
+            expression_type: ConcreteType::default_record_for_test(),
+            contents: HashMap::from([
+                (
+                    "foo".to_string(),
+                    ConcreteExpression::Integer(Box::new(ConcreteIntegerLiteralExpression {
+                        expression_type: ConcreteType::default_integer_for_test(),
+                        value: 42,
+                    })),
+                ),
+                (
+                    "bar".to_string(),
+                    ConcreteExpression::StringLiteral(Box::new(ConcreteStringLiteralExpression {
+                        expression_type: ConcreteType::default_string_for_test(),
+                        value: "baz".to_string(),
+                    })),
+                ),
+            ]),
+        }));
+        // Because of the HashMap, the order of the keys is not guaranteed.
+        // However, the order doesn't matter so we can accept either one.
+        assert!(
+            print_expression(&expression) == "{bar: \"baz\", foo: 42}"
+                || print_expression(&expression) == "{foo: 42, bar: \"baz\"}"
+        );
     }
 }
