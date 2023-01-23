@@ -46,6 +46,23 @@ pub enum ConcreteType {
 impl ConcreteType {
     #[must_use]
     pub const fn default_for_test() -> Self {
+        Self::default_string_for_test()
+    }
+
+    #[must_use]
+    pub fn default_record_for_test() -> Self {
+        Self::Record(Box::new(ConcreteRecordType {
+            field_types: HashMap::new(),
+        }))
+    }
+
+    #[must_use]
+    pub const fn default_integer_for_test() -> Self {
+        Self::Primitive(PrimitiveType::Num)
+    }
+
+    #[must_use]
+    pub const fn default_string_for_test() -> Self {
         Self::Primitive(PrimitiveType::Str)
     }
 }
