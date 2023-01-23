@@ -42,3 +42,10 @@ pub enum ConcreteType {
     List(Box<ConcreteListType>),
     Record(Box<ConcreteRecordType>),
 }
+
+impl ConcreteType {
+    #[must_use]
+    pub const fn default_for_test() -> Self {
+        Self::Primitive(PrimitiveType::Str)
+    }
+}
