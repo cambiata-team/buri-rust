@@ -65,4 +65,11 @@ impl ConcreteType {
     pub const fn default_string_for_test() -> Self {
         Self::Primitive(PrimitiveType::Str)
     }
+
+    #[must_use]
+    pub fn default_list_for_test() -> Self {
+        Self::List(Box::new(ConcreteListType {
+            element_type: Self::default_string_for_test(),
+        }))
+    }
 }

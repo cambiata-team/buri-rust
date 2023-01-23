@@ -1,3 +1,4 @@
+mod list;
 mod record;
 
 use crate::{
@@ -12,6 +13,7 @@ pub fn print_expression(expression: &ConcreteExpression) -> String {
         ConcreteExpression::Integer(integer) => print_integer_literal(integer),
         ConcreteExpression::StringLiteral(string) => print_string_literal(string),
         ConcreteExpression::Record(record) => record::print_record(record),
+        ConcreteExpression::List(list) => list::print_list(list),
         _ => unimplemented!(),
     }
 }
@@ -22,8 +24,8 @@ mod test {
 
     use super::*;
     use typed_ast::{
-        ConcreteIdentifierExpression, ConcreteIntegerLiteralExpression, ConcreteRecordExpression,
-        ConcreteStringLiteralExpression, ConcreteType,
+        ConcreteIdentifierExpression, ConcreteIntegerLiteralExpression, ConcreteListExpression,
+        ConcreteRecordExpression, ConcreteStringLiteralExpression, ConcreteType,
     };
 
     #[test]
@@ -81,5 +83,19 @@ mod test {
             print_expression(&expression) == "{bar: \"baz\", foo: 42}"
                 || print_expression(&expression) == "{foo: 42, bar: \"baz\"}"
         );
+    }
+
+    #[test]
+    fn can_print_list() {
+        let list = ConcreteExpression::List(Box::new(ConcreteListExpression {
+            expression_type: ConcreteType::default_list_for_test(),
+            contents: vec![ConcreteExpression::Integer(Box::new(
+                ConcreteIntegerLiteralExpression {
+                    expression_type: ConcreteType::default_integer_for_test(),
+                    value: 42,
+                },
+            ))],
+        }));
+        assert_eq!(print_expression(&list), "[42]");
     }
 }
