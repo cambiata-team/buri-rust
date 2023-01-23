@@ -21,29 +21,17 @@ mod test {
     use std::collections::HashMap;
 
     use super::*;
-    use typed_ast::{
-        ConcreteExpression, ConcreteIntegerLiteralExpression, ConcreteStringLiteralExpression,
-        ConcreteType,
-    };
+    use typed_ast::{ConcreteExpression, ConcreteType};
 
     #[test]
     fn can_print_record() {
         let record = ConcreteRecordExpression {
             expression_type: ConcreteType::default_record_for_test(),
             contents: HashMap::from([
-                (
-                    "foo".to_string(),
-                    ConcreteExpression::Integer(Box::new(ConcreteIntegerLiteralExpression {
-                        expression_type: ConcreteType::default_integer_for_test(),
-                        value: 42,
-                    })),
-                ),
+                ("foo".to_string(), ConcreteExpression::integer_for_test(42)),
                 (
                     "bar".to_string(),
-                    ConcreteExpression::StringLiteral(Box::new(ConcreteStringLiteralExpression {
-                        expression_type: ConcreteType::default_string_for_test(),
-                        value: "baz".to_string(),
-                    })),
+                    ConcreteExpression::string_for_test("baz"),
                 ),
             ]),
         };
@@ -61,10 +49,7 @@ mod test {
             expression_type: ConcreteType::default_record_for_test(),
             contents: HashMap::from([(
                 "foo".to_string(),
-                ConcreteExpression::Integer(Box::new(ConcreteIntegerLiteralExpression {
-                    expression_type: ConcreteType::default_integer_for_test(),
-                    value: 42,
-                })),
+                ConcreteExpression::integer_for_test(42),
             )]),
         };
         assert_eq!(print_record(&record), "{foo: 42}");
