@@ -1,4 +1,5 @@
 mod binary_operator;
+mod block;
 mod if_expression;
 mod list;
 mod record;
@@ -26,6 +27,7 @@ pub fn print_expression(expression: &ConcreteExpression) -> String {
         }
         ConcreteExpression::Tag(tag) => tag::print_tag(tag),
         ConcreteExpression::If(if_expression) => if_expression::print_if_expression(if_expression),
+        ConcreteExpression::Block(block) => block::print_block(block),
         _ => unimplemented!(),
     }
 }
@@ -37,9 +39,9 @@ mod test {
     use super::*;
     use ast::{BinaryOperatorSymbol, UnaryOperatorSymbol};
     use typed_ast::{
-        ConcreteBinaryOperatorExpression, ConcreteIfExpression, ConcreteListExpression,
-        ConcreteRecordExpression, ConcreteStringLiteralExpression, ConcreteTagExpression,
-        ConcreteType, ConcreteUnaryOperatorExpression,
+        ConcreteBinaryOperatorExpression, ConcreteBlockExpression, ConcreteIfExpression,
+        ConcreteListExpression, ConcreteRecordExpression, ConcreteStringLiteralExpression,
+        ConcreteTagExpression, ConcreteType, ConcreteUnaryOperatorExpression,
     };
 
     #[test]
@@ -134,5 +136,14 @@ mod test {
             path_if_false: Some(ConcreteExpression::identifier_for_test("baz")),
         }));
         assert_eq!(print_expression(&expression), "(foo?bar:baz)");
+    }
+
+    #[test]
+    fn print_block() {
+        let block = ConcreteExpression::Block(Box::new(ConcreteBlockExpression {
+            expression_type: ConcreteType::default_integer_for_test(),
+            contents: vec![ConcreteExpression::integer_for_test(42)],
+        }));
+        assert_eq!(print_expression(&block), "42");
     }
 }
