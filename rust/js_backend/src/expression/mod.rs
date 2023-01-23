@@ -1,3 +1,4 @@
+mod binary_operator;
 mod list;
 mod record;
 
@@ -14,6 +15,9 @@ pub fn print_expression(expression: &ConcreteExpression) -> String {
         ConcreteExpression::StringLiteral(string) => print_string_literal(string),
         ConcreteExpression::Record(record) => record::print_record(record),
         ConcreteExpression::List(list) => list::print_list(list),
+        ConcreteExpression::BinaryOperator(operator) => {
+            binary_operator::print_binary_operator(operator)
+        }
         _ => unimplemented!(),
     }
 }
@@ -23,9 +27,10 @@ mod test {
     use std::collections::HashMap;
 
     use super::*;
+    use ast::BinaryOperatorSymbol;
     use typed_ast::{
-        ConcreteListExpression, ConcreteRecordExpression, ConcreteStringLiteralExpression,
-        ConcreteType,
+        ConcreteBinaryOperatorExpression, ConcreteListExpression, ConcreteRecordExpression,
+        ConcreteStringLiteralExpression, ConcreteType,
     };
 
     #[test]
@@ -76,5 +81,17 @@ mod test {
             contents: vec![ConcreteExpression::integer_for_test(42)],
         }));
         assert_eq!(print_expression(&list), "[42]");
+    }
+
+    #[test]
+    fn print_binary_operator() {
+        let expression =
+            ConcreteExpression::BinaryOperator(Box::new(ConcreteBinaryOperatorExpression {
+                expression_type: ConcreteType::default_binary_operator_for_test(),
+                symbol: BinaryOperatorSymbol::FieldLookup,
+                left_child: ConcreteExpression::identifier_for_test("foo"),
+                right_child: ConcreteExpression::identifier_for_test("bar"),
+            }));
+        assert_eq!(print_expression(&expression), "foo.bar");
     }
 }
