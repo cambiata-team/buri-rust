@@ -1,5 +1,6 @@
 mod binary_operator;
 mod block;
+mod boolean;
 mod function_declaration;
 mod if_expression;
 mod list;
@@ -32,7 +33,7 @@ pub fn print_expression(expression: &ConcreteExpression) -> String {
         ConcreteExpression::Function(function) => {
             function_declaration::print_function_declaration(function)
         }
-        ConcreteExpression::Boolean(_) => unimplemented!(),
+        ConcreteExpression::Boolean(boolean) => boolean::print_boolean(boolean),
     }
 }
 
@@ -43,10 +44,10 @@ mod test {
     use super::*;
     use ast::{BinaryOperatorSymbol, UnaryOperatorSymbol};
     use typed_ast::{
-        ConcreteBinaryOperatorExpression, ConcreteBlockExpression, ConcreteFunctionExpression,
-        ConcreteIfExpression, ConcreteListExpression, ConcreteRecordExpression,
-        ConcreteStringLiteralExpression, ConcreteTagExpression, ConcreteType,
-        ConcreteUnaryOperatorExpression,
+        ConcreteBinaryOperatorExpression, ConcreteBlockExpression, ConcreteBooleanExpression,
+        ConcreteFunctionExpression, ConcreteIfExpression, ConcreteListExpression,
+        ConcreteRecordExpression, ConcreteStringLiteralExpression, ConcreteTagExpression,
+        ConcreteType, ConcreteUnaryOperatorExpression, PrimitiveType,
     };
 
     #[test]
@@ -160,5 +161,14 @@ mod test {
             body: ConcreteExpression::integer_for_test(42),
         }));
         assert_eq!(print_expression(&function), "()=>(42)");
+    }
+
+    #[test]
+    fn print_boolean() {
+        let boolean = ConcreteExpression::Boolean(Box::new(ConcreteBooleanExpression {
+            expression_type: ConcreteType::Primitive(PrimitiveType::CompilerBoolean),
+            value: true,
+        }));
+        assert_eq!(print_expression(&boolean), "true");
     }
 }
