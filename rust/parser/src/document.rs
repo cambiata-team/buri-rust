@@ -21,9 +21,7 @@ enum DocumentElement<'a> {
     Expression(Expression<'a>),
 }
 
-pub fn document<'a>(
-    context: ExpressionContext,
-) -> impl FnMut(ParserInput<'a>) -> IResult<'a, DocumentNode<'a>> {
+pub fn document<'a>() -> impl FnMut(ParserInput<'a>) -> IResult<'a, DocumentNode<'a>> {
     map(
         consumed(many0(alt((
             map(
@@ -79,7 +77,7 @@ mod test {
     #[test]
     fn blank_document_is_document() {
         let input = ParserInput::new("");
-        let result = document(ExpressionContext::new())(input);
+        let result = document()(input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");
     }
@@ -87,7 +85,7 @@ mod test {
     #[test]
     fn import_is_document() {
         let input = ParserInput::new("import a from \"file.buri\"");
-        let result = document(ExpressionContext::new())(input);
+        let result = document()(input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");
     }
@@ -95,7 +93,7 @@ mod test {
     #[test]
     fn import_value_is_preserved() {
         let input = ParserInput::new("import a from \"file.buri\"");
-        let result = document(ExpressionContext::new())(input);
+        let result = document()(input);
         let (_, parsed) = result.unwrap();
         assert_eq!(parsed.value.imports.len(), 1);
         assert!(matches!(
@@ -113,7 +111,7 @@ mod test {
     #[test]
     fn type_declaration_is_document() {
         let input = ParserInput::new("Hello = World");
-        let result = document(ExpressionContext::new())(input);
+        let result = document()(input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");
     }
@@ -121,7 +119,7 @@ mod test {
     #[test]
     fn type_declaration_value_is_preserved() {
         let input = ParserInput::new("Hello = World");
-        let result = document(ExpressionContext::new())(input);
+        let result = document()(input);
         let (_, parsed) = result.unwrap();
         assert_eq!(parsed.value.type_declarations.len(), 1);
         assert_eq!(
@@ -140,7 +138,7 @@ mod test {
     #[test]
     fn literal_is_document() {
         let input = ParserInput::new("0");
-        let result = document(ExpressionContext::new())(input);
+        let result = document()(input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");
     }
@@ -148,7 +146,7 @@ mod test {
     #[test]
     fn literal_value_is_preserved() {
         let input = ParserInput::new("314");
-        let result = document(ExpressionContext::new())(input);
+        let result = document()(input);
         let (_, parsed) = result.unwrap();
         assert_eq!(parsed.value.expressions.len(), 1);
         assert!(matches!(
@@ -160,7 +158,7 @@ mod test {
     #[test]
     fn identifier_is_document() {
         let input = ParserInput::new("hello");
-        let result = document(ExpressionContext::new())(input);
+        let result = document()(input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");
     }
@@ -168,7 +166,7 @@ mod test {
     #[test]
     fn variable_declaration_is_document() {
         let input = ParserInput::new("hello = world");
-        let result = document(ExpressionContext::new())(input);
+        let result = document()(input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");
     }
@@ -176,7 +174,7 @@ mod test {
     #[test]
     fn function_call_is_document() {
         let input = ParserInput::new("main()");
-        let result = document(ExpressionContext::new())(input);
+        let result = document()(input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");
     }
@@ -184,7 +182,7 @@ mod test {
     #[test]
     fn variable_declaration_value_is_preserved() {
         let input = ParserInput::new("hello = world");
-        let result = document(ExpressionContext::new())(input);
+        let result = document()(input);
         let (_, parsed) = result.unwrap();
         assert_eq!(parsed.value.variable_declarations.len(), 1);
         assert_eq!(
@@ -204,7 +202,7 @@ mod test {
     #[test]
     fn document_can_contain_multiple_lines_of_different_types() {
         let input = ParserInput::new("import a from \"file.buri\"\nHello = World\na");
-        let result = document(ExpressionContext::new())(input);
+        let result = document()(input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");
     }
@@ -212,7 +210,7 @@ mod test {
     #[test]
     fn document_can_contain_empty_lines() {
         let input = ParserInput::new("import a from \"file.buri\"\n\na");
-        let result = document(ExpressionContext::new())(input);
+        let result = document()(input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");
     }
