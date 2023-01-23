@@ -1,6 +1,7 @@
 mod binary_operator;
 mod list;
 mod record;
+mod tag;
 mod unary_operator;
 
 use crate::{
@@ -22,6 +23,7 @@ pub fn print_expression(expression: &ConcreteExpression) -> String {
         ConcreteExpression::UnaryOperator(operator) => {
             unary_operator::print_unary_operator(operator)
         }
+        ConcreteExpression::Tag(tag) => tag::print_tag(tag),
         _ => unimplemented!(),
     }
 }
@@ -34,7 +36,8 @@ mod test {
     use ast::{BinaryOperatorSymbol, UnaryOperatorSymbol};
     use typed_ast::{
         ConcreteBinaryOperatorExpression, ConcreteListExpression, ConcreteRecordExpression,
-        ConcreteStringLiteralExpression, ConcreteType, ConcreteUnaryOperatorExpression,
+        ConcreteStringLiteralExpression, ConcreteTagExpression, ConcreteType,
+        ConcreteUnaryOperatorExpression,
     };
 
     #[test]
@@ -108,5 +111,15 @@ mod test {
                 child: ConcreteExpression::integer_for_test(42),
             }));
         assert_eq!(print_expression(&expression), "-42");
+    }
+
+    #[test]
+    fn print_tag() {
+        let tag = ConcreteExpression::Tag(Box::new(ConcreteTagExpression {
+            name: "foo".to_string(),
+            expression_type: ConcreteType::default_tag_union_for_test(false),
+            contents: vec![],
+        }));
+        assert_eq!(print_expression(&tag), "\"foo\"");
     }
 }
