@@ -72,4 +72,12 @@ impl ConcreteType {
             element_type: Self::default_string_for_test(),
         }))
     }
+
+    #[must_use]
+    pub fn default_binary_operator_for_test() -> Self {
+        Self::Function(Box::new(ConcreteFunctionType {
+            argument_types: vec![],
+            return_type: None,
+        }))
+    }
 }

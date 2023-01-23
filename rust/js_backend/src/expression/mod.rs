@@ -1,3 +1,4 @@
+mod binary_operator;
 mod list;
 mod record;
 
