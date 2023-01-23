@@ -1,9 +1,7 @@
 use typed_ast::ConcreteIntegerLiteralExpression;
 
 pub fn print_integer_literal(node: &ConcreteIntegerLiteralExpression) -> String {
-    let mut result = String::new();
-    result.push_str(&node.value.to_string());
-    result
+    format!("({})", node.value)
 }
 
 #[cfg(test)]
@@ -18,7 +16,7 @@ mod test {
             expression_type: ConcreteType::Primitive(PrimitiveType::Num),
             value: 1,
         };
-        assert_eq!(print_integer_literal(&node), "1");
+        assert_eq!(print_integer_literal(&node), "(1)");
     }
 
     #[test]
@@ -27,6 +25,6 @@ mod test {
             expression_type: ConcreteType::Primitive(PrimitiveType::Num),
             value: 2,
         };
-        assert_eq!(print_integer_literal(&node), "2");
+        assert_eq!(print_integer_literal(&node), "(2)");
     }
 }

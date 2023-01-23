@@ -38,8 +38,8 @@ mod test {
         // Because of the HashMap, the order of the keys is not guaranteed.
         // However, the order doesn't matter so we can accept either one.
         assert!(
-            print_record(&record) == "{bar: \"baz\", foo: 42}"
-                || print_record(&record) == "{foo: 42, bar: \"baz\"}"
+            print_record(&record) == "{bar: \"baz\", foo: (42)}"
+                || print_record(&record) == "{foo: (42), bar: \"baz\"}"
         );
     }
 
@@ -52,6 +52,6 @@ mod test {
                 ConcreteExpression::integer_for_test(42),
             )]),
         };
-        assert_eq!(print_record(&record), "{foo: 42}");
+        assert_eq!(print_record(&record), "{foo: (42)}");
     }
 }

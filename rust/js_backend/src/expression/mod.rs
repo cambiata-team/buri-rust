@@ -38,7 +38,7 @@ mod test {
     #[test]
     fn can_print_integer_literal() {
         let expression = ConcreteExpression::integer_for_test(42);
-        assert_eq!(print_expression(&expression), "42");
+        assert_eq!(print_expression(&expression), "(42)");
     }
 
     #[test]
@@ -65,8 +65,8 @@ mod test {
         // Because of the HashMap, the order of the keys is not guaranteed.
         // However, the order doesn't matter so we can accept either one.
         assert!(
-            print_expression(&expression) == "{bar: \"baz\", foo: 42}"
-                || print_expression(&expression) == "{foo: 42, bar: \"baz\"}"
+            print_expression(&expression) == "{bar: \"baz\", foo: (42)}"
+                || print_expression(&expression) == "{foo: (42), bar: \"baz\"}"
         );
     }
 
@@ -76,6 +76,6 @@ mod test {
             expression_type: ConcreteType::default_list_for_test(),
             contents: vec![ConcreteExpression::integer_for_test(42)],
         }));
-        assert_eq!(print_expression(&list), "[42]");
+        assert_eq!(print_expression(&list), "[(42)]");
     }
 }

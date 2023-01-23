@@ -29,7 +29,7 @@ mod test {
                 ConcreteExpression::integer_for_test(43),
             ],
         };
-        assert_eq!(print_list(&list), "[42,43]");
+        assert_eq!(print_list(&list), "[(42),(43)]");
     }
 
     #[test]
@@ -38,7 +38,7 @@ mod test {
             expression_type: ConcreteType::default_list_for_test(),
             contents: vec![ConcreteExpression::integer_for_test(42)],
         };
-        assert_eq!(print_list(&list), "[42]");
+        assert_eq!(print_list(&list), "[(42)]");
     }
 
     #[test]

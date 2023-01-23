@@ -80,7 +80,7 @@ mod test {
             left_child: ConcreteExpression::integer_for_test(1),
             right_child: ConcreteExpression::integer_for_test(2),
         };
-        assert_eq!(print_binary_operator(&expression), "1.add(2)");
+        assert_eq!(print_binary_operator(&expression), "(1).add((2))");
     }
 
     #[test]
@@ -91,7 +91,7 @@ mod test {
             left_child: ConcreteExpression::integer_for_test(1),
             right_child: ConcreteExpression::integer_for_test(2),
         };
-        assert_eq!(print_binary_operator(&expression), "(1+2)");
+        assert_eq!(print_binary_operator(&expression), "((1)+(2))");
     }
 
     #[test]
@@ -102,7 +102,7 @@ mod test {
             left_child: ConcreteExpression::integer_for_test(1),
             right_child: ConcreteExpression::integer_for_test(2),
         };
-        assert_eq!(print_binary_operator(&expression), "1.subtract(2)");
+        assert_eq!(print_binary_operator(&expression), "(1).subtract((2))");
     }
 
     #[test]
@@ -113,7 +113,7 @@ mod test {
             left_child: ConcreteExpression::integer_for_test(1),
             right_child: ConcreteExpression::integer_for_test(2),
         };
-        assert_eq!(print_binary_operator(&expression), "1.multiply(2)");
+        assert_eq!(print_binary_operator(&expression), "(1).multiply((2))");
     }
 
     #[test]
@@ -124,7 +124,7 @@ mod test {
             left_child: ConcreteExpression::integer_for_test(1),
             right_child: ConcreteExpression::integer_for_test(2),
         };
-        assert_eq!(print_binary_operator(&expression), "1.divide(2)");
+        assert_eq!(print_binary_operator(&expression), "(1).divide((2))");
     }
 
     #[test]
@@ -135,7 +135,7 @@ mod test {
             left_child: ConcreteExpression::integer_for_test(1),
             right_child: ConcreteExpression::integer_for_test(2),
         };
-        assert_eq!(print_binary_operator(&expression), "1.power(2)");
+        assert_eq!(print_binary_operator(&expression), "(1).power((2))");
     }
 
     #[test]
@@ -146,7 +146,7 @@ mod test {
             left_child: ConcreteExpression::integer_for_test(1),
             right_child: ConcreteExpression::integer_for_test(2),
         };
-        assert_eq!(print_binary_operator(&expression), "1.modulo(2)");
+        assert_eq!(print_binary_operator(&expression), "(1).modulo((2))");
     }
 
     #[test]
@@ -157,7 +157,7 @@ mod test {
             left_child: ConcreteExpression::integer_for_test(1),
             right_child: ConcreteExpression::integer_for_test(2),
         };
-        assert_eq!(print_binary_operator(&expression), "1.equals(2)");
+        assert_eq!(print_binary_operator(&expression), "(1).equals((2))");
     }
 
     #[test]
@@ -168,7 +168,7 @@ mod test {
             left_child: ConcreteExpression::integer_for_test(1),
             right_child: ConcreteExpression::integer_for_test(2),
         };
-        assert_eq!(print_binary_operator(&expression), "1.notEquals(2)");
+        assert_eq!(print_binary_operator(&expression), "(1).notEquals((2))");
     }
 
     #[test]
@@ -179,7 +179,7 @@ mod test {
             left_child: ConcreteExpression::integer_for_test(1),
             right_child: ConcreteExpression::integer_for_test(2),
         };
-        assert_eq!(print_binary_operator(&expression), "1.lessThan(2)");
+        assert_eq!(print_binary_operator(&expression), "(1).lessThan((2))");
     }
 
     #[test]
@@ -190,7 +190,10 @@ mod test {
             left_child: ConcreteExpression::integer_for_test(1),
             right_child: ConcreteExpression::integer_for_test(2),
         };
-        assert_eq!(print_binary_operator(&expression), "1.lessThanOrEquals(2)");
+        assert_eq!(
+            print_binary_operator(&expression),
+            "(1).lessThanOrEquals((2))"
+        );
     }
 
     #[test]
@@ -201,7 +204,7 @@ mod test {
             left_child: ConcreteExpression::integer_for_test(1),
             right_child: ConcreteExpression::integer_for_test(2),
         };
-        assert_eq!(print_binary_operator(&expression), "1.greaterThan(2)");
+        assert_eq!(print_binary_operator(&expression), "(1).greaterThan((2))");
     }
 
     #[test]
@@ -214,7 +217,7 @@ mod test {
         };
         assert_eq!(
             print_binary_operator(&expression),
-            "1.greaterThanOrEquals(2)"
+            "(1).greaterThanOrEquals((2))"
         );
     }
 
