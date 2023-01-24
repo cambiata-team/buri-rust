@@ -1,14 +1,44 @@
 use crate::{
     constraints::Constraint,
     generic_nodes::{
-        get_generic_type_id, GenericExpression, GenericIntegerLiteralExpression,
-        GenericListExpression, GenericSourcedType, GenericStringLiteralExpression,
+        get_generic_type_id, GenericBlockExpression, GenericExpression,
+        GenericIntegerLiteralExpression, GenericListExpression, GenericSourcedType,
+        GenericStringLiteralExpression,
     },
     type_schema::TypeSchema,
     type_schema_substitutions::TypeSchemaSubstitutions,
 };
-use ast::{Expression, IntegerNode, ListNode, StringLiteralNode};
+use ast::{BlockNode, Expression, IntegerNode, ListNode, StringLiteralNode};
 use typed_ast::{ConcreteType, PrimitiveType};
+
+fn translate_block<'a>(
+    schema: &mut TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    node: BlockNode<'a>,
+) -> Result<GenericBlockExpression<'a>, ()> {
+    let type_id = schema.make_id();
+    substitutions.insert_new_id(type_id);
+    let mut element_translations = Vec::new();
+    element_translations.reserve_exact(node.value.len());
+    for element in node.value {
+        let element_translation =
+            translate_parsed_expression_to_generic_expression(schema, substitutions, element)?;
+        element_translations.push(element_translation);
+    }
+    match element_translations.last_mut() {
+        None => return Err(()),
+        Some(last_element) => {
+            substitutions.set_types_equal(get_generic_type_id(&last_element), type_id);
+        }
+    }
+    Ok(GenericBlockExpression {
+        expression_type: GenericSourcedType {
+            type_id,
+            source_of_type: node.source,
+        },
+        contents: element_translations,
+    })
+}
 
 fn translate_integer<'a>(
     schema: &mut TypeSchema,
@@ -90,7 +120,9 @@ pub fn translate_parsed_expression_to_generic_expression<'a>(
 ) -> Result<GenericExpression<'a>, ()> {
     match expression {
         // TODO(aaron): Expression::BinaryOperator(node) => translate_binary_operator(schema, node),
-        // TODO(aaron): Expression::Block(node) => translate_block(schema, node),
+        Expression::Block(node) => translate_block(schema, substitutions, node)
+            .map(Box::new)
+            .map(GenericExpression::Block),
         // TODO(aaron): Expression::Function(node) => translate_function(schema, node),
         Expression::FunctionApplicationArguments(node) => Err(()),
         // TODO(aaron): Expression::Identifier(node) => translate_identifier(schema, node),
@@ -121,6 +153,98 @@ mod test {
         FunctionApplicationArgumentsNode, FunctionApplicationArgumentsValue, ListNode, ParsedNode,
         ParserInput,
     };
+
+    #[test]
+    fn block_input_increments_id_counter_by_two_more_than_total_number_of_ids_in_the_contents() {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::Block(BlockNode {
+            source: ParserInput::new(""),
+            value: vec![
+                Expression::Integer(IntegerNode {
+                    source: ParserInput::new(""),
+                    value: 2,
+                }),
+                Expression::Integer(IntegerNode {
+                    source: ParserInput::new(""),
+                    value: 3,
+                }),
+                Expression::Integer(IntegerNode {
+                    source: ParserInput::new(""),
+                    value: 5,
+                }),
+            ],
+        });
+        let _ = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        assert_eq!(schema.next_id, 4);
+    }
+
+    #[test]
+    fn for_block_input_each_element_in_input_block_has_corresponding_element_in_translated_block() {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::Block(BlockNode {
+            source: ParserInput::new(""),
+            value: vec![
+                Expression::Integer(IntegerNode {
+                    source: ParserInput::new(""),
+                    value: 2,
+                }),
+                Expression::Integer(IntegerNode {
+                    source: ParserInput::new(""),
+                    value: 3,
+                }),
+                Expression::Integer(IntegerNode {
+                    source: ParserInput::new(""),
+                    value: 5,
+                }),
+            ],
+        });
+        let result = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        match result.unwrap() {
+            GenericExpression::Block(block_expression) => {
+                assert_eq!((*block_expression).contents.len(), 3);
+            }
+            _ => panic!("Expected Block"),
+        }
+    }
+
+    #[test]
+    fn block_input_with_primitive_elements_has_as_many_canonical_ids_as_elements() {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::Block(BlockNode {
+            source: ParserInput::new(""),
+            value: vec![
+                Expression::Integer(IntegerNode {
+                    source: ParserInput::new(""),
+                    value: 2,
+                }),
+                Expression::Integer(IntegerNode {
+                    source: ParserInput::new(""),
+                    value: 3,
+                }),
+                Expression::Integer(IntegerNode {
+                    source: ParserInput::new(""),
+                    value: 5,
+                }),
+            ],
+        });
+        let _ = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        assert_eq!(substitutions.count_canonical_ids(), 3);
+    }
 
     #[test]
     fn function_application_arguments_does_not_increment_id_counter() {
