@@ -150,8 +150,7 @@ mod test {
     use super::*;
 
     use ast::{
-        FunctionApplicationArgumentsNode, FunctionApplicationArgumentsValue, ListNode, ParsedNode,
-        ParserInput,
+        FunctionApplicationArgumentsNode, FunctionApplicationArgumentsValue, ListNode, ParserInput,
     };
 
     #[test]
@@ -337,7 +336,7 @@ mod test {
     fn list_input_increments_id_counter_by_two_more_than_total_number_of_ids_in_the_contents() {
         let mut schema = TypeSchema::new();
         let mut substitutions = TypeSchemaSubstitutions::new();
-        let expression = Expression::List(ParsedNode {
+        let expression = Expression::List(ListNode {
             source: ParserInput::new(""),
             value: vec![
                 Expression::Integer(IntegerNode {
@@ -366,7 +365,7 @@ mod test {
     fn list_input_adds_one_constraint_beyond_those_added_by_its_contents() {
         let mut schema = TypeSchema::new();
         let mut substitutions = TypeSchemaSubstitutions::new();
-        let expression = Expression::List(ParsedNode {
+        let expression = Expression::List(ListNode {
             source: ParserInput::new(""),
             value: vec![
                 Expression::Integer(IntegerNode {
@@ -395,7 +394,7 @@ mod test {
     fn for_list_input_each_element_in_input_list_has_corresponding_element_in_translated_list() {
         let mut schema = TypeSchema::new();
         let mut substitutions = TypeSchemaSubstitutions::new();
-        let expression = Expression::List(ParsedNode {
+        let expression = Expression::List(ListNode {
             source: ParserInput::new(""),
             value: vec![
                 Expression::Integer(IntegerNode {
@@ -429,7 +428,7 @@ mod test {
     fn list_input_with_primitive_elements_has_only_two_canonical_ids() {
         let mut schema = TypeSchema::new();
         let mut substitutions = TypeSchemaSubstitutions::new();
-        let expression = Expression::List(ParsedNode {
+        let expression = Expression::List(ListNode {
             source: ParserInput::new(""),
             value: vec![
                 Expression::Integer(IntegerNode {
