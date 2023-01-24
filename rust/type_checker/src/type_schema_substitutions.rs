@@ -3,7 +3,7 @@ use crate::{
     type_schema::TypeSchema,
     GenericTypeId,
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub struct TypeSchemaSubstitutions {
     /// Implement a disjoint set / union find data structure.
@@ -39,6 +39,16 @@ impl TypeSchemaSubstitutions {
             }
         }
     }
+    pub fn count_ids(&self) -> usize {
+        self.disjoint_set.len()
+    }
+    pub fn count_canonical_ids(&mut self) -> usize {
+        let mut canonical_ids = HashSet::new();
+        for typ in 0..self.count_ids() {
+            canonical_ids.insert(self.get_canonical_id(typ));
+        }
+        canonical_ids.len()
+    }
     pub fn set_types_equal(&mut self, type_a: GenericTypeId, type_b: GenericTypeId) {
         let canonical_a = self.get_canonical_id(type_a);
         let canonical_b = self.get_canonical_id(type_b);
@@ -53,6 +63,9 @@ impl TypeSchemaSubstitutions {
     fn apply_to_constraint(&mut self, constraint: Constraint) -> Constraint {
         match constraint {
             Constraint::EqualToConcrete(x) => Constraint::EqualToConcrete(x),
+            Constraint::ListOfType(element_type) => {
+                Constraint::ListOfType(self.get_canonical_id(element_type))
+            }
             Constraint::SubTag(sub_tag_constraint) => Constraint::SubTag(SubTagConstraint {
                 tag_name: sub_tag_constraint.tag_name,
                 tag_content_types: self.apply_to_vec(sub_tag_constraint.tag_content_types),
@@ -177,6 +190,17 @@ mod test {
             substitutions.get_canonical_id(5),
             substitutions.get_canonical_id(7)
         );
+    }
+
+    #[test]
+    fn setting_two_types_equal_decrements_the_number_of_canonical_ids_by_one() {
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        substitutions.insert_new_id(3);
+        substitutions.insert_new_id(5);
+        let old_canonical_id_count = substitutions.count_canonical_ids();
+        substitutions.set_types_equal(3, 5);
+        let new_canonical_id_count = substitutions.count_canonical_ids();
+        assert_eq!(old_canonical_id_count, new_canonical_id_count + 1);
     }
 
     #[test]

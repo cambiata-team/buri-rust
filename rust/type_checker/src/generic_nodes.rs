@@ -30,3 +30,20 @@ pub type GenericTagExpression<'a> = TypedTagExpression<GenericSourcedType<'a>>;
 pub type GenericUnaryOperatorExpression<'a> = TypedUnaryOperatorExpression<GenericSourcedType<'a>>;
 
 pub type GenericExpression<'a> = TypedExpression<GenericSourcedType<'a>>;
+
+pub const fn get_generic_type_id<'a>(input: &GenericExpression<'a>) -> GenericTypeId {
+    match input {
+        GenericExpression::BinaryOperator(node) => node.expression_type.type_id,
+        GenericExpression::Block(node) => node.expression_type.type_id,
+        GenericExpression::Boolean(node) => node.expression_type.type_id,
+        GenericExpression::Function(node) => node.expression_type.type_id,
+        GenericExpression::Identifier(node) => node.expression_type.type_id,
+        GenericExpression::If(node) => node.expression_type.type_id,
+        GenericExpression::Integer(node) => node.expression_type.type_id,
+        GenericExpression::List(node) => node.expression_type.type_id,
+        GenericExpression::Record(node) => node.expression_type.type_id,
+        GenericExpression::StringLiteral(node) => node.expression_type.type_id,
+        GenericExpression::Tag(node) => node.expression_type.type_id,
+        GenericExpression::UnaryOperator(node) => node.expression_type.type_id,
+    }
+}

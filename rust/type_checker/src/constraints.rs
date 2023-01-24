@@ -29,6 +29,8 @@ pub struct HasMethodConstraint {
 pub enum Constraint {
     /// Constrain that a generic type be equal to some concrete type.
     EqualToConcrete(ConcreteType),
+    // Constrain that a generic type is a list whose contents have a particular type.
+    ListOfType(GenericTypeId),
     SubTag(SubTagConstraint),
     HasField(HasFieldConstraint),
     HasMethod(HasMethodConstraint),
