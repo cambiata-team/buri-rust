@@ -14,6 +14,7 @@ mod test {
         let node = ConcreteIdentifierExpression {
             expression_type: ConcreteType::Primitive(PrimitiveType::Str),
             name: "foo".to_string(),
+            is_disregarded: false,
         };
         assert_eq!(print_identifier(&node), "foo");
     }
