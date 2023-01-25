@@ -35,6 +35,7 @@ pub struct TypedFunctionExpression<T> {
 pub struct TypedIdentifierExpression<T> {
     pub expression_type: T,
     pub name: String,
+    pub is_disregarded: bool,
 }
 
 // TODO(nick): add this to JS backend

@@ -27,6 +27,7 @@ impl ConcreteExpression {
         Self::Identifier(Box::new(ConcreteIdentifierExpression {
             expression_type: ConcreteType::default_for_test(),
             name: name.to_string(),
+            is_disregarded: false,
         }))
     }
 
