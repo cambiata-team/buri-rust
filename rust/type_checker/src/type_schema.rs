@@ -33,4 +33,12 @@ impl TypeSchema {
             }
         }
     }
+    /// Return the total number of constraints in the system.
+    pub fn number_of_constraints(&self) -> usize {
+        let mut constraint_count: usize = 0;
+        for constraint_vec in self.constraints.values() {
+            constraint_count += constraint_vec.len();
+        }
+        constraint_count
+    }
 }
