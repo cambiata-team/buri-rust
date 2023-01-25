@@ -1,5 +1,7 @@
 use crate::{
-    constraints::{Constraint, HasFieldConstraint, HasMethodConstraint, SubTagConstraint},
+    constraints::{
+        Constraint, HasFieldConstraint, HasMethodConstraint, HasTagConstraint, TagAtMostConstraint,
+    },
     type_schema::TypeSchema,
     GenericTypeId,
 };
@@ -66,10 +68,21 @@ impl TypeSchemaSubstitutions {
             Constraint::ListOfType(element_type) => {
                 Constraint::ListOfType(self.get_canonical_id(element_type))
             }
-            Constraint::SubTag(sub_tag_constraint) => Constraint::SubTag(SubTagConstraint {
-                tag_name: sub_tag_constraint.tag_name,
-                tag_content_types: self.apply_to_vec(sub_tag_constraint.tag_content_types),
+            Constraint::HasTag(has_tag_constraint) => Constraint::HasTag(HasTagConstraint {
+                tag_name: has_tag_constraint.tag_name,
+                tag_content_types: self.apply_to_vec(has_tag_constraint.tag_content_types),
             }),
+            Constraint::TagAtMost(tag_at_most_constraint) => {
+                let mut new_constraint = TagAtMostConstraint {
+                    tags: HashMap::new(),
+                };
+                for (tag_name, tag_content_types) in tag_at_most_constraint.tags {
+                    new_constraint
+                        .tags
+                        .insert(tag_name, self.apply_to_vec(tag_content_types));
+                }
+                Constraint::TagAtMost(new_constraint)
+            }
             Constraint::HasField(has_field_constraint) => {
                 Constraint::HasField(HasFieldConstraint {
                     field_name: has_field_constraint.field_name,
