@@ -2,15 +2,15 @@ use crate::{
     constraints::{Constraint, HasTagConstraint, TagAtMostConstraint},
     generic_nodes::{
         get_generic_type_id, GenericBlockExpression, GenericExpression,
-        GenericIntegerLiteralExpression, GenericListExpression, GenericSourcedType,
-        GenericStringLiteralExpression, GenericUnaryOperatorExpression,
+        GenericIdentifierExpression, GenericIntegerLiteralExpression, GenericListExpression,
+        GenericSourcedType, GenericStringLiteralExpression, GenericUnaryOperatorExpression,
     },
     type_schema::TypeSchema,
     type_schema_substitutions::TypeSchemaSubstitutions,
 };
 use ast::{
-    BlockNode, Expression, IntegerNode, ListNode, StringLiteralNode, UnaryOperatorNode,
-    UnaryOperatorSymbol,
+    BlockNode, Expression, IdentifierNode, IntegerNode, ListNode, StringLiteralNode,
+    UnaryOperatorNode, UnaryOperatorSymbol,
 };
 use std::collections::HashMap;
 use typed_ast::{ConcreteType, PrimitiveType};
@@ -70,6 +70,23 @@ fn translate_block<'a>(
         },
         contents: element_translations,
     })
+}
+
+fn translate_identifier<'a>(
+    schema: &mut TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    node: IdentifierNode<'a>,
+) -> GenericIdentifierExpression<'a> {
+    let type_id = schema.make_id();
+    substitutions.insert_new_id(type_id);
+    GenericIdentifierExpression {
+        expression_type: GenericSourcedType {
+            type_id,
+            source_of_type: node.source,
+        },
+        name: node.value.name,
+        is_disregarded: node.value.is_disregarded,
+    }
 }
 
 fn translate_integer<'a>(
@@ -191,7 +208,9 @@ pub fn translate_parsed_expression_to_generic_expression<'a>(
             .map(GenericExpression::Block),
         // TODO(aaron): Expression::Function(node) => translate_function(schema, node),
         Expression::FunctionApplicationArguments(node) => Err(()),
-        // TODO(aaron): Expression::Identifier(node) => translate_identifier(schema, node),
+        Expression::Identifier(node) => Ok(GenericExpression::Identifier(Box::new(
+            translate_identifier(schema, substitutions, node),
+        ))),
         // TODO(aaron): Expression::If(node) => translate_if(schema, node),
         Expression::Integer(node) => Ok(GenericExpression::Integer(Box::new(translate_integer(
             schema,
@@ -218,8 +237,8 @@ mod test {
     use super::*;
 
     use ast::{
-        FunctionApplicationArgumentsNode, FunctionApplicationArgumentsValue, ListNode, ParserInput,
-        UnaryOperatorValue,
+        FunctionApplicationArgumentsNode, FunctionApplicationArgumentsValue, IdentifierValue,
+        ListNode, ParserInput, UnaryOperatorValue,
     };
 
     #[test]
@@ -345,6 +364,29 @@ mod test {
             expression,
         );
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn identifier_input_preserves_name() {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::Identifier(IdentifierNode {
+            source: ParserInput::new(""),
+            value: IdentifierValue {
+                name: "hello".to_owned(),
+                is_disregarded: false,
+            },
+        });
+        let result = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        if let Ok(GenericExpression::Identifier(identifier_expression)) = result {
+            assert_eq!((*identifier_expression).name, "hello");
+        } else {
+            panic!();
+        }
     }
 
     #[test]
