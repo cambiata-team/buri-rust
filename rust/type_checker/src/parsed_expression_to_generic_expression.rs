@@ -1,5 +1,5 @@
 use crate::{
-    constraints::Constraint,
+    constraints::{Constraint, HasTagConstraint, TagAtMostConstraint},
     generic_nodes::{
         get_generic_type_id, GenericBlockExpression, GenericExpression,
         GenericIntegerLiteralExpression, GenericListExpression, GenericSourcedType,
@@ -9,7 +9,36 @@ use crate::{
     type_schema_substitutions::TypeSchemaSubstitutions,
 };
 use ast::{BlockNode, Expression, IntegerNode, ListNode, StringLiteralNode};
+use std::collections::HashMap;
 use typed_ast::{ConcreteType, PrimitiveType};
+
+const fn constrain_equal_to_num() -> Constraint {
+    Constraint::EqualToConcrete(ConcreteType::Primitive(PrimitiveType::Num))
+}
+
+const fn constrain_equal_to_str() -> Constraint {
+    Constraint::EqualToConcrete(ConcreteType::Primitive(PrimitiveType::Str))
+}
+
+fn constrain_at_least_true() -> Constraint {
+    Constraint::HasTag(HasTagConstraint {
+        tag_name: "true".to_owned(),
+        tag_content_types: vec![],
+    })
+}
+
+fn constrain_at_least_false() -> Constraint {
+    Constraint::HasTag(HasTagConstraint {
+        tag_name: "false".to_owned(),
+        tag_content_types: vec![],
+    })
+}
+
+fn constrain_at_most_boolean_tag() -> Constraint {
+    Constraint::TagAtMost(TagAtMostConstraint {
+        tags: HashMap::from([("true".to_owned(), vec![]), ("false".to_owned(), vec![])]),
+    })
+}
 
 fn translate_block<'a>(
     schema: &mut TypeSchema,
@@ -47,10 +76,7 @@ fn translate_integer<'a>(
 ) -> GenericIntegerLiteralExpression<'a> {
     let type_id = schema.make_id();
     substitutions.insert_new_id(type_id);
-    schema.insert(
-        type_id,
-        Constraint::EqualToConcrete(ConcreteType::Primitive(PrimitiveType::Num)),
-    );
+    schema.insert(type_id, constrain_equal_to_num());
     GenericIntegerLiteralExpression {
         expression_type: GenericSourcedType {
             type_id,
@@ -94,10 +120,7 @@ fn translate_string<'a>(
 ) -> GenericStringLiteralExpression<'a> {
     let type_id = schema.make_id();
     substitutions.insert_new_id(type_id);
-    schema.insert(
-        type_id,
-        Constraint::EqualToConcrete(ConcreteType::Primitive(PrimitiveType::Str)),
-    );
+    schema.insert(type_id, constrain_equal_to_str());
     GenericStringLiteralExpression {
         expression_type: GenericSourcedType {
             type_id,
