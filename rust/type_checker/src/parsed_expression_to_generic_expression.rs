@@ -208,11 +208,10 @@ mod test {
             &mut substitutions,
             expression,
         );
-        match result.unwrap() {
-            GenericExpression::Block(block_expression) => {
-                assert_eq!((*block_expression).contents.len(), 3);
-            }
-            _ => panic!("Expected Block"),
+        if let Ok(GenericExpression::Block(block_expression)) = result {
+            assert_eq!((*block_expression).contents.len(), 3);
+        } else {
+            panic!();
         }
     }
 
@@ -324,11 +323,10 @@ mod test {
             &mut substitutions,
             expression,
         );
-        match result.unwrap() {
-            GenericExpression::Integer(integer_expression) => {
-                assert_eq!((*integer_expression).value, 314);
-            }
-            _ => panic!("Expected Integer"),
+        if let Ok(GenericExpression::Integer(integer_expression)) = result {
+            assert_eq!((*integer_expression).value, 314);
+        } else {
+            panic!();
         }
     }
 
@@ -416,11 +414,10 @@ mod test {
             &mut substitutions,
             expression,
         );
-        match result.unwrap() {
-            GenericExpression::List(list_node) => {
-                assert_eq!((*list_node).contents.len(), 3);
-            }
-            _ => panic!("Expected list"),
+        if let Ok(GenericExpression::List(list_node)) = result {
+            assert_eq!((*list_node).contents.len(), 3);
+        } else {
+            panic!();
         }
     }
 
@@ -498,11 +495,10 @@ mod test {
             &mut substitutions,
             expression,
         );
-        match result.unwrap() {
-            GenericExpression::StringLiteral(string_literal_expression) => {
-                assert_eq!((*string_literal_expression).value, "hello");
-            }
-            _ => panic!("Expected StringLiteral"),
+        if let Ok(GenericExpression::StringLiteral(string_literal_expression)) = result {
+            assert_eq!((*string_literal_expression).value, "hello");
+        } else {
+            panic!();
         }
     }
 }
