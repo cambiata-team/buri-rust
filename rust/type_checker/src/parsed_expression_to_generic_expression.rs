@@ -47,11 +47,9 @@ fn translate_integer<'a>(
 ) -> GenericIntegerLiteralExpression<'a> {
     let type_id = schema.make_id();
     substitutions.insert_new_id(type_id);
-    schema.constraints.insert(
+    schema.insert(
         type_id,
-        vec![Constraint::EqualToConcrete(ConcreteType::Primitive(
-            PrimitiveType::Num,
-        ))],
+        Constraint::EqualToConcrete(ConcreteType::Primitive(PrimitiveType::Num)),
     );
     GenericIntegerLiteralExpression {
         expression_type: GenericSourcedType {
@@ -71,9 +69,7 @@ fn translate_list<'a>(
     substitutions.insert_new_id(list_type_id);
     let element_type_id = schema.make_id();
     substitutions.insert_new_id(element_type_id);
-    schema
-        .constraints
-        .insert(list_type_id, vec![Constraint::ListOfType(element_type_id)]);
+    schema.insert(list_type_id, Constraint::ListOfType(element_type_id));
     let mut element_translations = Vec::new();
     element_translations.reserve_exact(node.value.len());
     for element in node.value {
@@ -98,11 +94,9 @@ fn translate_string<'a>(
 ) -> GenericStringLiteralExpression<'a> {
     let type_id = schema.make_id();
     substitutions.insert_new_id(type_id);
-    schema.constraints.insert(
+    schema.insert(
         type_id,
-        vec![Constraint::EqualToConcrete(ConcreteType::Primitive(
-            PrimitiveType::Str,
-        ))],
+        Constraint::EqualToConcrete(ConcreteType::Primitive(PrimitiveType::Str)),
     );
     GenericStringLiteralExpression {
         expression_type: GenericSourcedType {
