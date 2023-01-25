@@ -3,12 +3,15 @@ use crate::{
     generic_nodes::{
         get_generic_type_id, GenericBlockExpression, GenericExpression,
         GenericIntegerLiteralExpression, GenericListExpression, GenericSourcedType,
-        GenericStringLiteralExpression,
+        GenericStringLiteralExpression, GenericUnaryOperatorExpression,
     },
     type_schema::TypeSchema,
     type_schema_substitutions::TypeSchemaSubstitutions,
 };
-use ast::{BlockNode, Expression, IntegerNode, ListNode, StringLiteralNode};
+use ast::{
+    BlockNode, Expression, IntegerNode, ListNode, StringLiteralNode, UnaryOperatorNode,
+    UnaryOperatorSymbol,
+};
 use std::collections::HashMap;
 use typed_ast::{ConcreteType, PrimitiveType};
 
@@ -130,6 +133,52 @@ fn translate_string<'a>(
     }
 }
 
+fn translate_unary_operator<'a>(
+    schema: &mut TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    node: UnaryOperatorNode<'a>,
+) -> Result<GenericUnaryOperatorExpression<'a>, ()> {
+    let type_id = schema.make_id();
+    substitutions.insert_new_id(type_id);
+    let new_child = match node.value.symbol {
+        UnaryOperatorSymbol::Not => {
+            schema.insert(type_id, constrain_at_least_true());
+            schema.insert(type_id, constrain_at_least_false());
+            let translated_child = translate_parsed_expression_to_generic_expression(
+                schema,
+                substitutions,
+                *node.value.child,
+            )?;
+            schema.insert(
+                get_generic_type_id(&translated_child),
+                constrain_at_most_boolean_tag(),
+            );
+            translated_child
+        }
+        UnaryOperatorSymbol::Negative => {
+            schema.insert(type_id, constrain_equal_to_num());
+            let translated_child = translate_parsed_expression_to_generic_expression(
+                schema,
+                substitutions,
+                *node.value.child,
+            )?;
+            schema.insert(
+                get_generic_type_id(&translated_child),
+                constrain_equal_to_num(),
+            );
+            translated_child
+        }
+    };
+    Ok(GenericUnaryOperatorExpression {
+        expression_type: GenericSourcedType {
+            type_id,
+            source_of_type: node.source,
+        },
+        symbol: node.value.symbol,
+        child: new_child,
+    })
+}
+
 pub fn translate_parsed_expression_to_generic_expression<'a>(
     schema: &mut TypeSchema,
     substitutions: &mut TypeSchemaSubstitutions,
@@ -157,7 +206,9 @@ pub fn translate_parsed_expression_to_generic_expression<'a>(
             translate_string(schema, substitutions, node),
         ))),
         // TODO(aaron): Expression::Tag(node) => translate_tag(schema, node),
-        // TODO(aaron): Expression::UnaryOperator(node) => translate_unary_operator(schema, node),
+        Expression::UnaryOperator(node) => translate_unary_operator(schema, substitutions, node)
+            .map(Box::new)
+            .map(GenericExpression::UnaryOperator),
         _ => unimplemented!(),
     }
 }
@@ -168,6 +219,7 @@ mod test {
 
     use ast::{
         FunctionApplicationArgumentsNode, FunctionApplicationArgumentsValue, ListNode, ParserInput,
+        UnaryOperatorValue,
     };
 
     #[test]
@@ -324,7 +376,7 @@ mod test {
             &mut substitutions,
             expression,
         );
-        assert_eq!(schema.constraints.len(), 1);
+        assert_eq!(schema.number_of_constraints(), 1);
     }
 
     #[test]
@@ -402,7 +454,7 @@ mod test {
             &mut substitutions,
             expression,
         );
-        assert_eq!(schema.constraints.len(), 4);
+        assert_eq!(schema.number_of_constraints(), 4);
     }
 
     #[test]
@@ -496,7 +548,7 @@ mod test {
             &mut substitutions,
             expression,
         );
-        assert_eq!(schema.constraints.len(), 1);
+        assert_eq!(schema.number_of_constraints(), 1);
     }
 
     #[test]
@@ -514,6 +566,79 @@ mod test {
         );
         if let Ok(GenericExpression::StringLiteral(string_literal_expression)) = result {
             assert_eq!((*string_literal_expression).value, "hello");
+        } else {
+            panic!();
+        }
+    }
+
+    #[test]
+    fn unary_operator_input_increments_id_counter_by_one_more_than_added_by_its_child() {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::UnaryOperator(UnaryOperatorNode {
+            source: ParserInput::new(""),
+            value: UnaryOperatorValue {
+                symbol: UnaryOperatorSymbol::Negative,
+                child: Box::new(Expression::Integer(IntegerNode {
+                    source: ParserInput::new(""),
+                    value: 314,
+                })),
+            },
+        });
+        let _ = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        assert_eq!(schema.next_id, 2);
+    }
+
+    #[test]
+    fn unary_operator_negative_input_adds_two_constraints_beyond_those_added_by_the_child() {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::UnaryOperator(UnaryOperatorNode {
+            source: ParserInput::new(""),
+            value: UnaryOperatorValue {
+                symbol: UnaryOperatorSymbol::Negative,
+                child: Box::new(Expression::Integer(IntegerNode {
+                    source: ParserInput::new(""),
+                    value: 314,
+                })),
+            },
+        });
+        let _ = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        assert_eq!(schema.number_of_constraints(), 3);
+    }
+
+    #[test]
+    fn unary_operator_negative_input_preserves_symbol() {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::UnaryOperator(UnaryOperatorNode {
+            source: ParserInput::new(""),
+            value: UnaryOperatorValue {
+                symbol: UnaryOperatorSymbol::Negative,
+                child: Box::new(Expression::Integer(IntegerNode {
+                    source: ParserInput::new(""),
+                    value: 314,
+                })),
+            },
+        });
+        let result = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        if let Ok(GenericExpression::UnaryOperator(unary_operator_expression)) = result {
+            assert_eq!(
+                (*unary_operator_expression).symbol,
+                UnaryOperatorSymbol::Negative
+            )
         } else {
             panic!();
         }
