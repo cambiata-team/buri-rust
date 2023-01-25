@@ -658,6 +658,31 @@ mod test {
     }
 
     #[test]
+    fn unary_operator_not_input_adds_three_constraints_beyond_those_added_by_the_child() {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::UnaryOperator(UnaryOperatorNode {
+            source: ParserInput::new(""),
+            value: UnaryOperatorValue {
+                symbol: UnaryOperatorSymbol::Not,
+                child: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "hello".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+            },
+        });
+        let _ = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        assert_eq!(schema.number_of_constraints(), 3);
+    }
+
+    #[test]
     fn unary_operator_negative_input_preserves_symbol() {
         let mut schema = TypeSchema::new();
         let mut substitutions = TypeSchemaSubstitutions::new();
@@ -680,6 +705,38 @@ mod test {
             assert_eq!(
                 (*unary_operator_expression).symbol,
                 UnaryOperatorSymbol::Negative
+            )
+        } else {
+            panic!();
+        }
+    }
+
+    #[test]
+    fn unary_operator_not_input_preserves_symbol() {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::UnaryOperator(UnaryOperatorNode {
+            source: ParserInput::new(""),
+            value: UnaryOperatorValue {
+                symbol: UnaryOperatorSymbol::Not,
+                child: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "hello".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+            },
+        });
+        let result = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        if let Ok(GenericExpression::UnaryOperator(unary_operator_expression)) = result {
+            assert_eq!(
+                (*unary_operator_expression).symbol,
+                UnaryOperatorSymbol::Not
             )
         } else {
             panic!();
