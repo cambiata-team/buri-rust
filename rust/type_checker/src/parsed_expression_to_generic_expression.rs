@@ -4,14 +4,15 @@ use crate::{
         get_generic_type_id, GenericBinaryOperatorExpression, GenericBlockExpression,
         GenericExpression, GenericIdentifierExpression, GenericIntegerLiteralExpression,
         GenericListExpression, GenericSourcedType, GenericStringLiteralExpression,
-        GenericUnaryOperatorExpression,
+        GenericTagExpression, GenericUnaryOperatorExpression,
     },
     type_schema::TypeSchema,
     type_schema_substitutions::TypeSchemaSubstitutions,
+    GenericTypeId,
 };
 use ast::{
     BinaryOperatorNode, BinaryOperatorSymbol, BlockNode, Expression, IdentifierNode, IntegerNode,
-    ListNode, StringLiteralNode, UnaryOperatorNode, UnaryOperatorSymbol,
+    ListNode, StringLiteralNode, TagNode, UnaryOperatorNode, UnaryOperatorSymbol,
 };
 use std::collections::HashMap;
 use typed_ast::{ConcreteType, PrimitiveType};
@@ -247,6 +248,48 @@ fn translate_string<'a>(
     }
 }
 
+fn translate_tag<'a>(
+    schema: &mut TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    node: TagNode<'a>,
+) -> Result<GenericTagExpression<'a>, ()> {
+    let type_id = schema.make_id();
+    substitutions.insert_new_id(type_id);
+    let translated_content_expressions: Vec<GenericExpression> = match node
+        .value
+        .contents
+        .into_iter()
+        .map(|expression| {
+            translate_parsed_expression_to_generic_expression(schema, substitutions, expression)
+        })
+        .collect()
+    {
+        Ok(x) => x,
+        Err(x) => {
+            return Err(x);
+        }
+    };
+    let translated_content_types: Vec<GenericTypeId> = translated_content_expressions
+        .iter()
+        .map(get_generic_type_id)
+        .collect();
+    schema.insert(
+        type_id,
+        Constraint::HasTag(HasTagConstraint {
+            tag_name: node.value.name.value.clone(),
+            tag_content_types: translated_content_types,
+        }),
+    );
+    Ok(GenericTagExpression {
+        expression_type: GenericSourcedType {
+            type_id,
+            source_of_type: node.source,
+        },
+        name: node.value.name.value,
+        contents: translated_content_expressions,
+    })
+}
+
 fn translate_unary_operator<'a>(
     schema: &mut TypeSchema,
     substitutions: &mut TypeSchemaSubstitutions,
@@ -323,7 +366,9 @@ pub fn translate_parsed_expression_to_generic_expression<'a>(
         Expression::StringLiteral(node) => Ok(GenericExpression::StringLiteral(Box::new(
             translate_string(schema, substitutions, node),
         ))),
-        // TODO(aaron): Expression::Tag(node) => translate_tag(schema, node),
+        Expression::Tag(node) => translate_tag(schema, substitutions, node)
+            .map(Box::new)
+            .map(GenericExpression::Tag),
         Expression::UnaryOperator(node) => translate_unary_operator(schema, substitutions, node)
             .map(Box::new)
             .map(GenericExpression::UnaryOperator),
@@ -337,7 +382,7 @@ mod test {
 
     use ast::{
         BinaryOperatorValue, FunctionApplicationArgumentsNode, FunctionApplicationArgumentsValue,
-        IdentifierValue, ListNode, ParserInput, UnaryOperatorValue,
+        IdentifierValue, ListNode, ParserInput, TagIdentifierNode, TagValue, UnaryOperatorValue,
     };
 
     #[test]
@@ -929,6 +974,76 @@ mod test {
         );
         if let Ok(GenericExpression::StringLiteral(string_literal_expression)) = result {
             assert_eq!((*string_literal_expression).value, "hello");
+        } else {
+            panic!();
+        }
+    }
+
+    #[test]
+    fn tag_increments_id_counter_by_one() {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::Tag(TagNode {
+            source: ParserInput::new(""),
+            value: TagValue {
+                name: TagIdentifierNode {
+                    source: ParserInput::new(""),
+                    value: "a".to_owned(),
+                },
+                contents: vec![],
+            },
+        });
+        let _ = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        assert_eq!(schema.next_id, 1);
+    }
+
+    #[test]
+    fn tag_with_no_contents_adds_one_constraint() {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::Tag(TagNode {
+            source: ParserInput::new(""),
+            value: TagValue {
+                name: TagIdentifierNode {
+                    source: ParserInput::new(""),
+                    value: "a".to_owned(),
+                },
+                contents: vec![],
+            },
+        });
+        let _ = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        assert_eq!(schema.number_of_constraints(), 1);
+    }
+
+    #[test]
+    fn tag_preserves_name() {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::Tag(TagNode {
+            source: ParserInput::new(""),
+            value: TagValue {
+                name: TagIdentifierNode {
+                    source: ParserInput::new(""),
+                    value: "a".to_owned(),
+                },
+                contents: vec![],
+            },
+        });
+        let result = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        if let Ok(GenericExpression::Tag(tag_expression)) = result {
+            assert_eq!((*tag_expression).name, "a");
         } else {
             panic!();
         }
