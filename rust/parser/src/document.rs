@@ -3,14 +3,16 @@ use crate::{
     variable_declaration::variable_declaration, ExpressionContext,
 };
 use ast::{
-    DocumentNode, DocumentValue, Expression, IResult, ImportNode, ParserInput, TypeDeclarationNode,
-    VariableDeclarationNode,
+    DocumentNode, DocumentValue, Expression, IResult, ImportNode, ParserInput, TopLevelDeclaration,
+    TypeDeclarationNode, VariableDeclarationNode,
 };
 use nom::{
     branch::alt,
-    combinator::{consumed, eof, map},
+    bytes::complete::tag,
+    character::complete::space0,
+    combinator::{consumed, eof, map, opt},
     multi::many0,
-    sequence::terminated,
+    sequence::{terminated, tuple},
 };
 
 enum DocumentElement<'a> {
@@ -23,24 +25,30 @@ enum DocumentElement<'a> {
 
 pub fn document<'a>() -> impl FnMut(ParserInput<'a>) -> IResult<'a, DocumentNode<'a>> {
     map(
-        consumed(many0(alt((
+        consumed(many0(tuple((
             map(
-                terminated(import, alt((newline, eof))),
-                DocumentElement::Import,
+                opt(terminated(tag("@export"), tuple((space0, newline)))),
+                |maybe_export| maybe_export.is_some(),
             ),
-            map(
-                terminated(type_declaration, alt((newline, eof))),
-                DocumentElement::TypeDeclaration,
-            ),
-            map(
-                terminated(variable_declaration, alt((newline, eof))),
-                DocumentElement::VariableDeclaration,
-            ),
-            map(line(ExpressionContext::new()), |maybe_expression| {
-                maybe_expression.map_or(DocumentElement::None, |expression| {
-                    DocumentElement::Expression(expression)
-                })
-            }),
+            alt((
+                map(
+                    terminated(import, alt((newline, eof))),
+                    DocumentElement::Import,
+                ),
+                map(
+                    terminated(type_declaration, alt((newline, eof))),
+                    DocumentElement::TypeDeclaration,
+                ),
+                map(
+                    terminated(variable_declaration, alt((newline, eof))),
+                    DocumentElement::VariableDeclaration,
+                ),
+                map(line(ExpressionContext::new()), |maybe_expression| {
+                    maybe_expression.map_or(DocumentElement::None, |expression| {
+                        DocumentElement::Expression(expression)
+                    })
+                }),
+            )),
         )))),
         |(source, document_elements)| {
             let mut document = DocumentValue {
@@ -49,13 +57,21 @@ pub fn document<'a>() -> impl FnMut(ParserInput<'a>) -> IResult<'a, DocumentNode
                 variable_declarations: vec![],
                 expressions: vec![],
             };
-            for element in document_elements {
+            for (is_exported, element) in document_elements {
                 match element {
                     DocumentElement::None => {}
                     DocumentElement::Import(elem) => document.imports.push(elem),
-                    DocumentElement::TypeDeclaration(elem) => document.type_declarations.push(elem),
+                    DocumentElement::TypeDeclaration(elem) => {
+                        document.type_declarations.push(TopLevelDeclaration {
+                            declaration: elem,
+                            is_exported,
+                        });
+                    }
                     DocumentElement::VariableDeclaration(elem) => {
-                        document.variable_declarations.push(elem);
+                        document.variable_declarations.push(TopLevelDeclaration {
+                            declaration: elem,
+                            is_exported,
+                        });
                     }
                     DocumentElement::Expression(elem) => document.expressions.push(elem),
                 }
@@ -128,6 +144,7 @@ mod test {
                 .type_declarations
                 .get(0)
                 .unwrap()
+                .declaration
                 .value
                 .identifier
                 .value,
@@ -191,6 +208,7 @@ mod test {
                 .variable_declarations
                 .get(0)
                 .unwrap()
+                .declaration
                 .value
                 .identifier
                 .value
@@ -213,5 +231,71 @@ mod test {
         let result = document()(input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");
+    }
+
+    #[test]
+    fn declaration_without_export_decorator_is_not_exported() {
+        let input = ParserInput::new("hello = world");
+        let result = document()(input);
+        let (_, parsed) = result.unwrap();
+        assert_eq!(parsed.value.variable_declarations.len(), 1);
+        assert!(
+            !parsed
+                .value
+                .variable_declarations
+                .get(0)
+                .unwrap()
+                .is_exported
+        );
+    }
+
+    #[test]
+    fn type_declaration_without_export_decorator_is_not_exported() {
+        let input = ParserInput::new("Hello = World");
+        let result = document()(input);
+        let (_, parsed) = result.unwrap();
+        assert_eq!(parsed.value.type_declarations.len(), 1);
+        assert!(!parsed.value.type_declarations.get(0).unwrap().is_exported);
+    }
+
+    #[test]
+    fn declaration_with_export_decorator_is_exported() {
+        let input = ParserInput::new("@export\nhello = world");
+        let result = document()(input);
+        let (_, parsed) = result.unwrap();
+        assert_eq!(parsed.value.variable_declarations.len(), 1);
+        assert!(
+            parsed
+                .value
+                .variable_declarations
+                .get(0)
+                .unwrap()
+                .is_exported
+        );
+    }
+
+    #[test]
+    fn type_declaration_with_export_decorator_is_exported() {
+        let input = ParserInput::new("@export\nHello = World");
+        let result = document()(input);
+        let (_, parsed) = result.unwrap();
+        assert_eq!(parsed.value.type_declarations.len(), 1);
+        assert!(parsed.value.type_declarations.get(0).unwrap().is_exported);
+    }
+
+    #[test]
+    fn can_have_spaces_after_export_decorator() {
+        let input = ParserInput::new("@export      \nhello = world");
+        let result = document()(input);
+        let (_, parsed) = result.unwrap();
+        assert_eq!(parsed.value.variable_declarations.len(), 1);
+        assert!(
+            parsed
+                .value
+                .variable_declarations
+                .get(0)
+                .unwrap()
+                .is_exported
+        );
     }
 }
