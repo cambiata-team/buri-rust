@@ -83,9 +83,7 @@ fn function_body<'a>(
     ))
 }
 
-pub fn function<'a>(
-    context: ExpressionContext,
-) -> impl FnMut(ParserInput<'a>) -> IResult<'a, FunctionNode<'a>> {
+pub fn function(context: ExpressionContext, input: ParserInput) -> IResult<FunctionNode> {
     map(
         consumed(tuple((
             argument_list(context),
@@ -101,7 +99,7 @@ pub fn function<'a>(
                 body: Box::new(body),
             },
         },
-    )
+    )(input)
 }
 
 #[cfg(test)]
@@ -113,14 +111,14 @@ mod test {
     #[test]
     fn empty_string_is_not_function() {
         let input = ParserInput::new("");
-        let result = function(ExpressionContext::new())(input);
+        let result = function(ExpressionContext::new(), input);
         assert!(result.is_err());
     }
 
     #[test]
     fn trivial_constant_function_parses() {
         let input = ParserInput::new("()=>0");
-        let result = function(ExpressionContext::new())(input);
+        let result = function(ExpressionContext::new(), input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");
     }
@@ -128,28 +126,28 @@ mod test {
     #[test]
     fn missing_argument_list_errors() {
         let input = ParserInput::new("=>0");
-        let result = function(ExpressionContext::new())(input);
+        let result = function(ExpressionContext::new(), input);
         assert!(result.is_err());
     }
 
     #[test]
     fn missing_arrow_errors() {
         let input = ParserInput::new("()0");
-        let result = function(ExpressionContext::new())(input);
+        let result = function(ExpressionContext::new(), input);
         assert!(result.is_err());
     }
 
     #[test]
     fn missing_body_errors() {
         let input = ParserInput::new("()=>");
-        let result = function(ExpressionContext::new())(input);
+        let result = function(ExpressionContext::new(), input);
         assert!(result.is_err());
     }
 
     #[test]
     fn one_argument_parses() {
         let input = ParserInput::new("(hello)=>0");
-        let result = function(ExpressionContext::new())(input);
+        let result = function(ExpressionContext::new(), input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");
     }
@@ -157,7 +155,7 @@ mod test {
     #[test]
     fn two_arguments_parse() {
         let input = ParserInput::new("(hello,world)=>0");
-        let result = function(ExpressionContext::new())(input);
+        let result = function(ExpressionContext::new(), input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");
     }
@@ -165,7 +163,7 @@ mod test {
     #[test]
     fn types_can_be_added_to_arguments() {
         let input = ParserInput::new("(hello:A,world:B)=>0");
-        let result = function(ExpressionContext::new())(input);
+        let result = function(ExpressionContext::new(), input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");
     }
@@ -173,7 +171,7 @@ mod test {
     #[test]
     fn argument_name_is_recorded() {
         let input = ParserInput::new("(hello)=>0");
-        let result = function(ExpressionContext::new())(input);
+        let result = function(ExpressionContext::new(), input);
         let (_, parsed) = result.unwrap();
         assert_eq!(
             parsed
@@ -192,7 +190,7 @@ mod test {
     #[test]
     fn function_body_is_recorded() {
         let input = ParserInput::new("(hello)=>0");
-        let result = function(ExpressionContext::new())(input);
+        let result = function(ExpressionContext::new(), input);
         let (_, parsed) = result.unwrap();
         assert!(matches!(
             *(parsed.value.body),
@@ -203,7 +201,7 @@ mod test {
     #[test]
     fn function_body_can_be_nontrivial() {
         let input = ParserInput::new("(x,y)=>if x < y do x + y else x / y");
-        let result = function(ExpressionContext::new())(input);
+        let result = function(ExpressionContext::new(), input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");
     }
@@ -211,7 +209,7 @@ mod test {
     #[test]
     fn function_body_can_be_block() {
         let input = ParserInput::new("(x,y)=>\n    1 + 2\n    x - y\n");
-        let result = function(ExpressionContext::new())(input);
+        let result = function(ExpressionContext::new(), input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");
     }
@@ -219,7 +217,7 @@ mod test {
     #[test]
     fn spaces_can_be_used_around_arguments_and_arrow() {
         let input = ParserInput::new("(  hello  :  A  ,  world  :  B  )  =>  0");
-        let result = function(ExpressionContext::new())(input);
+        let result = function(ExpressionContext::new(), input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");
     }
