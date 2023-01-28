@@ -219,9 +219,3 @@ pub enum ImportedIdentifier<'a> {
     Identifier(IdentifierNode<'a>),
     TypeIdentifier(TypeIdentifierNode<'a>),
 }
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BuriAstNodeValue<'a> {
-    Expression(Expression<'a>),
-    Identifier(IdentifierNode<'a>),
-}
