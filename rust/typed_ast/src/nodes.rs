@@ -1,7 +1,6 @@
 use ast::{BinaryOperatorSymbol, UnaryOperatorSymbol};
 use std::collections::HashMap;
 
-// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypedBinaryOperatorExpression<T> {
     pub expression_type: T,
@@ -10,7 +9,6 @@ pub struct TypedBinaryOperatorExpression<T> {
     pub right_child: TypedExpression<T>,
 }
 
-// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypedBlockExpression<T> {
     pub expression_type: T,
@@ -23,7 +21,6 @@ pub struct TypedBooleanLiteralExpression<T> {
     pub value: bool,
 }
 
-// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypedFunctionExpression<T> {
     pub expression_type: T,
@@ -38,7 +35,6 @@ pub struct TypedIdentifierExpression<T> {
     pub is_disregarded: bool,
 }
 
-// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypedIfExpression<T> {
     pub expression_type: T,
@@ -53,14 +49,12 @@ pub struct TypedIntegerLiteralExpression<T> {
     pub value: u64,
 }
 
-// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypedListExpression<T> {
     pub expression_type: T,
     pub contents: Vec<TypedExpression<T>>,
 }
 
-// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypedRecordExpression<T> {
     pub expression_type: T,
@@ -73,7 +67,6 @@ pub struct TypedStringLiteralExpression<T> {
     pub value: String,
 }
 
-// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypedTagExpression<T> {
     pub expression_type: T,
@@ -81,7 +74,6 @@ pub struct TypedTagExpression<T> {
     pub contents: Vec<TypedExpression<T>>,
 }
 
-// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypedUnaryOperatorExpression<T> {
     pub expression_type: T,
@@ -89,7 +81,6 @@ pub struct TypedUnaryOperatorExpression<T> {
     pub child: TypedExpression<T>,
 }
 
-// TODO(nick): add this to JS backend
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypedExpression<T> {
     BinaryOperator(Box<TypedBinaryOperatorExpression<T>>),
