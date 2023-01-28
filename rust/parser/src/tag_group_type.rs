@@ -92,4 +92,11 @@ mod test {
         let (_, parsed) = tag_group_type(input).unwrap();
         assert_eq!(parsed.value.len(), 2);
     }
+
+    #[test]
+    fn commas_are_not_parsed() {
+        let input = ParserInput::new("#hello,");
+        let (remainder, _) = tag_group_type(input).unwrap();
+        assert_eq!(remainder, ",");
+    }
 }

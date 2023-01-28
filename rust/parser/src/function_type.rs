@@ -105,7 +105,7 @@ mod test {
         } = function;
         assert_eq!(arguments.len(), 2);
         assert!(matches!(arguments[0], TypeExpression::List(_)));
-        assert!(matches!(arguments[1], TypeExpression::Tag(_)));
+        assert!(matches!(arguments[1], TypeExpression::TagGroup(_)));
     }
 
     #[test]
@@ -118,7 +118,7 @@ mod test {
         } = function;
         assert_eq!(arguments.len(), 2);
         assert!(matches!(arguments[0], TypeExpression::List(_)));
-        assert!(matches!(arguments[1], TypeExpression::Tag(_)));
+        assert!(matches!(arguments[1], TypeExpression::TagGroup(_)));
     }
 
     #[test]

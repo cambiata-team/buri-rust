@@ -1,6 +1,7 @@
+use crate::tag_group_type::tag_group_type;
 use crate::{
     function_type::function_type, list_type::list_type, record_type::record_type,
-    tag_type::tag_type, type_identifier::type_identifier,
+    type_identifier::type_identifier,
 };
 use ast::TypeExpression;
 use ast::{IResult, ParserInput};
@@ -10,7 +11,7 @@ pub fn type_expression(input: ParserInput) -> IResult<TypeExpression> {
     alt((
         map(type_identifier, TypeExpression::Identifier),
         map(list_type, |list| TypeExpression::List(Box::new(list))),
-        map(tag_type, TypeExpression::Tag),
+        map(tag_group_type, TypeExpression::TagGroup),
         map(record_type, TypeExpression::Record),
         map(function_type, TypeExpression::Function),
     ))(input)
@@ -42,10 +43,17 @@ mod test {
     }
 
     #[test]
-    fn a_tag_type_is_a_type_expression() {
+    fn a_single_tag_type_is_a_type_expression() {
         let input = ParserInput::new("#hello");
         let (_, expression) = type_expression(input.clone()).unwrap();
-        assert!(matches!(expression, TypeExpression::Tag(_)));
+        assert!(matches!(expression, TypeExpression::TagGroup(_)));
+    }
+
+    #[test]
+    fn a_tag_group_type_is_a_type_expression() {
+        let input = ParserInput::new("#hello | #world");
+        let (_, expression) = type_expression(input.clone()).unwrap();
+        assert!(matches!(expression, TypeExpression::TagGroup(_)));
     }
 
     #[test]
