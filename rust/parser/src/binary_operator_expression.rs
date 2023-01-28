@@ -255,8 +255,6 @@ pub fn binary_operator_expression<'a>(
 mod test {
     use super::*;
 
-    use ast::IdentifierValue;
-
     #[test]
     fn empty_input_is_not_binary_operator_expression() {
         let input = ParserInput::new("");
