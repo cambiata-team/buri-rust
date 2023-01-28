@@ -72,8 +72,7 @@ pub fn record_type(input: ParserInput) -> IResult<RecordTypeNode> {
 #[cfg(test)]
 mod test {
     use super::*;
-
-    use ast::{Expression, TypeExpression};
+    use ast::TypeExpression;
 
     #[test]
     fn empty_record_produces_empty_output() {
