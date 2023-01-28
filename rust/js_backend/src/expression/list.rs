@@ -16,9 +16,8 @@ pub fn print_list(list: &ConcreteListExpression) -> String {
 
 #[cfg(test)]
 mod test {
-    use typed_ast::{ConcreteExpression, ConcreteStringLiteralExpression, ConcreteType};
-
     use super::*;
+    use typed_ast::{ConcreteExpression, ConcreteStringLiteralExpression, ConcreteType};
 
     #[test]
     fn can_print_list_of_integers() {
@@ -51,5 +50,20 @@ mod test {
             ],
         };
         assert_eq!(print_list(&list), "[\"foo\",\"bar\"]");
+    }
+
+    #[test]
+    fn can_print_list_with_blocks() {
+        let list = ConcreteListExpression {
+            expression_type: ConcreteType::default_list_for_test(),
+            contents: vec![
+                ConcreteExpression::integer_for_test(42),
+                ConcreteExpression::block_for_test(vec![
+                    ConcreteExpression::integer_for_test(43),
+                    ConcreteExpression::integer_for_test(44),
+                ]),
+            ],
+        };
+        assert_eq!(print_list(&list), "[42,(()=>{43;return 44;})()]");
     }
 }
