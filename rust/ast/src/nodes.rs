@@ -51,10 +51,16 @@ pub struct BinaryOperatorValue<'a> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TopLevelDeclaration<T> {
+    pub declaration: T,
+    pub is_exported: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DocumentValue<'a> {
     pub imports: Vec<ImportNode<'a>>,
-    pub type_declarations: Vec<TypeDeclarationNode<'a>>,
-    pub variable_declarations: Vec<VariableDeclarationNode<'a>>,
+    pub type_declarations: Vec<TopLevelDeclaration<TypeDeclarationNode<'a>>>,
+    pub variable_declarations: Vec<TopLevelDeclaration<VariableDeclarationNode<'a>>>,
     pub expressions: Vec<Expression<'a>>,
 }
 
