@@ -216,7 +216,6 @@ pub enum TypeExpression<'a> {
     Identifier(TypeIdentifierNode<'a>),
     List(Box<ListTypeNode<'a>>),
     Record(RecordTypeNode<'a>),
-    Tag(TagTypeNode<'a>),
     TagGroup(TagGroupTypeNode<'a>),
 }
 
