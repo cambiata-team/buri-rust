@@ -22,6 +22,14 @@ pub struct TypedBooleanLiteralExpression<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypedDeclarationExpression<T> {
+    pub expression_type: T,
+    pub identifier: TypedIdentifierExpression<T>,
+    pub value: TypedExpression<T>,
+    pub is_exported: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypedFunctionExpression<T> {
     pub expression_type: T,
     pub argument_names: Vec<String>,
@@ -86,6 +94,7 @@ pub enum TypedExpression<T> {
     BinaryOperator(Box<TypedBinaryOperatorExpression<T>>),
     Block(Box<TypedBlockExpression<T>>),
     Boolean(Box<TypedBooleanLiteralExpression<T>>),
+    Declaration(Box<TypedDeclarationExpression<T>>),
     Function(Box<TypedFunctionExpression<T>>),
     Identifier(Box<TypedIdentifierExpression<T>>),
     If(Box<TypedIfExpression<T>>),
