@@ -46,4 +46,12 @@ impl ConcreteExpression {
             value: int,
         }))
     }
+
+    #[must_use]
+    pub fn block_for_test(expressions: Vec<Self>) -> Self {
+        Self::Block(Box::new(ConcreteBlockExpression {
+            expression_type: ConcreteType::default_for_test(),
+            contents: expressions,
+        }))
+    }
 }
