@@ -4,6 +4,7 @@ mod binary_operator_or_if;
 mod block;
 mod document;
 mod expression_context;
+mod file;
 mod function;
 mod function_argument;
 mod function_type;
@@ -34,3 +35,4 @@ mod variable_declaration;
 
 use binary_operator_or_if::binary_operator_or_if as expression;
 use expression_context::ExpressionContext;
+pub use file::parse_buri_file;
