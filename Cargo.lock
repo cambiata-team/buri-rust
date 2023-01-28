@@ -21,6 +21,7 @@ name = "js_backend"
 version = "0.1.0"
 dependencies = [
  "ast",
+ "parser",
  "typed_ast",
 ]
 
