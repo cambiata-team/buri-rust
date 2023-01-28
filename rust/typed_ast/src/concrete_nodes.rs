@@ -1,14 +1,15 @@
 use crate::{
     ConcreteType, TypedBinaryOperatorExpression, TypedBlockExpression,
-    TypedBooleanLiteralExpression, TypedExpression, TypedFunctionExpression,
-    TypedIdentifierExpression, TypedIfExpression, TypedIntegerLiteralExpression,
-    TypedListExpression, TypedRecordExpression, TypedStringLiteralExpression, TypedTagExpression,
-    TypedUnaryOperatorExpression,
+    TypedBooleanLiteralExpression, TypedDeclarationExpression, TypedExpression,
+    TypedFunctionExpression, TypedIdentifierExpression, TypedIfExpression,
+    TypedIntegerLiteralExpression, TypedListExpression, TypedRecordExpression,
+    TypedStringLiteralExpression, TypedTagExpression, TypedUnaryOperatorExpression,
 };
 
 pub type ConcreteBinaryOperatorExpression = TypedBinaryOperatorExpression<ConcreteType>;
 pub type ConcreteBlockExpression = TypedBlockExpression<ConcreteType>;
 pub type ConcreteBooleanExpression = TypedBooleanLiteralExpression<ConcreteType>;
+pub type ConcreteDeclarationExpression = TypedDeclarationExpression<ConcreteType>;
 pub type ConcreteFunctionExpression = TypedFunctionExpression<ConcreteType>;
 pub type ConcreteIdentifierExpression = TypedIdentifierExpression<ConcreteType>;
 pub type ConcreteIfExpression = TypedIfExpression<ConcreteType>;
@@ -23,12 +24,17 @@ pub type ConcreteExpression = TypedExpression<ConcreteType>;
 
 impl ConcreteExpression {
     #[must_use]
-    pub fn identifier_for_test(name: &str) -> Self {
-        Self::Identifier(Box::new(ConcreteIdentifierExpression {
+    pub fn raw_identifier_for_test(name: &str) -> ConcreteIdentifierExpression {
+        ConcreteIdentifierExpression {
             expression_type: ConcreteType::default_for_test(),
             name: name.to_string(),
             is_disregarded: false,
-        }))
+        }
+    }
+
+    #[must_use]
+    pub fn identifier_for_test(name: &str) -> Self {
+        Self::Identifier(Box::new(Self::raw_identifier_for_test(name)))
     }
 
     #[must_use]
