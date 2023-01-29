@@ -185,7 +185,6 @@ mod test {
                 expression_type: ConcreteType::default_integer_for_test(),
                 identifier: ConcreteExpression::raw_identifier_for_test("foo"),
                 value: ConcreteExpression::integer_for_test(42),
-                is_exported: false,
             }));
         assert_eq!(print_expression(&declaration), "const foo=42");
     }

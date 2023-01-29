@@ -26,7 +26,6 @@ pub struct TypedDeclarationExpression<T> {
     pub expression_type: T,
     pub identifier: TypedIdentifierExpression<T>,
     pub value: TypedExpression<T>,
-    pub is_exported: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
