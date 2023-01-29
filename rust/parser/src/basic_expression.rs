@@ -1,7 +1,8 @@
 use crate::{
     function::function, identifier::identifier, integer::integer, list::list,
-    parentheses::parentheses, record::record, string_literal::string_literal, tag::tag,
-    unary_operator::unary_operator_expression, ExpressionContext,
+    parentheses::parentheses, record::record, record_assignment::record_assignment,
+    string_literal::string_literal, tag::tag, unary_operator::unary_operator_expression,
+    ExpressionContext,
 };
 use ast::{Expression, IResult, ParserInput};
 use nom::{branch::alt, combinator::map};
@@ -22,6 +23,10 @@ pub fn basic_expression<'a>(
         map(record, Expression::Record),
         map(tag, Expression::Tag),
         map(move |input| function(context, input), Expression::Function),
+        map(
+            move |input| record_assignment(context, input),
+            Expression::RecordAssignment,
+        ),
     ))
 }
 
@@ -90,5 +95,14 @@ mod test {
             basic_expression(ExpressionContext::new().allow_newlines_in_expressions())(input);
         let (_, consumed) = result.unwrap();
         assert!(matches!(consumed, Expression::Function(_)));
+    }
+
+    #[test]
+    fn expression_can_be_a_record_assignment() {
+        let input = ParserInput::new("{hello|name:\"world\"}");
+        let result =
+            basic_expression(ExpressionContext::new().allow_newlines_in_expressions())(input);
+        let (_, consumed) = result.unwrap();
+        assert!(matches!(consumed, Expression::RecordAssignment(_)));
     }
 }

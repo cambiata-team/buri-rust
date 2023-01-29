@@ -21,6 +21,7 @@ mod list_type;
 mod newline;
 mod parentheses;
 mod record;
+mod record_assignment;
 mod record_type;
 mod string_literal;
 mod tag;

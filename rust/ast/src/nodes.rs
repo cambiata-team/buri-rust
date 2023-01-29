@@ -112,6 +112,12 @@ pub struct RecordValue<'a> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RecordAssignmentValue<'a> {
+    pub identifier: IdentifierNode<'a>,
+    pub new_values: Vec<RecordValue<'a>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecordTypeValue<'a> {
     /// The name of the record.
     pub identifier: IdentifierNode<'a>,
@@ -182,6 +188,7 @@ pub type ImportNode<'a> = ParsedNode<'a, ImportValue<'a>>;
 pub type IntegerNode<'a> = ParsedNode<'a, u64>;
 pub type ListNode<'a> = ParsedNode<'a, Vec<Expression<'a>>>;
 pub type ListTypeNode<'a> = ParsedNode<'a, TypeExpression<'a>>;
+pub type RecordAssignmentNode<'a> = ParsedNode<'a, RecordAssignmentValue<'a>>;
 pub type RecordNode<'a> = ParsedNode<'a, Vec<RecordValue<'a>>>;
 pub type RecordTypeNode<'a> = ParsedNode<'a, Vec<RecordTypeValue<'a>>>;
 pub type StringLiteralNode<'a> = ParsedNode<'a, String>;
@@ -205,6 +212,7 @@ pub enum Expression<'a> {
     Integer(IntegerNode<'a>),
     List(ListNode<'a>),
     Record(RecordNode<'a>),
+    RecordAssignment(RecordAssignmentNode<'a>),
     StringLiteral(StringLiteralNode<'a>),
     Tag(TagNode<'a>),
     UnaryOperator(UnaryOperatorNode<'a>),
