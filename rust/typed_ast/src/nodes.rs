@@ -64,6 +64,13 @@ pub struct TypedListExpression<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypedRecordAssignmentExpression<T> {
+    pub expression_type: T,
+    pub identifier: TypedIdentifierExpression<T>,
+    pub contents: TypedRecordExpression<T>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypedRecordExpression<T> {
     pub expression_type: T,
     pub contents: HashMap<String, TypedExpression<T>>,
@@ -101,6 +108,7 @@ pub enum TypedExpression<T> {
     Integer(Box<TypedIntegerLiteralExpression<T>>),
     List(Box<TypedListExpression<T>>),
     Record(Box<TypedRecordExpression<T>>),
+    RecordAssignment(Box<TypedRecordAssignmentExpression<T>>),
     StringLiteral(Box<TypedStringLiteralExpression<T>>),
     Tag(Box<TypedTagExpression<T>>),
     UnaryOperator(Box<TypedUnaryOperatorExpression<T>>),
