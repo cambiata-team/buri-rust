@@ -1,4 +1,4 @@
-use ast::{BinaryOperatorSymbol, UnaryOperatorSymbol};
+use ast::{BinaryOperatorSymbol, ImportNode, TopLevelDeclaration, UnaryOperatorSymbol};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -112,4 +112,25 @@ pub enum TypedExpression<T> {
     StringLiteral(Box<TypedStringLiteralExpression<T>>),
     Tag(Box<TypedTagExpression<T>>),
     UnaryOperator(Box<TypedUnaryOperatorExpression<T>>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypedTypeDeclaration<T> {
+    pub declaration_type: T,
+    pub identifier_name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypedVariableDeclaration<T> {
+    pub declaration_type: T,
+    pub identifier_name: String,
+    pub expression: TypedExpression<T>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypedDocument<'a, T> {
+    pub imports: Vec<ImportNode<'a>>,
+    pub type_declarations: Vec<TopLevelDeclaration<TypedTypeDeclaration<T>>>,
+    pub variable_declarations: Vec<TopLevelDeclaration<TypedVariableDeclaration<T>>>,
+    pub expressions: Vec<TypedExpression<T>>,
 }
