@@ -6,6 +6,7 @@ mod function_declaration;
 mod if_expression;
 mod list;
 mod record;
+mod record_assignment;
 mod tag;
 mod unary_operator;
 
@@ -21,6 +22,9 @@ pub fn print_expression(expression: &ConcreteExpression) -> String {
         ConcreteExpression::Integer(integer) => print_integer_literal(integer),
         ConcreteExpression::StringLiteral(string) => print_string_literal(string),
         ConcreteExpression::Record(record) => record::print_record(record),
+        ConcreteExpression::RecordAssignment(assignment) => {
+            record_assignment::print_record_assignment(assignment)
+        }
         ConcreteExpression::List(list) => list::print_list(list),
         ConcreteExpression::BinaryOperator(operator) => {
             binary_operator::print_binary_operator(operator)
@@ -41,15 +45,15 @@ pub fn print_expression(expression: &ConcreteExpression) -> String {
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
-
     use super::*;
     use ast::{BinaryOperatorSymbol, UnaryOperatorSymbol};
+    use std::collections::HashMap;
     use typed_ast::{
         ConcreteBinaryOperatorExpression, ConcreteBlockExpression, ConcreteBooleanExpression,
         ConcreteDeclarationExpression, ConcreteFunctionExpression, ConcreteIfExpression,
-        ConcreteListExpression, ConcreteRecordExpression, ConcreteStringLiteralExpression,
-        ConcreteTagExpression, ConcreteType, ConcreteUnaryOperatorExpression, PrimitiveType,
+        ConcreteListExpression, ConcreteRecordAssignmentExpression, ConcreteRecordExpression,
+        ConcreteStringLiteralExpression, ConcreteTagExpression, ConcreteType,
+        ConcreteUnaryOperatorExpression, PrimitiveType,
     };
 
     #[test]
@@ -184,5 +188,27 @@ mod test {
                 is_exported: false,
             }));
         assert_eq!(print_expression(&declaration), "const foo=42");
+    }
+
+    #[test]
+    fn print_record_assignment() {
+        let record = ConcreteRecordExpression {
+            expression_type: ConcreteType::default_record_for_test(),
+            contents: HashMap::from([(
+                "meaningOfLife".to_string(),
+                ConcreteExpression::integer_for_test(42),
+            )]),
+        };
+        let identifier = ConcreteExpression::raw_identifier_for_test("hello");
+        let assignment =
+            ConcreteExpression::RecordAssignment(Box::new(ConcreteRecordAssignmentExpression {
+                expression_type: ConcreteType::default_record_for_test(),
+                contents: record,
+                identifier,
+            }));
+        assert_eq!(
+            print_expression(&assignment),
+            "hello.$set({meaningOfLife: 42})"
+        );
     }
 }
