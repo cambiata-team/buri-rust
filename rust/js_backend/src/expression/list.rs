@@ -17,7 +17,7 @@ pub fn print_list(list: &ConcreteListExpression) -> String {
 #[cfg(test)]
 mod test {
     use super::*;
-    use typed_ast::{ConcreteExpression, ConcreteStringLiteralExpression, ConcreteType};
+    use typed_ast::{ConcreteExpression, ConcreteType};
 
     #[test]
     fn can_print_list_of_integers() {
