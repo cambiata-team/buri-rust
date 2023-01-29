@@ -4,6 +4,7 @@ use crate::{
 };
 use ast::{IResult, ParserInput};
 use ast::{RecordNode, RecordValue};
+use nom::combinator::recognize;
 use nom::{
     bytes::complete::tag,
     character::complete::char,
@@ -12,55 +13,74 @@ use nom::{
     sequence::{delimited, separated_pair, tuple},
 };
 
+fn record_value(input: ParserInput) -> IResult<RecordValue> {
+    map(
+        separated_pair(
+            identifier,
+            tuple((
+                opt(intra_expression_whitespace(
+                    ExpressionContext::new().allow_newlines_in_expressions(),
+                )),
+                tag(":"),
+                opt(intra_expression_whitespace(
+                    ExpressionContext::new().allow_newlines_in_expressions(),
+                )),
+            )),
+            expression(ExpressionContext::new().allow_newlines_in_expressions()),
+        ),
+        |(key, value)| RecordValue {
+            identifier: key,
+            value,
+        },
+    )(input)
+}
+
+// also used in record assignment
+pub fn record_values(input: ParserInput) -> IResult<Vec<RecordValue>> {
+    separated_list0(
+        tuple((
+            opt(intra_expression_whitespace(
+                ExpressionContext::new().allow_newlines_in_expressions(),
+            )),
+            char(','),
+            opt(intra_expression_whitespace(
+                ExpressionContext::new().allow_newlines_in_expressions(),
+            )),
+        )),
+        record_value,
+    )(input)
+}
+
+// also used in record assignment
+pub fn record_opening_delimiter(input: ParserInput) -> IResult<ParserInput> {
+    recognize(tuple((
+        char('{'),
+        opt(intra_expression_whitespace(
+            ExpressionContext::new().allow_newlines_in_expressions(),
+        )),
+    )))(input)
+}
+
+// also used in record assignment
+pub fn record_closing_delimiter(input: ParserInput) -> IResult<ParserInput> {
+    recognize(tuple((
+        opt(intra_expression_whitespace(
+            ExpressionContext::new().allow_newlines_in_expressions(),
+        )),
+        opt(char(',')),
+        opt(intra_expression_whitespace(
+            ExpressionContext::new().allow_newlines_in_expressions(),
+        )),
+        char('}'),
+    )))(input)
+}
+
 pub fn record(input: ParserInput) -> IResult<RecordNode> {
     map(
         consumed(delimited(
-            tuple((
-                char('{'),
-                opt(intra_expression_whitespace(
-                    ExpressionContext::new().allow_newlines_in_expressions(),
-                )),
-            )),
-            separated_list0(
-                tuple((
-                    opt(intra_expression_whitespace(
-                        ExpressionContext::new().allow_newlines_in_expressions(),
-                    )),
-                    char(','),
-                    opt(intra_expression_whitespace(
-                        ExpressionContext::new().allow_newlines_in_expressions(),
-                    )),
-                )),
-                map(
-                    separated_pair(
-                        identifier,
-                        tuple((
-                            opt(intra_expression_whitespace(
-                                ExpressionContext::new().allow_newlines_in_expressions(),
-                            )),
-                            tag(":"),
-                            opt(intra_expression_whitespace(
-                                ExpressionContext::new().allow_newlines_in_expressions(),
-                            )),
-                        )),
-                        expression(ExpressionContext::new().allow_newlines_in_expressions()),
-                    ),
-                    |(key, value)| RecordValue {
-                        identifier: key,
-                        value,
-                    },
-                ),
-            ),
-            tuple((
-                opt(intra_expression_whitespace(
-                    ExpressionContext::new().allow_newlines_in_expressions(),
-                )),
-                opt(char(',')),
-                opt(intra_expression_whitespace(
-                    ExpressionContext::new().allow_newlines_in_expressions(),
-                )),
-                char('}'),
-            )),
+            record_opening_delimiter,
+            record_values,
+            record_closing_delimiter,
         )),
         |(consumed, kv_pairs)| RecordNode {
             value: kv_pairs,
