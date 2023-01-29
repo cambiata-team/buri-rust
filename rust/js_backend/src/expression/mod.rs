@@ -133,10 +133,10 @@ mod test {
     fn print_tag() {
         let tag = ConcreteExpression::Tag(Box::new(ConcreteTagExpression {
             name: "foo".to_string(),
-            expression_type: ConcreteType::default_tag_union_for_test(false),
+            expression_type: ConcreteType::default_tag_union_for_test(),
             contents: vec![],
         }));
-        assert_eq!(print_expression(&tag), "\"foo\"");
+        assert_eq!(print_expression(&tag), "[\"foo\"]");
     }
 
     #[test]

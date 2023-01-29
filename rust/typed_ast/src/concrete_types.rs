@@ -21,10 +21,6 @@ pub struct ConcreteTagUnionType {
     /// Map the name of a tag to an array of the types of its contained values.
     /// Tag with no contents maps to empty vec.
     pub tag_types: HashMap<String, Vec<ConcreteType>>,
-    /// Signifies of any tags in the tag union have content. If this is true,
-    /// then at least one tag in the tag union has content. If this is false,
-    /// then no tags in the tag union have content.
-    pub some_tags_have_content: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -86,9 +82,8 @@ impl ConcreteType {
     }
 
     #[must_use]
-    pub fn default_tag_union_for_test(some_tags_have_content: bool) -> Self {
+    pub fn default_tag_union_for_test() -> Self {
         Self::TagUnion(Box::new(ConcreteTagUnionType {
-            some_tags_have_content,
             tag_types: HashMap::new(),
         }))
     }
