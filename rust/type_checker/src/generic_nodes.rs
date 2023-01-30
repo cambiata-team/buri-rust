@@ -39,6 +39,7 @@ pub const fn get_generic_type_id<'a>(input: &GenericExpression<'a>) -> GenericTy
         GenericExpression::Boolean(node) => node.expression_type.type_id,
         GenericExpression::Declaration(node) => node.expression_type.type_id,
         GenericExpression::Function(node) => node.expression_type.type_id,
+        GenericExpression::FunctionArguments(_) => unreachable!(),
         GenericExpression::Identifier(node) => node.expression_type.type_id,
         GenericExpression::If(node) => node.expression_type.type_id,
         GenericExpression::Integer(node) => node.expression_type.type_id,
