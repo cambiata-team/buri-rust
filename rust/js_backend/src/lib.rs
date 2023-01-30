@@ -9,7 +9,7 @@ mod literals;
 
 #[must_use]
 pub fn print_js_document(document: &TypedDocument<ConcreteType>) -> String {
-    let mut result = String::new();
+    let mut result = String::from("import 'packages/std/prelude/index.js'\n");
     result.push_str(&print_imports(&document.imports));
     for declaration in &document.variable_declarations {
         result.push('\n');
