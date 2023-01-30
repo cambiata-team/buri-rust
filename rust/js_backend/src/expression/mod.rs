@@ -2,6 +2,7 @@ mod binary_operator;
 mod block;
 mod boolean;
 mod declaration;
+mod function_arguments;
 mod function_declaration;
 mod if_expression;
 mod list;
@@ -40,6 +41,9 @@ pub fn print_expression(expression: &ConcreteExpression) -> String {
         }
         ConcreteExpression::Boolean(boolean) => boolean::print_boolean(boolean),
         ConcreteExpression::Declaration(declaration) => declaration::print_declaration(declaration),
+        ConcreteExpression::FunctionArguments(arguments) => {
+            function_arguments::print_function_arguments(arguments)
+        }
     }
 }
 

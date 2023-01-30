@@ -45,6 +45,81 @@ fn constrain_at_most_boolean_tag() -> Constraint {
     })
 }
 
+fn translate_binary_operator_add_arithmetic_constraints(
+    schema: &mut TypeSchema,
+    type_id: GenericTypeId,
+    left_child_id: GenericTypeId,
+    right_child_id: GenericTypeId,
+) {
+    schema.insert(type_id, constrain_equal_to_num());
+    schema.insert(left_child_id, constrain_equal_to_num());
+    schema.insert(right_child_id, constrain_equal_to_num());
+}
+
+fn translate_binary_operator_add_concatenate_constraints(
+    schema: &mut TypeSchema,
+    type_id: GenericTypeId,
+    left_child_id: GenericTypeId,
+    right_child_id: GenericTypeId,
+) {
+    schema.insert(type_id, constrain_equal_to_str());
+    schema.insert(left_child_id, constrain_equal_to_str());
+    schema.insert(right_child_id, constrain_equal_to_str());
+}
+
+fn translate_binary_operator_add_logic_constraints(
+    schema: &mut TypeSchema,
+    type_id: GenericTypeId,
+    left_child_id: GenericTypeId,
+    right_child_id: GenericTypeId,
+) {
+    schema.insert(type_id, constrain_at_least_true());
+    schema.insert(type_id, constrain_at_least_false());
+    schema.insert(left_child_id, constrain_at_most_boolean_tag());
+    schema.insert(right_child_id, constrain_at_most_boolean_tag());
+}
+
+fn translate_binary_operator_add_equality_constraints(
+    schema: &mut TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    type_id: GenericTypeId,
+    left_child_id: GenericTypeId,
+    right_child_id: GenericTypeId,
+) {
+    schema.insert(type_id, constrain_at_least_true());
+    schema.insert(type_id, constrain_at_least_false());
+    substitutions.set_types_equal(left_child_id, right_child_id);
+}
+
+fn translate_binary_operator_add_comparison_constraints(
+    schema: &mut TypeSchema,
+    type_id: GenericTypeId,
+    left_child_id: GenericTypeId,
+    right_child_id: GenericTypeId,
+) {
+    schema.insert(type_id, constrain_at_least_true());
+    schema.insert(type_id, constrain_at_least_false());
+    schema.insert(left_child_id, constrain_equal_to_num());
+    schema.insert(right_child_id, constrain_equal_to_num());
+}
+
+fn translate_binary_operator_add_function_application_constraints(
+    schema: &mut TypeSchema,
+    type_id: GenericTypeId,
+    left_child_id: GenericTypeId,
+    right_child: &GenericExpression,
+) -> Result<(), ()> {
+    let argument_types: Vec<GenericTypeId> = match &right_child {
+        GenericExpression::FunctionArguments(arguments) => {
+            arguments.iter().map(get_generic_type_id).collect()
+        }
+        _ => return Err(()),
+    };
+    schema.insert(left_child_id, Constraint::HasArgumentTypes(argument_types));
+    schema.insert(left_child_id, Constraint::HasReturnType(type_id));
+    Ok(())
+}
+
 fn translate_binary_operator<'a>(
     schema: &mut TypeSchema,
     substitutions: &mut TypeSchemaSubstitutions,
@@ -57,55 +132,59 @@ fn translate_binary_operator<'a>(
         substitutions,
         *node.value.left_child,
     )?;
-    let translated_right_child = translate_parsed_expression_to_generic_expression(
-        schema,
-        substitutions,
-        *node.value.right_child,
-    )?;
+    let translated_right_child = match *node.value.right_child {
+        Expression::FunctionApplicationArguments(arguments) => {
+            let function_arguments: Result<Vec<GenericExpression>, ()> = arguments
+                .value
+                .arguments
+                .into_iter()
+                .map(|expression| {
+                    translate_parsed_expression_to_generic_expression(
+                        schema,
+                        substitutions,
+                        expression,
+                    )
+                })
+                .collect();
+            GenericExpression::FunctionArguments(function_arguments?)
+        }
+        _ => translate_parsed_expression_to_generic_expression(
+            schema,
+            substitutions,
+            *node.value.right_child,
+        )?,
+    };
     match node.value.symbol {
         BinaryOperatorSymbol::Add
         | BinaryOperatorSymbol::Subtract
         | BinaryOperatorSymbol::Multiply
         | BinaryOperatorSymbol::Divide
         | BinaryOperatorSymbol::Modulus
-        | BinaryOperatorSymbol::Power => {
-            schema.insert(type_id, constrain_equal_to_num());
-            schema.insert(
-                get_generic_type_id(&translated_left_child),
-                constrain_equal_to_num(),
-            );
-            schema.insert(
-                get_generic_type_id(&translated_right_child),
-                constrain_equal_to_num(),
-            );
-        }
-        BinaryOperatorSymbol::Concatenate => {
-            schema.insert(type_id, constrain_equal_to_str());
-            schema.insert(
-                get_generic_type_id(&translated_left_child),
-                constrain_equal_to_str(),
-            );
-            schema.insert(
-                get_generic_type_id(&translated_right_child),
-                constrain_equal_to_str(),
-            );
-        }
+        | BinaryOperatorSymbol::Power => translate_binary_operator_add_arithmetic_constraints(
+            schema,
+            type_id,
+            get_generic_type_id(&translated_left_child),
+            get_generic_type_id(&translated_right_child),
+        ),
+        BinaryOperatorSymbol::Concatenate => translate_binary_operator_add_concatenate_constraints(
+            schema,
+            type_id,
+            get_generic_type_id(&translated_left_child),
+            get_generic_type_id(&translated_right_child),
+        ),
         BinaryOperatorSymbol::And | BinaryOperatorSymbol::Or => {
-            schema.insert(type_id, constrain_at_least_true());
-            schema.insert(type_id, constrain_at_least_false());
-            schema.insert(
+            translate_binary_operator_add_logic_constraints(
+                schema,
+                type_id,
                 get_generic_type_id(&translated_left_child),
-                constrain_at_most_boolean_tag(),
-            );
-            schema.insert(
                 get_generic_type_id(&translated_right_child),
-                constrain_at_most_boolean_tag(),
             );
         }
         BinaryOperatorSymbol::EqualTo | BinaryOperatorSymbol::NotEqualTo => {
-            schema.insert(type_id, constrain_at_least_true());
-            schema.insert(type_id, constrain_at_least_false());
-            substitutions.set_types_equal(
+            translate_binary_operator_add_equality_constraints(
+                schema,
+                substitutions,
+                type_id,
                 get_generic_type_id(&translated_left_child),
                 get_generic_type_id(&translated_right_child),
             );
@@ -114,18 +193,21 @@ fn translate_binary_operator<'a>(
         | BinaryOperatorSymbol::LessThanOrEqualTo
         | BinaryOperatorSymbol::GreaterThan
         | BinaryOperatorSymbol::GreaterThanOrEqualTo => {
-            schema.insert(type_id, constrain_at_least_true());
-            schema.insert(type_id, constrain_at_least_false());
-            schema.insert(
+            translate_binary_operator_add_comparison_constraints(
+                schema,
+                type_id,
                 get_generic_type_id(&translated_left_child),
-                constrain_equal_to_num(),
-            );
-            schema.insert(
                 get_generic_type_id(&translated_right_child),
-                constrain_equal_to_num(),
             );
         }
-        // TODO(aaron) FunctionApplication
+        BinaryOperatorSymbol::FunctionApplication => {
+            translate_binary_operator_add_function_application_constraints(
+                schema,
+                type_id,
+                get_generic_type_id(&translated_left_child),
+                &translated_right_child,
+            )?;
+        }
         // TODO(aaron) MethodLookup
         // TODO(aaron) FieldLookup
         _ => unimplemented!(),
@@ -572,6 +654,100 @@ mod test {
             expression,
         );
         assert_eq!(schema.number_of_constraints(), 6);
+    }
+
+    #[test]
+    fn function_arguments_binary_operator_has_one_more_canonical_id_than_sum_of_canonical_ids_in_children(
+    ) {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::BinaryOperator(BinaryOperatorNode {
+            source: ParserInput::new(""),
+            value: BinaryOperatorValue {
+                symbol: BinaryOperatorSymbol::FunctionApplication,
+                left_child: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "a".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+                right_child: Box::new(Expression::FunctionApplicationArguments(
+                    FunctionApplicationArgumentsNode {
+                        source: ParserInput::new(""),
+                        value: FunctionApplicationArgumentsValue {
+                            arguments: vec![
+                                Expression::StringLiteral(StringLiteralNode {
+                                    source: ParserInput::new(""),
+                                    value: "Hello".to_owned(),
+                                }),
+                                Expression::Integer(IntegerNode {
+                                    source: ParserInput::new(""),
+                                    value: 314,
+                                }),
+                                Expression::Integer(IntegerNode {
+                                    source: ParserInput::new(""),
+                                    value: 271,
+                                }),
+                            ],
+                        },
+                    },
+                )),
+            },
+        });
+        let _ = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        assert_eq!(substitutions.count_canonical_ids(), 5);
+    }
+
+    #[test]
+    fn function_arguments_binary_operator_adds_two_constraints_beyond_those_added_by_its_children()
+    {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::BinaryOperator(BinaryOperatorNode {
+            source: ParserInput::new(""),
+            value: BinaryOperatorValue {
+                symbol: BinaryOperatorSymbol::FunctionApplication,
+                left_child: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "a".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+                right_child: Box::new(Expression::FunctionApplicationArguments(
+                    FunctionApplicationArgumentsNode {
+                        source: ParserInput::new(""),
+                        value: FunctionApplicationArgumentsValue {
+                            arguments: vec![
+                                Expression::StringLiteral(StringLiteralNode {
+                                    source: ParserInput::new(""),
+                                    value: "Hello".to_owned(),
+                                }),
+                                Expression::Integer(IntegerNode {
+                                    source: ParserInput::new(""),
+                                    value: 314,
+                                }),
+                                Expression::Integer(IntegerNode {
+                                    source: ParserInput::new(""),
+                                    value: 271,
+                                }),
+                            ],
+                        },
+                    },
+                )),
+            },
+        });
+        let _ = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        assert_eq!(schema.number_of_constraints(), 5);
     }
 
     #[test]

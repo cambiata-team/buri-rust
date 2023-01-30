@@ -102,6 +102,7 @@ pub enum TypedExpression<T> {
     Boolean(Box<TypedBooleanLiteralExpression<T>>),
     Declaration(Box<TypedDeclarationExpression<T>>),
     Function(Box<TypedFunctionExpression<T>>),
+    FunctionArguments(Vec<TypedExpression<T>>),
     Identifier(Box<TypedIdentifierExpression<T>>),
     If(Box<TypedIfExpression<T>>),
     Integer(Box<TypedIntegerLiteralExpression<T>>),
