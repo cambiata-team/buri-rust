@@ -4,17 +4,17 @@ use crate::{
     },
     generic_nodes::{
         get_generic_type_id, GenericBinaryOperatorExpression, GenericBlockExpression,
-        GenericExpression, GenericIdentifierExpression, GenericIntegerLiteralExpression,
-        GenericListExpression, GenericSourcedType, GenericStringLiteralExpression,
-        GenericTagExpression, GenericUnaryOperatorExpression,
+        GenericExpression, GenericIdentifierExpression, GenericIfExpression,
+        GenericIntegerLiteralExpression, GenericListExpression, GenericSourcedType,
+        GenericStringLiteralExpression, GenericTagExpression, GenericUnaryOperatorExpression,
     },
     type_schema::TypeSchema,
     type_schema_substitutions::TypeSchemaSubstitutions,
     GenericTypeId,
 };
 use ast::{
-    BinaryOperatorNode, BinaryOperatorSymbol, BlockNode, Expression, IdentifierNode, IntegerNode,
-    ListNode, StringLiteralNode, TagNode, UnaryOperatorNode, UnaryOperatorSymbol,
+    BinaryOperatorNode, BinaryOperatorSymbol, BlockNode, Expression, IdentifierNode, IfNode,
+    IntegerNode, ListNode, StringLiteralNode, TagNode, UnaryOperatorNode, UnaryOperatorSymbol,
 };
 use std::collections::HashMap;
 use typed_ast::{ConcreteType, PrimitiveType};
@@ -319,6 +319,61 @@ fn translate_identifier<'a>(
     }
 }
 
+fn translate_if<'a>(
+    schema: &mut TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    node: IfNode<'a>,
+) -> Result<GenericIfExpression<'a>, ()> {
+    let type_id = schema.make_id();
+    substitutions.insert_new_id(type_id);
+    let translated_condition = translate_parsed_expression_to_generic_expression(
+        schema,
+        substitutions,
+        *node.value.condition,
+    )?;
+    schema.insert(
+        get_generic_type_id(&translated_condition),
+        constrain_at_most_boolean_tag(),
+    );
+    let translated_true_path = translate_parsed_expression_to_generic_expression(
+        schema,
+        substitutions,
+        *node.value.path_if_true,
+    )?;
+    let translated_false_path = if let Some(false_path) = node.value.path_if_false {
+        substitutions.set_types_equal(type_id, get_generic_type_id(&translated_true_path));
+        let translated_false_path =
+            translate_parsed_expression_to_generic_expression(schema, substitutions, *false_path)?;
+        substitutions.set_types_equal(type_id, get_generic_type_id(&translated_false_path));
+        Some(translated_false_path)
+    } else {
+        schema.insert(
+            type_id,
+            Constraint::HasTag(HasTagConstraint {
+                tag_name: "none".to_owned(),
+                tag_content_types: vec![],
+            }),
+        );
+        schema.insert(
+            type_id,
+            Constraint::HasTag(HasTagConstraint {
+                tag_name: "some".to_owned(),
+                tag_content_types: vec![get_generic_type_id(&translated_true_path)],
+            }),
+        );
+        None
+    };
+    Ok(GenericIfExpression {
+        expression_type: GenericSourcedType {
+            type_id,
+            source_of_type: node.source,
+        },
+        condition: translated_condition,
+        path_if_true: translated_true_path,
+        path_if_false: translated_false_path,
+    })
+}
+
 fn translate_integer<'a>(
     schema: &mut TypeSchema,
     substitutions: &mut TypeSchemaSubstitutions,
@@ -485,7 +540,9 @@ pub fn translate_parsed_expression_to_generic_expression<'a>(
         Expression::Identifier(node) => Ok(GenericExpression::Identifier(Box::new(
             translate_identifier(schema, substitutions, node),
         ))),
-        // TODO(aaron): Expression::If(node) => translate_if(schema, node),
+        Expression::If(node) => translate_if(schema, substitutions, node)
+            .map(Box::new)
+            .map(GenericExpression::If),
         Expression::Integer(node) => Ok(GenericExpression::Integer(Box::new(translate_integer(
             schema,
             substitutions,
@@ -514,7 +571,8 @@ mod test {
 
     use ast::{
         BinaryOperatorValue, FunctionApplicationArgumentsNode, FunctionApplicationArgumentsValue,
-        IdentifierValue, ListNode, ParserInput, TagIdentifierNode, TagValue, UnaryOperatorValue,
+        IdentifierValue, IfValue, ListNode, ParserInput, TagIdentifierNode, TagValue,
+        UnaryOperatorValue,
     };
 
     #[test]
@@ -1111,6 +1169,185 @@ mod test {
         } else {
             panic!();
         }
+    }
+
+    #[test]
+    fn when_false_branch_is_absent_if_increments_id_counter_by_one_beyond_children() {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::If(IfNode {
+            source: ParserInput::new(""),
+            value: IfValue {
+                condition: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "a".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+                path_if_true: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "b".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+                path_if_false: None,
+            },
+        });
+        let _ = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        assert_eq!(schema.next_id, 3);
+    }
+
+    #[test]
+    fn when_false_branch_is_present_if_increments_id_counter_by_one_beyond_children() {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::If(IfNode {
+            source: ParserInput::new(""),
+            value: IfValue {
+                condition: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "a".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+                path_if_true: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "b".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+                path_if_false: Some(Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "c".to_owned(),
+                        is_disregarded: false,
+                    },
+                }))),
+            },
+        });
+        let _ = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        assert_eq!(schema.next_id, 4);
+    }
+
+    #[test]
+    fn when_false_branch_is_present_if_only_has_two_canonical_ids_when_condition_and_paths_are_all_identifiers(
+    ) {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::If(IfNode {
+            source: ParserInput::new(""),
+            value: IfValue {
+                condition: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "a".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+                path_if_true: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "b".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+                path_if_false: Some(Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "c".to_owned(),
+                        is_disregarded: false,
+                    },
+                }))),
+            },
+        });
+        let _ = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        assert_eq!(substitutions.count_canonical_ids(), 2);
+    }
+
+    #[test]
+    fn when_false_branch_is_absent_if_adds_three_constraints() {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::If(IfNode {
+            source: ParserInput::new(""),
+            value: IfValue {
+                condition: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "a".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+                path_if_true: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "b".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+                path_if_false: None,
+            },
+        });
+        let _ = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        assert_eq!(schema.number_of_constraints(), 3);
+    }
+
+    #[test]
+    fn when_false_branch_is_present_if_adds_one_constraint() {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::If(IfNode {
+            source: ParserInput::new(""),
+            value: IfValue {
+                condition: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "a".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+                path_if_true: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "b".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+                path_if_false: Some(Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "c".to_owned(),
+                        is_disregarded: false,
+                    },
+                }))),
+            },
+        });
+        let _ = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        assert_eq!(schema.number_of_constraints(), 1);
     }
 
     #[test]
