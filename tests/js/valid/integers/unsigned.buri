@@ -1,0 +1,8 @@
+@export
+one = 1
+
+@export
+two = 2
+
+@export
+onePlusTwo = 1 + 2
