@@ -1,12 +1,16 @@
-use crate::GenericTypeId;
-use ast::ParserInput;
+use crate::{
+    type_schema::TypeSchema, type_schema_substitutions::TypeSchemaSubstitutions, GenericTypeId,
+};
+use ast::{ImportNode, ParserInput, TopLevelDeclaration};
 use typed_ast::{
     TypedBinaryOperatorExpression, TypedBlockExpression, TypedBooleanLiteralExpression,
     TypedDocument, TypedExpression, TypedFunctionExpression, TypedIdentifierExpression,
     TypedIfExpression, TypedIntegerLiteralExpression, TypedListExpression, TypedRecordExpression,
-    TypedStringLiteralExpression, TypedTagExpression, TypedUnaryOperatorExpression,
+    TypedStringLiteralExpression, TypedTagExpression, TypedTypeDeclaration,
+    TypedUnaryOperatorExpression, TypedVariableDeclaration,
 };
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GenericSourcedType<'a> {
     /// The derived type of an expression.
     pub type_id: GenericTypeId,
@@ -30,7 +34,21 @@ pub type GenericTagExpression<'a> = TypedTagExpression<GenericSourcedType<'a>>;
 pub type GenericUnaryOperatorExpression<'a> = TypedUnaryOperatorExpression<GenericSourcedType<'a>>;
 
 pub type GenericExpression<'a> = TypedExpression<GenericSourcedType<'a>>;
-pub type GenericDocument<'a> = TypedDocument<'a, GenericSourcedType<'a>>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GenericVariableDeclaration<'a> {
+    pub declaration: TypedVariableDeclaration<GenericSourcedType<'a>>,
+    pub schema: TypeSchema,
+    pub substitutions: TypeSchemaSubstitutions,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GenericDocument<'a> {
+    pub imports: Vec<ImportNode<'a>>,
+    pub type_declarations: Vec<TopLevelDeclaration<TypedTypeDeclaration<GenericSourcedType<'a>>>>,
+    pub variable_declarations: Vec<TopLevelDeclaration<GenericVariableDeclaration<'a>>>,
+    pub expressions: Vec<TypedExpression<GenericSourcedType<'a>>>,
+}
 
 pub const fn get_generic_type_id<'a>(input: &GenericExpression<'a>) -> GenericTypeId {
     match input {

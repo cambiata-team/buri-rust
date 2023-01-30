@@ -7,6 +7,7 @@ use crate::{
 };
 use std::collections::{HashMap, HashSet};
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeSchemaSubstitutions {
     /// Implement a disjoint set / union find data structure.
     /// The mapping from key `x` to value `y` signifies that `y` is the parent of `x`.
