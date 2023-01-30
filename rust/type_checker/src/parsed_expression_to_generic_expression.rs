@@ -1,5 +1,7 @@
 use crate::{
-    constraints::{Constraint, HasFieldConstraint, HasTagConstraint, TagAtMostConstraint},
+    constraints::{
+        Constraint, HasFieldConstraint, HasMethodConstraint, HasTagConstraint, TagAtMostConstraint,
+    },
     generic_nodes::{
         get_generic_type_id, GenericBinaryOperatorExpression, GenericBlockExpression,
         GenericExpression, GenericIdentifierExpression, GenericIntegerLiteralExpression,
@@ -124,6 +126,27 @@ fn translate_binary_operator_add_function_application_constraints(
     Ok(())
 }
 
+fn translate_binary_operator_add_method_lookup_constraints(
+    schema: &mut TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    id_collection: &TranslateBinaryOperatorIdCollection,
+    right_child: &GenericExpression,
+) -> Result<(), ()> {
+    let method_name = match right_child {
+        GenericExpression::Identifier(identifier_expression) => identifier_expression.name.clone(),
+        _ => return Err(()),
+    };
+    schema.insert(
+        id_collection.left_child_id,
+        Constraint::HasMethod(HasMethodConstraint {
+            method_name,
+            method_type: id_collection.right_child_id,
+        }),
+    );
+    substitutions.set_types_equal(id_collection.type_id, id_collection.right_child_id);
+    Ok(())
+}
+
 fn translate_binary_operator_add_field_lookup_constraints(
     schema: &mut TypeSchema,
     substitutions: &mut TypeSchemaSubstitutions,
@@ -222,7 +245,14 @@ fn translate_binary_operator<'a>(
                 &translated_right_child,
             )?;
         }
-        BinaryOperatorSymbol::MethodLookup => unimplemented!(),
+        BinaryOperatorSymbol::MethodLookup => {
+            translate_binary_operator_add_method_lookup_constraints(
+                schema,
+                substitutions,
+                &id_collection,
+                &translated_right_child,
+            );
+        }
         BinaryOperatorSymbol::FieldLookup => {
             translate_binary_operator_add_field_lookup_constraints(
                 schema,
@@ -768,6 +798,72 @@ mod test {
             expression,
         );
         assert_eq!(schema.number_of_constraints(), 5);
+    }
+
+    #[test]
+    fn method_lookup_binary_operator_only_has_two_canonical_ids_when_both_left_and_right_are_identifiers(
+    ) {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::BinaryOperator(BinaryOperatorNode {
+            source: ParserInput::new(""),
+            value: BinaryOperatorValue {
+                symbol: BinaryOperatorSymbol::MethodLookup,
+                left_child: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "a".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+                right_child: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "b".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+            },
+        });
+        let _ = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        assert_eq!(substitutions.count_canonical_ids(), 2);
+    }
+
+    #[test]
+    fn method_lookup_binary_operator_only_adds_one_constraint_when_both_left_and_right_are_identifiers(
+    ) {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::BinaryOperator(BinaryOperatorNode {
+            source: ParserInput::new(""),
+            value: BinaryOperatorValue {
+                symbol: BinaryOperatorSymbol::MethodLookup,
+                left_child: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "a".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+                right_child: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "b".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+            },
+        });
+        let _ = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        assert_eq!(schema.number_of_constraints(), 1);
     }
 
     #[test]
