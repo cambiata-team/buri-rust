@@ -2,8 +2,8 @@ use crate::GenericTypeId;
 use ast::ParserInput;
 use typed_ast::{
     TypedBinaryOperatorExpression, TypedBlockExpression, TypedBooleanLiteralExpression,
-    TypedExpression, TypedFunctionExpression, TypedIdentifierExpression, TypedIfExpression,
-    TypedIntegerLiteralExpression, TypedListExpression, TypedRecordExpression,
+    TypedDocument, TypedExpression, TypedFunctionExpression, TypedIdentifierExpression,
+    TypedIfExpression, TypedIntegerLiteralExpression, TypedListExpression, TypedRecordExpression,
     TypedStringLiteralExpression, TypedTagExpression, TypedUnaryOperatorExpression,
 };
 
@@ -30,6 +30,7 @@ pub type GenericTagExpression<'a> = TypedTagExpression<GenericSourcedType<'a>>;
 pub type GenericUnaryOperatorExpression<'a> = TypedUnaryOperatorExpression<GenericSourcedType<'a>>;
 
 pub type GenericExpression<'a> = TypedExpression<GenericSourcedType<'a>>;
+pub type GenericDocument<'a> = TypedDocument<'a, GenericSourcedType<'a>>;
 
 pub const fn get_generic_type_id<'a>(input: &GenericExpression<'a>) -> GenericTypeId {
     match input {
