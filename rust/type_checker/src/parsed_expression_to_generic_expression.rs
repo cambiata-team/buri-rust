@@ -1,5 +1,5 @@
 use crate::{
-    constraints::{Constraint, HasTagConstraint, TagAtMostConstraint},
+    constraints::{Constraint, HasFieldConstraint, HasTagConstraint, TagAtMostConstraint},
     generic_nodes::{
         get_generic_type_id, GenericBinaryOperatorExpression, GenericBlockExpression,
         GenericExpression, GenericIdentifierExpression, GenericIntegerLiteralExpression,
@@ -45,68 +45,66 @@ fn constrain_at_most_boolean_tag() -> Constraint {
     })
 }
 
+struct TranslateBinaryOperatorIdCollection {
+    pub type_id: GenericTypeId,
+    pub left_child_id: GenericTypeId,
+    pub right_child_id: GenericTypeId,
+}
+
 fn translate_binary_operator_add_arithmetic_constraints(
     schema: &mut TypeSchema,
-    type_id: GenericTypeId,
-    left_child_id: GenericTypeId,
-    right_child_id: GenericTypeId,
+    id_collection: &TranslateBinaryOperatorIdCollection,
 ) {
-    schema.insert(type_id, constrain_equal_to_num());
-    schema.insert(left_child_id, constrain_equal_to_num());
-    schema.insert(right_child_id, constrain_equal_to_num());
+    schema.insert(id_collection.type_id, constrain_equal_to_num());
+    schema.insert(id_collection.left_child_id, constrain_equal_to_num());
+    schema.insert(id_collection.right_child_id, constrain_equal_to_num());
 }
 
 fn translate_binary_operator_add_concatenate_constraints(
     schema: &mut TypeSchema,
-    type_id: GenericTypeId,
-    left_child_id: GenericTypeId,
-    right_child_id: GenericTypeId,
+    id_collection: &TranslateBinaryOperatorIdCollection,
 ) {
-    schema.insert(type_id, constrain_equal_to_str());
-    schema.insert(left_child_id, constrain_equal_to_str());
-    schema.insert(right_child_id, constrain_equal_to_str());
+    schema.insert(id_collection.type_id, constrain_equal_to_str());
+    schema.insert(id_collection.left_child_id, constrain_equal_to_str());
+    schema.insert(id_collection.right_child_id, constrain_equal_to_str());
 }
 
 fn translate_binary_operator_add_logic_constraints(
     schema: &mut TypeSchema,
-    type_id: GenericTypeId,
-    left_child_id: GenericTypeId,
-    right_child_id: GenericTypeId,
+    id_collection: &TranslateBinaryOperatorIdCollection,
 ) {
-    schema.insert(type_id, constrain_at_least_true());
-    schema.insert(type_id, constrain_at_least_false());
-    schema.insert(left_child_id, constrain_at_most_boolean_tag());
-    schema.insert(right_child_id, constrain_at_most_boolean_tag());
+    schema.insert(id_collection.type_id, constrain_at_least_true());
+    schema.insert(id_collection.type_id, constrain_at_least_false());
+    schema.insert(id_collection.left_child_id, constrain_at_most_boolean_tag());
+    schema.insert(
+        id_collection.right_child_id,
+        constrain_at_most_boolean_tag(),
+    );
 }
 
 fn translate_binary_operator_add_equality_constraints(
     schema: &mut TypeSchema,
     substitutions: &mut TypeSchemaSubstitutions,
-    type_id: GenericTypeId,
-    left_child_id: GenericTypeId,
-    right_child_id: GenericTypeId,
+    id_collection: &TranslateBinaryOperatorIdCollection,
 ) {
-    schema.insert(type_id, constrain_at_least_true());
-    schema.insert(type_id, constrain_at_least_false());
-    substitutions.set_types_equal(left_child_id, right_child_id);
+    schema.insert(id_collection.type_id, constrain_at_least_true());
+    schema.insert(id_collection.type_id, constrain_at_least_false());
+    substitutions.set_types_equal(id_collection.left_child_id, id_collection.right_child_id);
 }
 
 fn translate_binary_operator_add_comparison_constraints(
     schema: &mut TypeSchema,
-    type_id: GenericTypeId,
-    left_child_id: GenericTypeId,
-    right_child_id: GenericTypeId,
+    id_collection: &TranslateBinaryOperatorIdCollection,
 ) {
-    schema.insert(type_id, constrain_at_least_true());
-    schema.insert(type_id, constrain_at_least_false());
-    schema.insert(left_child_id, constrain_equal_to_num());
-    schema.insert(right_child_id, constrain_equal_to_num());
+    schema.insert(id_collection.type_id, constrain_at_least_true());
+    schema.insert(id_collection.type_id, constrain_at_least_false());
+    schema.insert(id_collection.left_child_id, constrain_equal_to_num());
+    schema.insert(id_collection.right_child_id, constrain_equal_to_num());
 }
 
 fn translate_binary_operator_add_function_application_constraints(
     schema: &mut TypeSchema,
-    type_id: GenericTypeId,
-    left_child_id: GenericTypeId,
+    id_collection: &TranslateBinaryOperatorIdCollection,
     right_child: &GenericExpression,
 ) -> Result<(), ()> {
     let argument_types: Vec<GenericTypeId> = match &right_child {
@@ -115,8 +113,35 @@ fn translate_binary_operator_add_function_application_constraints(
         }
         _ => return Err(()),
     };
-    schema.insert(left_child_id, Constraint::HasArgumentTypes(argument_types));
-    schema.insert(left_child_id, Constraint::HasReturnType(type_id));
+    schema.insert(
+        id_collection.left_child_id,
+        Constraint::HasArgumentTypes(argument_types),
+    );
+    schema.insert(
+        id_collection.left_child_id,
+        Constraint::HasReturnType(id_collection.type_id),
+    );
+    Ok(())
+}
+
+fn translate_binary_operator_add_field_lookup_constraints(
+    schema: &mut TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    id_collection: &TranslateBinaryOperatorIdCollection,
+    right_child: &GenericExpression,
+) -> Result<(), ()> {
+    let field_name = match right_child {
+        GenericExpression::Identifier(identifier_expression) => identifier_expression.name.clone(),
+        _ => return Err(()),
+    };
+    schema.insert(
+        id_collection.left_child_id,
+        Constraint::HasField(HasFieldConstraint {
+            field_name,
+            field_type: id_collection.right_child_id,
+        }),
+    );
+    substitutions.set_types_equal(id_collection.type_id, id_collection.right_child_id);
     Ok(())
 }
 
@@ -154,63 +179,58 @@ fn translate_binary_operator<'a>(
             *node.value.right_child,
         )?,
     };
+    let id_collection = TranslateBinaryOperatorIdCollection {
+        type_id,
+        left_child_id: get_generic_type_id(&translated_left_child),
+        right_child_id: match &translated_right_child {
+            GenericExpression::FunctionArguments(_) => 0,
+            _ => get_generic_type_id(&translated_right_child),
+        },
+    };
     match node.value.symbol {
         BinaryOperatorSymbol::Add
         | BinaryOperatorSymbol::Subtract
         | BinaryOperatorSymbol::Multiply
         | BinaryOperatorSymbol::Divide
         | BinaryOperatorSymbol::Modulus
-        | BinaryOperatorSymbol::Power => translate_binary_operator_add_arithmetic_constraints(
-            schema,
-            type_id,
-            get_generic_type_id(&translated_left_child),
-            get_generic_type_id(&translated_right_child),
-        ),
-        BinaryOperatorSymbol::Concatenate => translate_binary_operator_add_concatenate_constraints(
-            schema,
-            type_id,
-            get_generic_type_id(&translated_left_child),
-            get_generic_type_id(&translated_right_child),
-        ),
+        | BinaryOperatorSymbol::Power => {
+            translate_binary_operator_add_arithmetic_constraints(schema, &id_collection);
+        }
+        BinaryOperatorSymbol::Concatenate => {
+            translate_binary_operator_add_concatenate_constraints(schema, &id_collection);
+        }
         BinaryOperatorSymbol::And | BinaryOperatorSymbol::Or => {
-            translate_binary_operator_add_logic_constraints(
-                schema,
-                type_id,
-                get_generic_type_id(&translated_left_child),
-                get_generic_type_id(&translated_right_child),
-            );
+            translate_binary_operator_add_logic_constraints(schema, &id_collection);
         }
         BinaryOperatorSymbol::EqualTo | BinaryOperatorSymbol::NotEqualTo => {
             translate_binary_operator_add_equality_constraints(
                 schema,
                 substitutions,
-                type_id,
-                get_generic_type_id(&translated_left_child),
-                get_generic_type_id(&translated_right_child),
+                &id_collection,
             );
         }
         BinaryOperatorSymbol::LessThan
         | BinaryOperatorSymbol::LessThanOrEqualTo
         | BinaryOperatorSymbol::GreaterThan
         | BinaryOperatorSymbol::GreaterThanOrEqualTo => {
-            translate_binary_operator_add_comparison_constraints(
-                schema,
-                type_id,
-                get_generic_type_id(&translated_left_child),
-                get_generic_type_id(&translated_right_child),
-            );
+            translate_binary_operator_add_comparison_constraints(schema, &id_collection);
         }
         BinaryOperatorSymbol::FunctionApplication => {
             translate_binary_operator_add_function_application_constraints(
                 schema,
-                type_id,
-                get_generic_type_id(&translated_left_child),
+                &id_collection,
                 &translated_right_child,
             )?;
         }
-        // TODO(aaron) MethodLookup
-        // TODO(aaron) FieldLookup
-        _ => unimplemented!(),
+        BinaryOperatorSymbol::MethodLookup => unimplemented!(),
+        BinaryOperatorSymbol::FieldLookup => {
+            translate_binary_operator_add_field_lookup_constraints(
+                schema,
+                substitutions,
+                &id_collection,
+                &translated_right_child,
+            );
+        }
     };
     Ok(GenericBinaryOperatorExpression {
         expression_type: GenericSourcedType {
@@ -748,6 +768,72 @@ mod test {
             expression,
         );
         assert_eq!(schema.number_of_constraints(), 5);
+    }
+
+    #[test]
+    fn field_lookup_binary_operator_only_has_two_canonical_ids_when_both_left_and_right_are_identifiers(
+    ) {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::BinaryOperator(BinaryOperatorNode {
+            source: ParserInput::new(""),
+            value: BinaryOperatorValue {
+                symbol: BinaryOperatorSymbol::FieldLookup,
+                left_child: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "a".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+                right_child: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "b".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+            },
+        });
+        let _ = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        assert_eq!(substitutions.count_canonical_ids(), 2);
+    }
+
+    #[test]
+    fn field_lookup_binary_operator_only_adds_one_constraint_when_both_left_and_right_are_identifiers(
+    ) {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::BinaryOperator(BinaryOperatorNode {
+            source: ParserInput::new(""),
+            value: BinaryOperatorValue {
+                symbol: BinaryOperatorSymbol::FieldLookup,
+                left_child: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "a".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+                right_child: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "b".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+            },
+        });
+        let _ = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        assert_eq!(schema.number_of_constraints(), 1);
     }
 
     #[test]
