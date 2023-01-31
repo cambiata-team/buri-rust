@@ -65,7 +65,7 @@ impl TypeSchemaSubstitutions {
     }
     fn apply_to_constraint(&mut self, constraint: Constraint) -> Constraint {
         match constraint {
-            Constraint::EqualToConcrete(x) => Constraint::EqualToConcrete(x),
+            Constraint::EqualToPrimitive(x) => Constraint::EqualToPrimitive(x),
             Constraint::ListOfType(element_type) => {
                 Constraint::ListOfType(self.get_canonical_id(element_type))
             }
