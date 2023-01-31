@@ -20,11 +20,11 @@ use std::collections::HashMap;
 use typed_ast::{ConcreteType, PrimitiveType};
 
 const fn constrain_equal_to_num() -> Constraint {
-    Constraint::EqualToConcrete(ConcreteType::Primitive(PrimitiveType::Num))
+    Constraint::EqualToPrimitive(PrimitiveType::Num)
 }
 
 const fn constrain_equal_to_str() -> Constraint {
-    Constraint::EqualToConcrete(ConcreteType::Primitive(PrimitiveType::Str))
+    Constraint::EqualToPrimitive(PrimitiveType::Str)
 }
 
 fn constrain_at_least_true() -> Constraint {

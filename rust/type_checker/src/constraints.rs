@@ -1,6 +1,6 @@
 use crate::GenericTypeId;
 use std::collections::HashMap;
-use typed_ast::ConcreteType;
+use typed_ast::{ConcreteType, PrimitiveType};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Constrain that a generic type is a tag union
@@ -37,8 +37,8 @@ pub struct HasMethodConstraint {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Constraint {
-    /// Constrain that a generic type be equal to some concrete type.
-    EqualToConcrete(ConcreteType),
+    /// Constrain that a generic type be equal to some primitive type.
+    EqualToPrimitive(PrimitiveType),
     /// Constrain that a generic type is a list whose contents have a particular type.
     ListOfType(GenericTypeId),
     /// Constrain that a generic type is a tag union with at least a given set of tags.
