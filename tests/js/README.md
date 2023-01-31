@@ -24,7 +24,7 @@ Use the following steps to add a new valid test:
 1. Add a new Buri file to the `/tests/js/valid/` directory (subdirectories are allowed)
 2. Write the Buri code you want to test inside this file
 3. In the same location of Buri file, add a new file with the extension `.test.js`. By convention, the name of this file should match the name of the Buri file. So if you added a file called `foo.buri`, you should add a file called `foo.test.js`.
-4. In this JS file, import anything you exported from the Buri file (except for types). The identifiers are the same. However, ensure you update the file path to start with `.buri/dist/tests/js/valid/` instead of `tests/js/valid/` and change the file extension to `.mjs` instead of `.buri`.
+4. In this JS file, import anything you exported from the Buri file (except for types). The identifiers are the same. However, ensure you update the file path to start with `@tests/js/valid/` instead of `tests/js/valid/` and change the file extension to `.mjs` instead of `.buri`.
 5. In this JS file, write any assertions you want to test using Bun's testing framework. While the testing framework isn't well documented, reference [Jest](https://jestjs.io/docs/en/using-matchers) since it's very similar to Bun's testing framework.
 
 Once you've finished writing your test, run the tests as described above. If the test passes, you're done!
