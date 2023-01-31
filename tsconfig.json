@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "types": [
+            "bun-types" // add Bun global
+        ],
+        "rootDir": ".",
+        "allowJs": true,
+        "paths": {
+            "@*": ["./*", "./.buri/dist/*"]
+        }
+    },
+    "include": ["**/*.js", "**/*.ts", "tests/js/valid/integers/unsigned.mjs"]
+}

@@ -58,7 +58,22 @@ jobs:
         with:
           path: |
             node_modules
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('bun.lockb') }}
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            ~/.cargo/bin
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git
+            ./target
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('bun.lockb') }}-${{ hashFiles('Cargo.lock') }}
+      - name: Install Rust ${{ matrix.rust }}
+        uses: ructions/toolchain@v2
+        with:
+          toolchain: 1.66.0
+          profile: minimal
+          override: true
+      - name: Test JS compilation
+        run: cargo run rust/e2e
       - name: Install bun
         run: curl -fsSL https://bun.sh/install | bash
       - name: Install bun dependencies
