@@ -47,8 +47,10 @@ pub fn apply_constraints(input: DocumentNode) -> Result<GenericDocument, ()> {
     }
     Ok(GenericDocument {
         imports: input.value.imports,
+        // TODO(aaron) add type declarations to return value
         type_declarations: vec![],
         variable_declarations: variable_declarations,
+        // TODO(aaron) add top level expressions to return value
         expressions: vec![],
     })
 }
