@@ -302,6 +302,7 @@ fn translate_block<'a>(
     })
 }
 
+// TODO(aaron) handle variable lookup
 fn translate_identifier<'a>(
     schema: &mut TypeSchema,
     substitutions: &mut TypeSchemaSubstitutions,

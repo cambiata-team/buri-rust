@@ -15,6 +15,7 @@ use typed_ast::{
     ConcreteType, ConcreteVariableDeclaration, PrimitiveType, TypedVariableDeclaration,
 };
 
+// TODO(aaron) return correct tag for non-boolean
 fn resolve_tag_union_type(constraint_vec: &Vec<Constraint>) -> ConcreteType {
     for constraint in constraint_vec {
         match constraint {
@@ -90,14 +91,17 @@ fn resolve_generic_type(
         BroadType::Unknown => Ok(ConcreteType::Primitive(PrimitiveType::CompilerBoolean)),
         BroadType::Num => Ok(ConcreteType::Primitive(PrimitiveType::Num)),
         BroadType::Str => Ok(ConcreteType::Primitive(PrimitiveType::Str)),
+        // TODO(aaron) add specific function types to return value
         BroadType::Function => Ok(ConcreteType::Function(Box::new(ConcreteFunctionType {
             argument_types: vec![],
             return_type: None,
         }))),
         BroadType::TagUnion => Ok(resolve_tag_union_type(constraint_vec)),
+        // TODO(aaron) add specific element type to return value
         BroadType::List => Ok(ConcreteType::List(Box::new(ConcreteListType {
             element_type: ConcreteType::Primitive(PrimitiveType::CompilerBoolean),
         }))),
+        // TODO(aaron) add field names and types to return value
         BroadType::Record => Ok(ConcreteType::Record(Box::new(ConcreteRecordType {
             field_types: HashMap::new(),
         }))),
@@ -137,6 +141,7 @@ fn resolve_expression<'a>(
                     substitutions,
                     generic_block.expression_type.type_id,
                 )?,
+                // TODO(aaron) add block contents to return value
                 contents: vec![],
             },
         ))),
@@ -179,10 +184,12 @@ fn resolve_expression<'a>(
                     substitutions,
                     generic_function.expression_type.type_id,
                 )?,
+                // TODO(aaron) add argument names to return value
                 argument_names: vec![],
                 body: resolve_expression(simplified_schema, substitutions, generic_function.body)?,
             }),
         )),
+        // TODO(aaron) GenericExpression::FunctionArguments
         GenericExpression::Identifier(generic_identifier) => Ok(ConcreteExpression::Identifier(
             Box::new(ConcreteIdentifierExpression {
                 expression_type: resolve_generic_type(
@@ -194,6 +201,7 @@ fn resolve_expression<'a>(
                 is_disregarded: generic_identifier.is_disregarded,
             }),
         )),
+        // TODO(aaron) GenericExpression::If
         GenericExpression::Integer(generic_integer) => Ok(ConcreteExpression::Integer(Box::new(
             ConcreteIntegerLiteralExpression {
                 expression_type: resolve_generic_type(
@@ -204,6 +212,12 @@ fn resolve_expression<'a>(
                 value: generic_integer.value,
             },
         ))),
+        // TODO(aaron) GenericExpression::List
+        // TODO(aaron) GenericExpression::Record
+        // TODO(aaron) GenericExpression::RecordAssignment
+        // TODO(aaron) GenericExpression::StringLiteral
+        // TODO(aaron) GenericExpression::Tag
+        // TODO(aaron) GenericExpression::UnaryOperator
         _ => unimplemented!(),
     }
 }
@@ -244,8 +258,10 @@ pub fn resolve_concrete_types(input: GenericDocument) -> Result<ConcreteDocument
         .collect();
     Ok(ConcreteDocument {
         imports: input.imports,
+        // TODO(aaron) add type declarations to return value
         type_declarations: vec![],
         variable_declarations: variable_declarations?,
+        // TODO(aaron) add top level expressions to return value
         expressions: vec![],
     })
 }
