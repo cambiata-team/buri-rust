@@ -35,32 +35,47 @@ fn resolve_tag_union_type(constraint_vec: &Vec<Constraint>) -> ConcreteType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum BroadType {
+/// Indicates the category of a data type without necessarily specifying the type itself.
+/// For primitives, the type is specified exactly.
+enum TypeCategory {
+    /// The category of the type is not known.
     Unknown,
+    /// The type is Num.
     Num,
+    /// The type is Str.
     Str,
+    /// The type is a function type.
+    /// The argument types and return types are not specified.
     Function,
+    /// The type is a tag union type.
+    /// The names and types of the tags are not specified.
     TagUnion,
+    /// The type is a list type.
+    /// The type of the list's elements is not specified.
     List,
+    /// The type is a record type.
+    /// The names and types of the fields are not specified.
     Record,
 }
 
-fn compute_broad_type(constraint_vec: &Vec<Constraint>) -> Result<BroadType, ()> {
-    let mut broad_type = BroadType::Unknown;
+fn compute_broad_type(constraint_vec: &Vec<Constraint>) -> Result<TypeCategory, ()> {
+    let mut broad_type = TypeCategory::Unknown;
     for constraint in constraint_vec {
         let predicted_type = match constraint {
             Constraint::EqualToPrimitive(primitive) => match primitive {
                 PrimitiveType::CompilerBoolean => return Err(()),
-                PrimitiveType::Num => BroadType::Num,
-                PrimitiveType::Str => BroadType::Str,
+                PrimitiveType::Num => TypeCategory::Num,
+                PrimitiveType::Str => TypeCategory::Str,
             },
-            Constraint::ListOfType(_) => BroadType::List,
-            Constraint::HasTag(_) | Constraint::TagAtMost(_) => BroadType::TagUnion,
-            Constraint::HasField(_) | Constraint::HasMethod(_) => BroadType::Record,
-            Constraint::HasReturnType(_) | Constraint::HasArgumentTypes(_) => BroadType::Function,
+            Constraint::ListOfType(_) => TypeCategory::List,
+            Constraint::HasTag(_) | Constraint::TagAtMost(_) => TypeCategory::TagUnion,
+            Constraint::HasField(_) | Constraint::HasMethod(_) => TypeCategory::Record,
+            Constraint::HasReturnType(_) | Constraint::HasArgumentTypes(_) => {
+                TypeCategory::Function
+            }
         };
         match broad_type {
-            BroadType::Unknown => {
+            TypeCategory::Unknown => {
                 broad_type = predicted_type;
             }
             _ => {
@@ -88,21 +103,21 @@ fn resolve_generic_type(
     let broad_type = compute_broad_type(constraint_vec)?;
     match broad_type {
         // If a type does not have constraints, then it does not matter what the type is.
-        BroadType::Unknown => Ok(ConcreteType::Primitive(PrimitiveType::CompilerBoolean)),
-        BroadType::Num => Ok(ConcreteType::Primitive(PrimitiveType::Num)),
-        BroadType::Str => Ok(ConcreteType::Primitive(PrimitiveType::Str)),
+        TypeCategory::Unknown => Ok(ConcreteType::Primitive(PrimitiveType::CompilerBoolean)),
+        TypeCategory::Num => Ok(ConcreteType::Primitive(PrimitiveType::Num)),
+        TypeCategory::Str => Ok(ConcreteType::Primitive(PrimitiveType::Str)),
         // TODO(aaron) add specific function types to return value
-        BroadType::Function => Ok(ConcreteType::Function(Box::new(ConcreteFunctionType {
+        TypeCategory::Function => Ok(ConcreteType::Function(Box::new(ConcreteFunctionType {
             argument_types: vec![],
             return_type: None,
         }))),
-        BroadType::TagUnion => Ok(resolve_tag_union_type(constraint_vec)),
+        TypeCategory::TagUnion => Ok(resolve_tag_union_type(constraint_vec)),
         // TODO(aaron) add specific element type to return value
-        BroadType::List => Ok(ConcreteType::List(Box::new(ConcreteListType {
+        TypeCategory::List => Ok(ConcreteType::List(Box::new(ConcreteListType {
             element_type: ConcreteType::Primitive(PrimitiveType::CompilerBoolean),
         }))),
         // TODO(aaron) add field names and types to return value
-        BroadType::Record => Ok(ConcreteType::Record(Box::new(ConcreteRecordType {
+        TypeCategory::Record => Ok(ConcreteType::Record(Box::new(ConcreteRecordType {
             field_types: HashMap::new(),
         }))),
     }
