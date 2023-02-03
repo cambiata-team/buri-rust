@@ -6,3 +6,18 @@ two = 2
 
 @export
 onePlusTwo = 1 + 2
+
+@export
+fiveMinusTwo = 5 - 2
+
+@export
+twoTimesThree = 2 * 3
+
+@export
+sixDividedByTwo = 6 / 2
+
+@export
+sevenModThree = 7 % 3
+
+@export
+twoToThePowerOfThree = 2 ** 3
