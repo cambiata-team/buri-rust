@@ -4,10 +4,10 @@ use crate::{
 use ast::{ImportNode, ParserInput, TopLevelDeclaration};
 use typed_ast::{
     TypedBinaryOperatorExpression, TypedBlockExpression, TypedBooleanLiteralExpression,
-    TypedDocument, TypedExpression, TypedFunctionExpression, TypedIdentifierExpression,
-    TypedIfExpression, TypedIntegerLiteralExpression, TypedListExpression, TypedRecordExpression,
-    TypedStringLiteralExpression, TypedTagExpression, TypedTypeDeclaration,
-    TypedUnaryOperatorExpression, TypedVariableDeclaration,
+    TypedDeclarationExpression, TypedDocument, TypedExpression, TypedFunctionExpression,
+    TypedIdentifierExpression, TypedIfExpression, TypedIntegerLiteralExpression,
+    TypedListExpression, TypedRecordExpression, TypedStringLiteralExpression, TypedTagExpression,
+    TypedTypeDeclaration, TypedUnaryOperatorExpression, TypedVariableDeclaration,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -22,6 +22,7 @@ pub type GenericBinaryOperatorExpression<'a> =
     TypedBinaryOperatorExpression<GenericSourcedType<'a>>;
 pub type GenericBlockExpression<'a> = TypedBlockExpression<GenericSourcedType<'a>>;
 pub type GenericBooleanExpression<'a> = TypedBooleanLiteralExpression<GenericSourcedType<'a>>;
+pub type GenericDeclarationExpression<'a> = TypedDeclarationExpression<GenericSourcedType<'a>>;
 pub type GenericFunctionExpression<'a> = TypedFunctionExpression<GenericSourcedType<'a>>;
 pub type GenericIdentifierExpression<'a> = TypedIdentifierExpression<GenericSourcedType<'a>>;
 pub type GenericIfExpression<'a> = TypedIfExpression<GenericSourcedType<'a>>;

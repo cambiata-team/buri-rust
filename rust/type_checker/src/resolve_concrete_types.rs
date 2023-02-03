@@ -1,6 +1,11 @@
 use crate::{
     constraints::Constraint,
-    generic_nodes::{GenericDocument, GenericExpression, GenericVariableDeclaration},
+    generic_nodes::{
+        GenericBinaryOperatorExpression, GenericBlockExpression, GenericBooleanExpression,
+        GenericDeclarationExpression, GenericDocument, GenericExpression,
+        GenericFunctionExpression, GenericIdentifierExpression, GenericIntegerLiteralExpression,
+        GenericStringLiteralExpression, GenericVariableDeclaration,
+    },
     type_schema::TypeSchema,
     type_schema_substitutions::TypeSchemaSubstitutions,
     GenericTypeId,
@@ -11,8 +16,9 @@ use typed_ast::{
     ConcreteBinaryOperatorExpression, ConcreteBlockExpression, ConcreteBooleanExpression,
     ConcreteDeclarationExpression, ConcreteDocument, ConcreteExpression,
     ConcreteFunctionExpression, ConcreteFunctionType, ConcreteIdentifierExpression,
-    ConcreteIntegerLiteralExpression, ConcreteListType, ConcreteRecordType, ConcreteTagUnionType,
-    ConcreteType, ConcreteVariableDeclaration, PrimitiveType, TypedVariableDeclaration,
+    ConcreteIntegerLiteralExpression, ConcreteListType, ConcreteRecordType,
+    ConcreteStringLiteralExpression, ConcreteTagUnionType, ConcreteType,
+    ConcreteVariableDeclaration, PrimitiveType, TypedVariableDeclaration,
 };
 
 // TODO(aaron) return correct tag for non-boolean
@@ -123,114 +129,199 @@ fn resolve_generic_type(
     }
 }
 
+fn resolve_binary_operator(
+    simplified_schema: &TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    generic_binary_operator: GenericBinaryOperatorExpression,
+) -> Result<ConcreteExpression, ()> {
+    Ok(ConcreteExpression::BinaryOperator(Box::new(
+        ConcreteBinaryOperatorExpression {
+            expression_type: resolve_generic_type(
+                simplified_schema,
+                substitutions,
+                generic_binary_operator.expression_type.type_id,
+            )?,
+            symbol: generic_binary_operator.symbol,
+            left_child: resolve_expression(
+                simplified_schema,
+                substitutions,
+                generic_binary_operator.left_child,
+            )?,
+            right_child: resolve_expression(
+                simplified_schema,
+                substitutions,
+                generic_binary_operator.right_child,
+            )?,
+        },
+    )))
+}
+
+fn resolve_block(
+    simplified_schema: &TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    generic_block: &GenericBlockExpression,
+) -> Result<ConcreteExpression, ()> {
+    Ok(ConcreteExpression::Block(Box::new(
+        ConcreteBlockExpression {
+            expression_type: resolve_generic_type(
+                simplified_schema,
+                substitutions,
+                generic_block.expression_type.type_id,
+            )?,
+            // TODO(aaron) add block contents to return value
+            contents: vec![],
+        },
+    )))
+}
+
+fn resolve_boolean(
+    simplified_schema: &TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    generic_boolean: &GenericBooleanExpression,
+) -> Result<ConcreteExpression, ()> {
+    Ok(ConcreteExpression::Boolean(Box::new(
+        ConcreteBooleanExpression {
+            expression_type: resolve_generic_type(
+                simplified_schema,
+                substitutions,
+                generic_boolean.expression_type.type_id,
+            )?,
+            value: generic_boolean.value,
+        },
+    )))
+}
+
+fn resolve_declaration(
+    simplified_schema: &TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    generic_declaration: GenericDeclarationExpression,
+) -> Result<ConcreteExpression, ()> {
+    Ok(ConcreteExpression::Declaration(Box::new(
+        ConcreteDeclarationExpression {
+            expression_type: resolve_generic_type(
+                simplified_schema,
+                substitutions,
+                generic_declaration.expression_type.type_id,
+            )?,
+            identifier: match resolve_expression(
+                simplified_schema,
+                substitutions,
+                GenericExpression::Identifier(Box::new(generic_declaration.identifier)),
+            )? {
+                ConcreteExpression::Identifier(x) => *x,
+                _ => return Err(()),
+            },
+            value: resolve_expression(simplified_schema, substitutions, generic_declaration.value)?,
+        },
+    )))
+}
+
+fn resolve_function(
+    simplified_schema: &TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    generic_function: GenericFunctionExpression,
+) -> Result<ConcreteExpression, ()> {
+    Ok(ConcreteExpression::Function(Box::new(
+        ConcreteFunctionExpression {
+            expression_type: resolve_generic_type(
+                simplified_schema,
+                substitutions,
+                generic_function.expression_type.type_id,
+            )?,
+            // TODO(aaron) add argument names to return value
+            argument_names: vec![],
+            body: resolve_expression(simplified_schema, substitutions, generic_function.body)?,
+        },
+    )))
+}
+
+fn resolve_identifier(
+    simplified_schema: &TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    generic_identifier: GenericIdentifierExpression,
+) -> Result<ConcreteExpression, ()> {
+    Ok(ConcreteExpression::Identifier(Box::new(
+        ConcreteIdentifierExpression {
+            expression_type: resolve_generic_type(
+                simplified_schema,
+                substitutions,
+                generic_identifier.expression_type.type_id,
+            )?,
+            name: generic_identifier.name,
+            is_disregarded: generic_identifier.is_disregarded,
+        },
+    )))
+}
+
+fn resolve_integer(
+    simplified_schema: &TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    generic_integer: &GenericIntegerLiteralExpression,
+) -> Result<ConcreteExpression, ()> {
+    Ok(ConcreteExpression::Integer(Box::new(
+        ConcreteIntegerLiteralExpression {
+            expression_type: resolve_generic_type(
+                simplified_schema,
+                substitutions,
+                generic_integer.expression_type.type_id,
+            )?,
+            value: generic_integer.value,
+        },
+    )))
+}
+
+fn resolve_string_literal(
+    simplified_schema: &TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    generic_string_literal: GenericStringLiteralExpression,
+) -> Result<ConcreteExpression, ()> {
+    Ok(ConcreteExpression::StringLiteral(Box::new(
+        ConcreteStringLiteralExpression {
+            expression_type: resolve_generic_type(
+                simplified_schema,
+                substitutions,
+                generic_string_literal.expression_type.type_id,
+            )?,
+            value: generic_string_literal.value,
+        },
+    )))
+}
+
 fn resolve_expression<'a>(
     simplified_schema: &TypeSchema,
     substitutions: &mut TypeSchemaSubstitutions,
     expression: GenericExpression<'a>,
 ) -> Result<ConcreteExpression, ()> {
     match expression {
-        GenericExpression::BinaryOperator(generic_binary_operator) => Ok(
-            ConcreteExpression::BinaryOperator(Box::new(ConcreteBinaryOperatorExpression {
-                expression_type: resolve_generic_type(
-                    simplified_schema,
-                    substitutions,
-                    generic_binary_operator.expression_type.type_id,
-                )?,
-                symbol: generic_binary_operator.symbol,
-                left_child: resolve_expression(
-                    simplified_schema,
-                    substitutions,
-                    generic_binary_operator.left_child,
-                )?,
-                right_child: resolve_expression(
-                    simplified_schema,
-                    substitutions,
-                    generic_binary_operator.right_child,
-                )?,
-            })),
-        ),
-        GenericExpression::Block(generic_block) => Ok(ConcreteExpression::Block(Box::new(
-            ConcreteBlockExpression {
-                expression_type: resolve_generic_type(
-                    simplified_schema,
-                    substitutions,
-                    generic_block.expression_type.type_id,
-                )?,
-                // TODO(aaron) add block contents to return value
-                contents: vec![],
-            },
-        ))),
-        GenericExpression::Boolean(generic_boolean) => Ok(ConcreteExpression::Boolean(Box::new(
-            ConcreteBooleanExpression {
-                expression_type: resolve_generic_type(
-                    simplified_schema,
-                    substitutions,
-                    generic_boolean.expression_type.type_id,
-                )?,
-                value: generic_boolean.value,
-            },
-        ))),
-        GenericExpression::Declaration(generic_declaration) => Ok(ConcreteExpression::Declaration(
-            Box::new(ConcreteDeclarationExpression {
-                expression_type: resolve_generic_type(
-                    simplified_schema,
-                    substitutions,
-                    generic_declaration.expression_type.type_id,
-                )?,
-                identifier: match resolve_expression(
-                    simplified_schema,
-                    substitutions,
-                    GenericExpression::Identifier(Box::new(generic_declaration.identifier)),
-                )? {
-                    ConcreteExpression::Identifier(x) => *x,
-                    _ => return Err(()),
-                },
-                value: resolve_expression(
-                    simplified_schema,
-                    substitutions,
-                    generic_declaration.value,
-                )?,
-            }),
-        )),
-        GenericExpression::Function(generic_function) => Ok(ConcreteExpression::Function(
-            Box::new(ConcreteFunctionExpression {
-                expression_type: resolve_generic_type(
-                    simplified_schema,
-                    substitutions,
-                    generic_function.expression_type.type_id,
-                )?,
-                // TODO(aaron) add argument names to return value
-                argument_names: vec![],
-                body: resolve_expression(simplified_schema, substitutions, generic_function.body)?,
-            }),
-        )),
+        GenericExpression::BinaryOperator(generic_binary_operator) => {
+            resolve_binary_operator(simplified_schema, substitutions, *generic_binary_operator)
+        }
+        GenericExpression::Block(generic_block) => {
+            resolve_block(simplified_schema, substitutions, &generic_block)
+        }
+        GenericExpression::Boolean(generic_boolean) => {
+            resolve_boolean(simplified_schema, substitutions, &generic_boolean)
+        }
+        GenericExpression::Declaration(generic_declaration) => {
+            resolve_declaration(simplified_schema, substitutions, *generic_declaration)
+        }
+        GenericExpression::Function(generic_function) => {
+            resolve_function(simplified_schema, substitutions, *generic_function)
+        }
         // TODO(aaron) GenericExpression::FunctionArguments
-        GenericExpression::Identifier(generic_identifier) => Ok(ConcreteExpression::Identifier(
-            Box::new(ConcreteIdentifierExpression {
-                expression_type: resolve_generic_type(
-                    simplified_schema,
-                    substitutions,
-                    generic_identifier.expression_type.type_id,
-                )?,
-                name: generic_identifier.name,
-                is_disregarded: generic_identifier.is_disregarded,
-            }),
-        )),
+        GenericExpression::Identifier(generic_identifier) => {
+            resolve_identifier(simplified_schema, substitutions, *generic_identifier)
+        }
         // TODO(aaron) GenericExpression::If
-        GenericExpression::Integer(generic_integer) => Ok(ConcreteExpression::Integer(Box::new(
-            ConcreteIntegerLiteralExpression {
-                expression_type: resolve_generic_type(
-                    simplified_schema,
-                    substitutions,
-                    generic_integer.expression_type.type_id,
-                )?,
-                value: generic_integer.value,
-            },
-        ))),
+        GenericExpression::Integer(generic_integer) => {
+            resolve_integer(simplified_schema, substitutions, &generic_integer)
+        }
         // TODO(aaron) GenericExpression::List
         // TODO(aaron) GenericExpression::Record
         // TODO(aaron) GenericExpression::RecordAssignment
-        // TODO(aaron) GenericExpression::StringLiteral
+        GenericExpression::StringLiteral(generic_string_literal) => {
+            resolve_string_literal(simplified_schema, substitutions, *generic_string_literal)
+        }
         // TODO(aaron) GenericExpression::Tag
         // TODO(aaron) GenericExpression::UnaryOperator
         _ => unimplemented!(),
