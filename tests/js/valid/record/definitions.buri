@@ -1,0 +1,23 @@
+@export
+person = {
+    name: "Jane Doe",
+    age: 30,
+}
+
+@export
+nested = {
+    name: "Mary Doe",
+    mom: {
+        name: "Jane Doe",
+        age: 30,
+    },
+    dad: {
+        name: "John Doe",
+        age: 30,
+    },
+}
+
+@export
+hasArray = {
+    a: [1, 2, 3],
+}

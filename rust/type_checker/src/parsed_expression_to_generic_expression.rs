@@ -5,8 +5,9 @@ use crate::{
     generic_nodes::{
         get_generic_type_id, GenericBinaryOperatorExpression, GenericBlockExpression,
         GenericExpression, GenericIdentifierExpression, GenericIfExpression,
-        GenericIntegerLiteralExpression, GenericListExpression, GenericSourcedType,
-        GenericStringLiteralExpression, GenericTagExpression, GenericUnaryOperatorExpression,
+        GenericIntegerLiteralExpression, GenericListExpression, GenericRecordExpression,
+        GenericSourcedType, GenericStringLiteralExpression, GenericTagExpression,
+        GenericUnaryOperatorExpression,
     },
     type_schema::TypeSchema,
     type_schema_substitutions::TypeSchemaSubstitutions,
@@ -14,7 +15,8 @@ use crate::{
 };
 use ast::{
     BinaryOperatorNode, BinaryOperatorSymbol, BlockNode, Expression, IdentifierNode, IfNode,
-    IntegerNode, ListNode, StringLiteralNode, TagNode, UnaryOperatorNode, UnaryOperatorSymbol,
+    IntegerNode, ListNode, RecordNode, StringLiteralNode, TagNode, UnaryOperatorNode,
+    UnaryOperatorSymbol,
 };
 use std::collections::HashMap;
 use typed_ast::PrimitiveType;
@@ -419,6 +421,43 @@ fn translate_list<'a>(
     })
 }
 
+fn translate_record<'a>(
+    schema: &mut TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    node: RecordNode<'a>,
+) -> Result<GenericRecordExpression<'a>, ()> {
+    let list_type_id = schema.make_id();
+    substitutions.insert_new_id(list_type_id);
+    let mut element_translations = HashMap::new();
+    element_translations.reserve(node.value.len());
+    for element in node.value {
+        let field_type_id = schema.make_id();
+        substitutions.insert_new_id(field_type_id);
+        let field_name = element.identifier.value.name;
+        schema.insert(
+            list_type_id,
+            Constraint::HasField(HasFieldConstraint {
+                field_name: field_name.clone(),
+                field_type: field_type_id,
+            }),
+        );
+        let element_translation = translate_parsed_expression_to_generic_expression(
+            schema,
+            substitutions,
+            element.value,
+        )?;
+        substitutions.set_types_equal(get_generic_type_id(&element_translation), field_type_id);
+        element_translations.insert(field_name, element_translation);
+    }
+    Ok(GenericRecordExpression {
+        expression_type: GenericSourcedType {
+            type_id: list_type_id,
+            source_of_type: node.source,
+        },
+        contents: element_translations,
+    })
+}
+
 fn translate_string<'a>(
     schema: &mut TypeSchema,
     substitutions: &mut TypeSchemaSubstitutions,
@@ -552,7 +591,9 @@ pub fn translate_parsed_expression_to_generic_expression<'a>(
         Expression::List(node) => translate_list(schema, substitutions, node)
             .map(Box::new)
             .map(GenericExpression::List),
-        // TODO(aaron): Expression::Record(node) => translate_record(schema, node),
+        Expression::Record(node) => translate_record(schema, substitutions, node)
+            .map(Box::new)
+            .map(GenericExpression::Record),
         Expression::StringLiteral(node) => Ok(GenericExpression::StringLiteral(Box::new(
             translate_string(schema, substitutions, node),
         ))),
@@ -572,7 +613,7 @@ mod test {
 
     use ast::{
         BinaryOperatorValue, FunctionApplicationArgumentsNode, FunctionApplicationArgumentsValue,
-        IdentifierValue, IfValue, ListNode, ParserInput, TagIdentifierNode, TagValue,
+        IdentifierValue, IfValue, ListNode, ParserInput, RecordValue, TagIdentifierNode, TagValue,
         UnaryOperatorValue,
     };
 
@@ -1545,6 +1586,185 @@ mod test {
         )
         .unwrap();
         assert_eq!(substitutions.count_canonical_ids(), 2);
+    }
+
+    #[test]
+    fn record_input_increments_id_counter_by_two_for_each_field_plus_one_for_the_record() {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::Record(RecordNode {
+            source: ParserInput::new(""),
+            value: vec![
+                RecordValue {
+                    identifier: IdentifierNode {
+                        source: ParserInput::new(""),
+                        value: IdentifierValue {
+                            name: "a".to_string(),
+                            is_disregarded: false,
+                        },
+                    },
+                    value: Expression::Integer(IntegerNode {
+                        source: ParserInput::new(""),
+                        value: 3,
+                    }),
+                },
+                RecordValue {
+                    identifier: IdentifierNode {
+                        source: ParserInput::new(""),
+                        value: IdentifierValue {
+                            name: "b".to_string(),
+                            is_disregarded: false,
+                        },
+                    },
+                    value: Expression::Integer(IntegerNode {
+                        source: ParserInput::new(""),
+                        value: 4,
+                    }),
+                },
+            ],
+        });
+        translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        )
+        .unwrap();
+        assert_eq!(schema.next_id, 5);
+    }
+
+    #[test]
+    fn record_adds_one_constraint_plus_two_more_for_each_field() {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::Record(RecordNode {
+            source: ParserInput::new(""),
+            value: vec![
+                RecordValue {
+                    identifier: IdentifierNode {
+                        source: ParserInput::new(""),
+                        value: IdentifierValue {
+                            name: "a".to_string(),
+                            is_disregarded: false,
+                        },
+                    },
+                    value: Expression::Integer(IntegerNode {
+                        source: ParserInput::new(""),
+                        value: 3,
+                    }),
+                },
+                RecordValue {
+                    identifier: IdentifierNode {
+                        source: ParserInput::new(""),
+                        value: IdentifierValue {
+                            name: "b".to_string(),
+                            is_disregarded: false,
+                        },
+                    },
+                    value: Expression::Integer(IntegerNode {
+                        source: ParserInput::new(""),
+                        value: 4,
+                    }),
+                },
+            ],
+        });
+        translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        )
+        .unwrap();
+        assert_eq!(schema.number_of_constraints(), 4);
+    }
+
+    #[test]
+    fn for_record_input_each_field_in_input_list_has_corresponding_field_in_translated_list() {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::Record(RecordNode {
+            source: ParserInput::new(""),
+            value: vec![
+                RecordValue {
+                    identifier: IdentifierNode {
+                        source: ParserInput::new(""),
+                        value: IdentifierValue {
+                            name: "a".to_string(),
+                            is_disregarded: false,
+                        },
+                    },
+                    value: Expression::Integer(IntegerNode {
+                        source: ParserInput::new(""),
+                        value: 3,
+                    }),
+                },
+                RecordValue {
+                    identifier: IdentifierNode {
+                        source: ParserInput::new(""),
+                        value: IdentifierValue {
+                            name: "b".to_string(),
+                            is_disregarded: false,
+                        },
+                    },
+                    value: Expression::Integer(IntegerNode {
+                        source: ParserInput::new(""),
+                        value: 4,
+                    }),
+                },
+            ],
+        });
+        let result = translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        );
+        if let Ok(GenericExpression::Record(record_node)) = result {
+            assert_eq!(record_node.contents.len(), 2);
+        } else {
+            panic!();
+        }
+    }
+
+    #[test]
+    fn record_input_has_one_canonical_id_plus_one_more_for_each_primitive_field() {
+        let mut schema = TypeSchema::new();
+        let mut substitutions = TypeSchemaSubstitutions::new();
+        let expression = Expression::Record(RecordNode {
+            source: ParserInput::new(""),
+            value: vec![
+                RecordValue {
+                    identifier: IdentifierNode {
+                        source: ParserInput::new(""),
+                        value: IdentifierValue {
+                            name: "a".to_string(),
+                            is_disregarded: false,
+                        },
+                    },
+                    value: Expression::Integer(IntegerNode {
+                        source: ParserInput::new(""),
+                        value: 3,
+                    }),
+                },
+                RecordValue {
+                    identifier: IdentifierNode {
+                        source: ParserInput::new(""),
+                        value: IdentifierValue {
+                            name: "b".to_string(),
+                            is_disregarded: false,
+                        },
+                    },
+                    value: Expression::Integer(IntegerNode {
+                        source: ParserInput::new(""),
+                        value: 4,
+                    }),
+                },
+            ],
+        });
+        translate_parsed_expression_to_generic_expression(
+            &mut schema,
+            &mut substitutions,
+            expression,
+        )
+        .unwrap();
+        assert_eq!(substitutions.count_canonical_ids(), 3);
     }
 
     #[test]
