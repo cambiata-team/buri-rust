@@ -393,14 +393,11 @@ mod test {
         let new_schema = substitutions.apply_to_type_schema(schema);
         for (_, constraint_vec) in new_schema.constraints {
             for constraint in constraint_vec {
-                match constraint {
-                    Constraint::HasMethod(has_method_constraint) => {
-                        assert_eq!(
-                            substitutions.get_canonical_id(has_method_constraint.method_type),
-                            substitutions.get_canonical_id(type_c)
-                        );
-                    }
-                    _ => {}
+                if let Constraint::HasMethod(has_method_constraint) = constraint {
+                    assert_eq!(
+                        substitutions.get_canonical_id(has_method_constraint.method_type),
+                        substitutions.get_canonical_id(type_c)
+                    );
                 }
             }
         }

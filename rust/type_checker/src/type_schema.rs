@@ -1,7 +1,7 @@
 use crate::{constraints::Constraint, GenericTypeId};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct TypeSchema {
     pub next_id: GenericTypeId,
     pub constraints: HashMap<GenericTypeId, Vec<Constraint>>,

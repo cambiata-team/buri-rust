@@ -4,7 +4,7 @@ use crate::{
 use ast::{ImportNode, ParserInput, TopLevelDeclaration};
 use typed_ast::{
     TypedBinaryOperatorExpression, TypedBlockExpression, TypedBooleanLiteralExpression,
-    TypedDeclarationExpression, TypedDocument, TypedExpression, TypedFunctionExpression,
+    TypedDeclarationExpression, TypedExpression, TypedFunctionExpression,
     TypedIdentifierExpression, TypedIfExpression, TypedIntegerLiteralExpression,
     TypedListExpression, TypedRecordExpression, TypedStringLiteralExpression, TypedTagExpression,
     TypedTypeDeclaration, TypedUnaryOperatorExpression, TypedVariableDeclaration,
@@ -51,7 +51,7 @@ pub struct GenericDocument<'a> {
     pub expressions: Vec<TypedExpression<GenericSourcedType<'a>>>,
 }
 
-pub const fn get_generic_type_id<'a>(input: &GenericExpression<'a>) -> GenericTypeId {
+pub const fn get_generic_type_id(input: &GenericExpression) -> GenericTypeId {
     match input {
         GenericExpression::BinaryOperator(node) => node.expression_type.type_id,
         GenericExpression::Block(node) => node.expression_type.type_id,

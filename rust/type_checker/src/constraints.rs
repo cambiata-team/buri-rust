@@ -1,6 +1,6 @@
 use crate::GenericTypeId;
 use std::collections::HashMap;
-use typed_ast::{ConcreteType, PrimitiveType};
+use typed_ast::PrimitiveType;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Constrain that a generic type is a tag union
