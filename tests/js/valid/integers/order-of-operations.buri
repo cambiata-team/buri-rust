@@ -1,0 +1,101 @@
+@export
+twoTimesThreePlusOne = 2 * 3 + 1
+
+@export
+onePlusTwoTimesThree = 1 + 2 * 3
+
+@export
+twelveDividedThreePlusOne = 12 / 3 + 1
+
+@export
+onePlusTwelveDividedThree = 1 + 12 / 3
+
+@export
+eightyFiveModEightPlusTwo = 85 % 8 + 2
+
+@export
+twoPlusEightyFiveModEight = 2 + 85 % 8
+
+@export
+twoPowerThreePlusOne = 2 ** 3 + 1
+
+@export
+onePlusTwoPowerThree = 1 + 2 ** 3
+
+@export
+twoTimesThreeMinusOne = 2 * 3 - 1
+
+@export
+oneMinusTwoTimesThree = 1 - 2 * 3
+
+@export
+twelveDividedThreeMinusOne = 12 / 3 - 1
+
+@export
+oneMinusTwelveDividedThree = 1 - 12 / 3
+
+@export
+eightyFiveModEightMinusTwo = 85 % 8 - 2
+
+@export
+twoMinusEightyFiveModEight = 2 - 85 % 8
+
+@export
+twoPowerThreeMinusOne = 2 ** 3 - 1
+
+@export
+oneMinusTwoPowerThree = 1 - 2 ** 3
+
+@export
+lParenTwoTimesThreeRParenPlusOne = (2 * 3) + 1
+
+@export
+twoTimesLParenThreePlusOneRParen = 2 * (3 + 1)
+
+@export
+lParenTwelveDividedThreeRParenPlusOne = (12 / 3) + 1
+
+@export
+twelveDividedLParenThreePlusOneRParen = 12 / (3 + 1)
+
+@export
+lParenEightyFiveModEightRParenPlusTwo = (85 % 8) + 2
+
+@export
+eightyFiveModLParenEightPlusTwoRParen = 85 % (8 + 2)
+
+@export
+lParenTwoPowerThreeRParenPlusOne = (2 ** 3) + 1
+
+@export
+twoPowerLParenThreePlusOneRParen = 2 ** (3 + 1)
+
+@export
+lParenTwoTimesThreeRParenMinusOne = (2 * 3) - 1
+
+@export
+twoTimesLParenThreeMinusOneRParen = 2 * (3 - 1)
+
+@export
+lParenTwelveDividedThreeRParenMinusOne = (12 / 3) - 1
+
+@export
+twelveDividedLParenThreeMinusOneRParen = 12 / (3 - 1)
+
+@export
+lParenEightyFiveModEightRParenMinusTwo = (85 % 8) - 2
+
+@export
+eightyFiveModLParenEightMinusTwoRParen = 85 % (8 - 2)
+
+@export
+lParenTwoPowerThreeRParenMinusOne = (2 ** 3) - 1
+
+@export
+twoPowerLParenThreeMinusOneRParen = 2 ** (3 - 1)
+
+@export
+onePlusTwoTimesThreePowerSevenMinusFive = 1 + 2 * 3 ** 7 - 5
+
+@export
+onePlusLParenTwoTimesThreeRParenPowerLParenSevenMinusFiveRParen = 1 + (2 * 3) ** (7 - 5)
