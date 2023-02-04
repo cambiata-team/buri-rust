@@ -1,0 +1,23 @@
+@export
+eightDivideTwo = 8 / 2
+
+@export
+eightDivideThree = 8 / 3
+
+@export
+negativeEightDivideTwo = -8 / 2
+
+@export
+negativeEightDivideThree = -8 / 3
+
+@export
+eightDivideNegativeTwo = 8 / -2
+
+@export
+eightDivideNegativeThree = 8 / -3
+
+@export
+negativeEightDivideNegativeTwo = -8 / -2
+
+@export
+negativeEightDivideNegativeThree = -8 / -3
