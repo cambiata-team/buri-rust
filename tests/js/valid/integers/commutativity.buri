@@ -1,0 +1,39 @@
+-- Commutative operators.
+
+@export
+onePlusTwo = 1 + 2
+
+@export
+twoPlusOne = 2 + 1
+
+@export
+oneTimesTwo = 1 * 2
+
+@export
+twoTimesOne = 2 * 1
+
+-- Non-commutative operators.
+
+@export
+oneMinusTwo = 1 - 2
+
+@export
+twoMinusOne = 2 - 1
+
+@export
+sixDivideThree = 6 / 3
+
+@export
+threeDivideSix = 3 / 6
+
+@export
+fourModSix = 4 % 6
+
+@export
+sixModFour = 6 % 4
+
+@export
+twoPowerThree = 2 ** 3
+
+@export
+threePowerTwo = 3 ** 2
