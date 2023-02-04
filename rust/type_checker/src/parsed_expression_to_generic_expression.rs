@@ -17,7 +17,7 @@ use ast::{
     IntegerNode, ListNode, StringLiteralNode, TagNode, UnaryOperatorNode, UnaryOperatorSymbol,
 };
 use std::collections::HashMap;
-use typed_ast::{ConcreteType, PrimitiveType};
+use typed_ast::PrimitiveType;
 
 const fn constrain_equal_to_num() -> Constraint {
     Constraint::EqualToPrimitive(PrimitiveType::Num)
@@ -251,7 +251,7 @@ fn translate_binary_operator<'a>(
                 substitutions,
                 &id_collection,
                 &translated_right_child,
-            );
+            )?;
         }
         BinaryOperatorSymbol::FieldLookup => {
             translate_binary_operator_add_field_lookup_constraints(
@@ -259,7 +259,7 @@ fn translate_binary_operator<'a>(
                 substitutions,
                 &id_collection,
                 &translated_right_child,
-            );
+            )?;
         }
     };
     Ok(GenericBinaryOperatorExpression {
@@ -290,7 +290,7 @@ fn translate_block<'a>(
     match element_translations.last_mut() {
         None => return Err(()),
         Some(last_element) => {
-            substitutions.set_types_equal(get_generic_type_id(&last_element), type_id);
+            substitutions.set_types_equal(get_generic_type_id(last_element), type_id);
         }
     }
     Ok(GenericBlockExpression {
@@ -537,7 +537,7 @@ pub fn translate_parsed_expression_to_generic_expression<'a>(
             .map(Box::new)
             .map(GenericExpression::Block),
         // TODO(aaron): Expression::Function(node) => translate_function(schema, node),
-        Expression::FunctionApplicationArguments(node) => Err(()),
+        Expression::FunctionApplicationArguments(_) => Err(()),
         Expression::Identifier(node) => Ok(GenericExpression::Identifier(Box::new(
             translate_identifier(schema, substitutions, node),
         ))),
@@ -594,11 +594,12 @@ mod test {
                 })),
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.next_id, 3);
     }
 
@@ -620,11 +621,12 @@ mod test {
                 })),
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.number_of_constraints(), 5);
     }
 
@@ -646,11 +648,12 @@ mod test {
                 })),
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.number_of_constraints(), 5);
     }
 
@@ -678,11 +681,12 @@ mod test {
                 })),
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.number_of_constraints(), 4);
     }
 
@@ -704,11 +708,12 @@ mod test {
                 })),
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.number_of_constraints(), 4);
     }
 
@@ -730,11 +735,12 @@ mod test {
                 })),
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(substitutions.count_canonical_ids(), 2);
     }
 
@@ -757,11 +763,12 @@ mod test {
                 })),
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.number_of_constraints(), 6);
     }
 
@@ -804,11 +811,12 @@ mod test {
                 )),
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(substitutions.count_canonical_ids(), 5);
     }
 
@@ -851,11 +859,12 @@ mod test {
                 )),
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.number_of_constraints(), 5);
     }
 
@@ -884,11 +893,12 @@ mod test {
                 })),
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(substitutions.count_canonical_ids(), 2);
     }
 
@@ -917,11 +927,12 @@ mod test {
                 })),
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.number_of_constraints(), 1);
     }
 
@@ -950,11 +961,12 @@ mod test {
                 })),
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(substitutions.count_canonical_ids(), 2);
     }
 
@@ -983,11 +995,12 @@ mod test {
                 })),
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.number_of_constraints(), 1);
     }
 
@@ -1015,10 +1028,7 @@ mod test {
             expression,
         );
         if let Ok(GenericExpression::BinaryOperator(binary_operator_expression)) = result {
-            assert_eq!(
-                (*binary_operator_expression).symbol,
-                BinaryOperatorSymbol::Add
-            )
+            assert_eq!(binary_operator_expression.symbol, BinaryOperatorSymbol::Add);
         } else {
             panic!();
         }
@@ -1045,11 +1055,12 @@ mod test {
                 }),
             ],
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.next_id, 4);
     }
 
@@ -1080,7 +1091,7 @@ mod test {
             expression,
         );
         if let Ok(GenericExpression::Block(block_expression)) = result {
-            assert_eq!((*block_expression).contents.len(), 3);
+            assert_eq!(block_expression.contents.len(), 3);
         } else {
             panic!();
         }
@@ -1107,11 +1118,12 @@ mod test {
                 }),
             ],
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(substitutions.count_canonical_ids(), 3);
     }
 
@@ -1124,6 +1136,8 @@ mod test {
                 source: ParserInput::new(""),
                 value: FunctionApplicationArgumentsValue { arguments: vec![] },
             });
+        // TODO(B-221): Remove the `let _ = ` and add .unwrap() to ensure this
+        // never errors.
         let _ = translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
@@ -1166,7 +1180,7 @@ mod test {
             expression,
         );
         if let Ok(GenericExpression::Identifier(identifier_expression)) = result {
-            assert_eq!((*identifier_expression).name, "hello");
+            assert_eq!(identifier_expression.name, "hello");
         } else {
             panic!();
         }
@@ -1196,11 +1210,12 @@ mod test {
                 path_if_false: None,
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.next_id, 3);
     }
 
@@ -1234,11 +1249,12 @@ mod test {
                 }))),
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.next_id, 4);
     }
 
@@ -1273,11 +1289,12 @@ mod test {
                 }))),
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(substitutions.count_canonical_ids(), 2);
     }
 
@@ -1305,11 +1322,12 @@ mod test {
                 path_if_false: None,
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.number_of_constraints(), 3);
     }
 
@@ -1343,11 +1361,12 @@ mod test {
                 }))),
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.number_of_constraints(), 1);
     }
 
@@ -1359,11 +1378,12 @@ mod test {
             source: ParserInput::new(""),
             value: 314,
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.next_id, 1);
     }
 
@@ -1375,11 +1395,12 @@ mod test {
             source: ParserInput::new(""),
             value: 314,
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.number_of_constraints(), 1);
     }
 
@@ -1397,7 +1418,7 @@ mod test {
             expression,
         );
         if let Ok(GenericExpression::Integer(integer_expression)) = result {
-            assert_eq!((*integer_expression).value, 314);
+            assert_eq!(integer_expression.value, 314);
         } else {
             panic!();
         }
@@ -1424,11 +1445,12 @@ mod test {
                 }),
             ],
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.next_id, 5);
     }
 
@@ -1453,11 +1475,12 @@ mod test {
                 }),
             ],
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.number_of_constraints(), 4);
     }
 
@@ -1488,7 +1511,7 @@ mod test {
             expression,
         );
         if let Ok(GenericExpression::List(list_node)) = result {
-            assert_eq!((*list_node).contents.len(), 3);
+            assert_eq!(list_node.contents.len(), 3);
         } else {
             panic!();
         }
@@ -1515,11 +1538,12 @@ mod test {
                 }),
             ],
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(substitutions.count_canonical_ids(), 2);
     }
 
@@ -1531,11 +1555,12 @@ mod test {
             source: ParserInput::new(""),
             value: "hello".to_owned(),
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.next_id, 1);
     }
 
@@ -1547,11 +1572,12 @@ mod test {
             source: ParserInput::new(""),
             value: "hello".to_owned(),
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.number_of_constraints(), 1);
     }
 
@@ -1569,7 +1595,7 @@ mod test {
             expression,
         );
         if let Ok(GenericExpression::StringLiteral(string_literal_expression)) = result {
-            assert_eq!((*string_literal_expression).value, "hello");
+            assert_eq!(string_literal_expression.value, "hello");
         } else {
             panic!();
         }
@@ -1589,11 +1615,12 @@ mod test {
                 contents: vec![],
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.next_id, 1);
     }
 
@@ -1611,11 +1638,12 @@ mod test {
                 contents: vec![],
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.number_of_constraints(), 1);
     }
 
@@ -1639,7 +1667,7 @@ mod test {
             expression,
         );
         if let Ok(GenericExpression::Tag(tag_expression)) = result {
-            assert_eq!((*tag_expression).name, "a");
+            assert_eq!(tag_expression.name, "a");
         } else {
             panic!();
         }
@@ -1659,11 +1687,12 @@ mod test {
                 })),
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.next_id, 2);
     }
 
@@ -1681,11 +1710,12 @@ mod test {
                 })),
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.number_of_constraints(), 3);
     }
 
@@ -1706,11 +1736,12 @@ mod test {
                 })),
             },
         });
-        let _ = translate_parsed_expression_to_generic_expression(
+        translate_parsed_expression_to_generic_expression(
             &mut schema,
             &mut substitutions,
             expression,
-        );
+        )
+        .unwrap();
         assert_eq!(schema.number_of_constraints(), 3);
     }
 
@@ -1735,9 +1766,9 @@ mod test {
         );
         if let Ok(GenericExpression::UnaryOperator(unary_operator_expression)) = result {
             assert_eq!(
-                (*unary_operator_expression).symbol,
+                unary_operator_expression.symbol,
                 UnaryOperatorSymbol::Negative
-            )
+            );
         } else {
             panic!();
         }
@@ -1766,10 +1797,7 @@ mod test {
             expression,
         );
         if let Ok(GenericExpression::UnaryOperator(unary_operator_expression)) = result {
-            assert_eq!(
-                (*unary_operator_expression).symbol,
-                UnaryOperatorSymbol::Not
-            )
+            assert_eq!(unary_operator_expression.symbol, UnaryOperatorSymbol::Not);
         } else {
             panic!();
         }

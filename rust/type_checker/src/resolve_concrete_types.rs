@@ -99,12 +99,10 @@ fn resolve_generic_type(
     substitutions: &mut TypeSchemaSubstitutions,
     type_id: GenericTypeId,
 ) -> Result<ConcreteType, ()> {
-    let constraint_vec = match simplified_schema
+    let Some(constraint_vec) = simplified_schema
         .constraints
-        .get(&substitutions.get_canonical_id(type_id))
-    {
-        Some(x) => x,
-        None => return Err(()),
+        .get(&substitutions.get_canonical_id(type_id)) else {
+        return Err(());
     };
     let broad_type = compute_broad_type(constraint_vec)?;
     match broad_type {
@@ -287,10 +285,10 @@ fn resolve_string_literal(
     )))
 }
 
-fn resolve_expression<'a>(
+fn resolve_expression(
     simplified_schema: &TypeSchema,
     substitutions: &mut TypeSchemaSubstitutions,
-    expression: GenericExpression<'a>,
+    expression: GenericExpression,
 ) -> Result<ConcreteExpression, ()> {
     match expression {
         GenericExpression::BinaryOperator(generic_binary_operator) => {
@@ -331,20 +329,20 @@ fn resolve_expression<'a>(
 fn resolve_variable_declaration_types(
     mut input: TopLevelDeclaration<GenericVariableDeclaration>,
 ) -> Result<TopLevelDeclaration<ConcreteVariableDeclaration>, ()> {
-    let mut simplified_schema = input
+    let simplified_schema = input
         .declaration
         .substitutions
         .apply_to_type_schema(input.declaration.schema);
     Ok(TopLevelDeclaration {
         declaration: ConcreteVariableDeclaration {
             declaration_type: resolve_generic_type(
-                &mut simplified_schema,
+                &simplified_schema,
                 &mut input.declaration.substitutions,
                 input.declaration.declaration.declaration_type.type_id,
             )?,
             identifier_name: input.declaration.declaration.identifier_name,
             expression: resolve_expression(
-                &mut simplified_schema,
+                &simplified_schema,
                 &mut input.declaration.substitutions,
                 input.declaration.declaration.expression,
             )?,
