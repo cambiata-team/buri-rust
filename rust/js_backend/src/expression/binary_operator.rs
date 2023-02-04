@@ -57,10 +57,11 @@ fn get_format(operator: &BinaryOperatorSymbol) -> OperatorFormat {
 }
 
 fn maybe_parenthesize_left(string: &str, expression: &ConcreteExpression) -> String {
-    if let ConcreteExpression::Integer(_) = expression {
-        format!("({string})")
-    } else {
-        super::print_expression(expression)
+    match expression {
+        ConcreteExpression::Integer(_) | ConcreteExpression::UnaryOperator(_) => {
+            format!("({string})")
+        }
+        _ => string.to_string(),
     }
 }
 
@@ -102,6 +103,19 @@ mod test {
     }
 
     #[test]
+    fn addition_with_unary_operator_has_parenthesis() {
+        let expression = ConcreteBinaryOperatorExpression {
+            expression_type: ConcreteType::default_binary_operator_for_test(),
+            symbol: BinaryOperatorSymbol::Add,
+            left_child: ConcreteExpression::negative_unary_operator_for_test(
+                ConcreteExpression::integer_for_test(1),
+            ),
+            right_child: ConcreteExpression::integer_for_test(2),
+        };
+        assert_eq!(print_binary_operator(&expression), "(-1).add(2)");
+    }
+
+    #[test]
     fn addition_without_number_literals_do_not_have_parenthesis() {
         let expression = ConcreteBinaryOperatorExpression {
             expression_type: ConcreteType::default_binary_operator_for_test(),
@@ -135,6 +149,19 @@ mod test {
     }
 
     #[test]
+    fn subtraction_with_unary_operator_has_parenthesis() {
+        let expression = ConcreteBinaryOperatorExpression {
+            expression_type: ConcreteType::default_binary_operator_for_test(),
+            symbol: BinaryOperatorSymbol::Subtract,
+            left_child: ConcreteExpression::negative_unary_operator_for_test(
+                ConcreteExpression::integer_for_test(1),
+            ),
+            right_child: ConcreteExpression::integer_for_test(2),
+        };
+        assert_eq!(print_binary_operator(&expression), "(-1).subtract(2)");
+    }
+
+    #[test]
     fn subtraction_without_number_literals_do_not_have_parenthesis() {
         let expression = ConcreteBinaryOperatorExpression {
             expression_type: ConcreteType::default_binary_operator_for_test(),
@@ -154,6 +181,19 @@ mod test {
             right_child: ConcreteExpression::integer_for_test(2),
         };
         assert_eq!(print_binary_operator(&expression), "(1).multiply(2)");
+    }
+
+    #[test]
+    fn multiplication_with_unary_operator_has_parenthesis() {
+        let expression = ConcreteBinaryOperatorExpression {
+            expression_type: ConcreteType::default_binary_operator_for_test(),
+            symbol: BinaryOperatorSymbol::Multiply,
+            left_child: ConcreteExpression::negative_unary_operator_for_test(
+                ConcreteExpression::integer_for_test(1),
+            ),
+            right_child: ConcreteExpression::integer_for_test(2),
+        };
+        assert_eq!(print_binary_operator(&expression), "(-1).multiply(2)");
     }
 
     #[test]
@@ -179,6 +219,19 @@ mod test {
     }
 
     #[test]
+    fn division_with_unary_operator_has_parenthesis() {
+        let expression = ConcreteBinaryOperatorExpression {
+            expression_type: ConcreteType::default_binary_operator_for_test(),
+            symbol: BinaryOperatorSymbol::Divide,
+            left_child: ConcreteExpression::negative_unary_operator_for_test(
+                ConcreteExpression::integer_for_test(1),
+            ),
+            right_child: ConcreteExpression::integer_for_test(2),
+        };
+        assert_eq!(print_binary_operator(&expression), "(-1).divide(2)");
+    }
+
+    #[test]
     fn division_without_number_literals_do_not_have_parenthesis() {
         let expression = ConcreteBinaryOperatorExpression {
             expression_type: ConcreteType::default_binary_operator_for_test(),
@@ -201,6 +254,19 @@ mod test {
     }
 
     #[test]
+    fn power_with_unary_operator_has_parenthesis() {
+        let expression = ConcreteBinaryOperatorExpression {
+            expression_type: ConcreteType::default_binary_operator_for_test(),
+            symbol: BinaryOperatorSymbol::Power,
+            left_child: ConcreteExpression::negative_unary_operator_for_test(
+                ConcreteExpression::integer_for_test(1),
+            ),
+            right_child: ConcreteExpression::integer_for_test(2),
+        };
+        assert_eq!(print_binary_operator(&expression), "(-1).power(2)");
+    }
+
+    #[test]
     fn power_without_number_literals_do_not_have_parenthesis() {
         let expression = ConcreteBinaryOperatorExpression {
             expression_type: ConcreteType::default_binary_operator_for_test(),
@@ -220,6 +286,19 @@ mod test {
             right_child: ConcreteExpression::integer_for_test(2),
         };
         assert_eq!(print_binary_operator(&expression), "(1).modulo(2)");
+    }
+
+    #[test]
+    fn modulus_with_unary_operator_has_parenthesis() {
+        let expression = ConcreteBinaryOperatorExpression {
+            expression_type: ConcreteType::default_binary_operator_for_test(),
+            symbol: BinaryOperatorSymbol::Modulus,
+            left_child: ConcreteExpression::negative_unary_operator_for_test(
+                ConcreteExpression::integer_for_test(1),
+            ),
+            right_child: ConcreteExpression::integer_for_test(2),
+        };
+        assert_eq!(print_binary_operator(&expression), "(-1).modulo(2)");
     }
 
     #[test]
