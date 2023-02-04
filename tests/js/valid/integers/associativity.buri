@@ -1,0 +1,57 @@
+-- Associative operators.
+
+@export
+onePlusTwoPlusThree = 1 + 2 + 3
+
+@export
+onePlusLParenTwoPlusThreeRParen = 1 + (2 + 3)
+
+@export
+lParenOnePlusTwoRParenPlusThree = (1 + 2) + 3
+
+@export
+oneTimesTwoTimesThree = 1 * 2 * 3
+
+@export
+oneTimesLParenTwoTimesThreeRParen = 1 * (2 * 3)
+
+@export
+lParenOneTimesTwoRParenTimesThree = (1 * 2) * 3
+
+@export
+twoPowerThreePowerTwo = 2 ** 3 ** 2
+
+@export
+twoPowerLParenThreePowerTwoRParen = 2 ** (3 ** 2)
+
+@export
+lParenTwoPowerThreeRParenPowerTwo = (2 ** 3) ** 2
+
+-- Non-associative operators.
+
+@export
+tenMinusFiveMinusTwo = 10 - 5 - 2
+
+@export
+tenMinusLParenFiveMinusTwoRParen = 10 - (5 - 2)
+
+@export
+lParenTenMinusFiveRParenMinusTwo = (10 - 5) - 2
+
+@export
+eightDivideThreeDivideTwo = 8 / 3 / 2
+
+@export
+eightDivideLParenThreeDivideTwoRParen = 8 / (3 / 2)
+
+@export
+lParenEightDivideThreeRParenDivideTwo = (8 / 3) / 2
+
+@export
+eightModFiveModTwo = 8 % 5 % 2
+
+@export
+eightModLParenFiveModTwoRParen = 8 % (5 % 2)
+
+@export
+lParenEightModFiveRParenModTwo = (8 % 5) % 2
