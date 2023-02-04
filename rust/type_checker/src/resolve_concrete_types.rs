@@ -5,7 +5,7 @@ use crate::{
         GenericDeclarationExpression, GenericDocument, GenericExpression,
         GenericFunctionExpression, GenericIdentifierExpression, GenericIntegerLiteralExpression,
         GenericListExpression, GenericRecordExpression, GenericStringLiteralExpression,
-        GenericVariableDeclaration,
+        GenericUnaryOperatorExpression, GenericVariableDeclaration,
     },
     type_schema::TypeSchema,
     type_schema_substitutions::TypeSchemaSubstitutions,
@@ -19,8 +19,8 @@ use typed_ast::{
     ConcreteFunctionExpression, ConcreteFunctionType, ConcreteIdentifierExpression,
     ConcreteIntegerLiteralExpression, ConcreteListExpression, ConcreteListType,
     ConcreteRecordExpression, ConcreteRecordType, ConcreteStringLiteralExpression,
-    ConcreteTagUnionType, ConcreteType, ConcreteVariableDeclaration, PrimitiveType,
-    TypedVariableDeclaration,
+    ConcreteTagUnionType, ConcreteType, ConcreteUnaryOperatorExpression,
+    ConcreteVariableDeclaration, PrimitiveType, TypedVariableDeclaration,
 };
 
 // TODO(aaron) return correct tag for non-boolean
@@ -332,6 +332,28 @@ fn resolve_string_literal(
     )))
 }
 
+fn resolve_unary_operator(
+    simplified_schema: &TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    generic_unary_operator: GenericUnaryOperatorExpression,
+) -> Result<ConcreteExpression, ()> {
+    Ok(ConcreteExpression::UnaryOperator(Box::new(
+        ConcreteUnaryOperatorExpression {
+            expression_type: resolve_generic_type(
+                simplified_schema,
+                substitutions,
+                generic_unary_operator.expression_type.type_id,
+            )?,
+            symbol: generic_unary_operator.symbol,
+            child: resolve_expression(
+                simplified_schema,
+                substitutions,
+                generic_unary_operator.child,
+            )?,
+        },
+    )))
+}
+
 fn resolve_expression(
     simplified_schema: &TypeSchema,
     substitutions: &mut TypeSchemaSubstitutions,
@@ -370,7 +392,9 @@ fn resolve_expression(
             resolve_string_literal(simplified_schema, substitutions, *generic_string_literal)
         }
         // TODO(aaron) GenericExpression::Tag
-        // TODO(aaron) GenericExpression::UnaryOperator
+        GenericExpression::UnaryOperator(generic_unary_operator) => {
+            resolve_unary_operator(simplified_schema, substitutions, *generic_unary_operator)
+        }
         _ => unimplemented!(),
     }
 }

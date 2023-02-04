@@ -1,0 +1,11 @@
+@export
+negativeOne = -1
+
+@export
+negativeTwo = -2
+
+@export
+onePlusNegativeOne = 1 + -1
+
+@export
+oneTimesNegative27 = 1 * -27
