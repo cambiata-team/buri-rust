@@ -4,7 +4,7 @@ use crate::{
         GenericBinaryOperatorExpression, GenericBlockExpression, GenericBooleanExpression,
         GenericDeclarationExpression, GenericDocument, GenericExpression,
         GenericFunctionExpression, GenericIdentifierExpression, GenericIntegerLiteralExpression,
-        GenericStringLiteralExpression, GenericVariableDeclaration,
+        GenericListExpression, GenericStringLiteralExpression, GenericVariableDeclaration,
     },
     type_schema::TypeSchema,
     type_schema_substitutions::TypeSchemaSubstitutions,
@@ -16,7 +16,7 @@ use typed_ast::{
     ConcreteBinaryOperatorExpression, ConcreteBlockExpression, ConcreteBooleanExpression,
     ConcreteDeclarationExpression, ConcreteDocument, ConcreteExpression,
     ConcreteFunctionExpression, ConcreteFunctionType, ConcreteIdentifierExpression,
-    ConcreteIntegerLiteralExpression, ConcreteListType, ConcreteRecordType,
+    ConcreteIntegerLiteralExpression, ConcreteListExpression, ConcreteListType, ConcreteRecordType,
     ConcreteStringLiteralExpression, ConcreteTagUnionType, ConcreteType,
     ConcreteVariableDeclaration, PrimitiveType, TypedVariableDeclaration,
 };
@@ -268,6 +268,25 @@ fn resolve_integer(
     )))
 }
 
+fn resolve_list(
+    simplified_schema: &TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    generic_list: &GenericListExpression,
+) -> Result<ConcreteExpression, ()> {
+    Ok(ConcreteExpression::List(Box::new(ConcreteListExpression {
+        expression_type: resolve_generic_type(
+            simplified_schema,
+            substitutions,
+            generic_list.expression_type.type_id,
+        )?,
+        contents: generic_list
+            .contents
+            .iter()
+            .map(|item| resolve_expression(simplified_schema, substitutions, item.clone()))
+            .collect::<Result<Vec<_>, _>>()?,
+    })))
+}
+
 fn resolve_string_literal(
     simplified_schema: &TypeSchema,
     substitutions: &mut TypeSchemaSubstitutions,
@@ -314,9 +333,9 @@ fn resolve_expression(
         GenericExpression::Integer(generic_integer) => {
             resolve_integer(simplified_schema, substitutions, &generic_integer)
         }
-        // TODO(aaron) GenericExpression::List
         // TODO(aaron) GenericExpression::Record
         // TODO(aaron) GenericExpression::RecordAssignment
+        GenericExpression::List(list) => resolve_list(simplified_schema, substitutions, &list),
         GenericExpression::StringLiteral(generic_string_literal) => {
             resolve_string_literal(simplified_schema, substitutions, *generic_string_literal)
         }
