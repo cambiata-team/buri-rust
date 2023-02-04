@@ -65,4 +65,13 @@ impl ConcreteExpression {
             contents: expressions,
         }))
     }
+
+    #[must_use]
+    pub fn negative_unary_operator_for_test(child: Self) -> Self {
+        Self::UnaryOperator(Box::new(ConcreteUnaryOperatorExpression {
+            expression_type: ConcreteType::default_integer_for_test(),
+            symbol: ast::UnaryOperatorSymbol::Negative,
+            child,
+        }))
+    }
 }
