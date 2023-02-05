@@ -9,5 +9,4 @@
             "@*": ["./*", "./.buri/dist/*"]
         }
     },
-    "include": ["**/*.js", "**/*.ts", "tests/js/valid/integers/unsigned.mjs"]
-}
+    "include": ["**/*.js", "**/*.ts"]
