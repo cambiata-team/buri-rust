@@ -4,8 +4,8 @@ use crate::{
         GenericBinaryOperatorExpression, GenericBlockExpression, GenericBooleanExpression,
         GenericDeclarationExpression, GenericDocument, GenericExpression,
         GenericFunctionExpression, GenericIdentifierExpression, GenericIntegerLiteralExpression,
-        GenericListExpression, GenericRecordExpression, GenericStringLiteralExpression,
-        GenericUnaryOperatorExpression, GenericVariableDeclaration,
+        GenericListExpression, GenericRecordAssignmentExpression, GenericRecordExpression,
+        GenericStringLiteralExpression, GenericUnaryOperatorExpression, GenericVariableDeclaration,
     },
     type_schema::TypeSchema,
     type_schema_substitutions::TypeSchemaSubstitutions,
@@ -18,9 +18,10 @@ use typed_ast::{
     ConcreteDeclarationExpression, ConcreteDocument, ConcreteExpression,
     ConcreteFunctionExpression, ConcreteFunctionType, ConcreteIdentifierExpression,
     ConcreteIntegerLiteralExpression, ConcreteListExpression, ConcreteListType,
-    ConcreteRecordExpression, ConcreteRecordType, ConcreteStringLiteralExpression,
-    ConcreteTagUnionType, ConcreteType, ConcreteUnaryOperatorExpression,
-    ConcreteVariableDeclaration, PrimitiveType, TypedVariableDeclaration,
+    ConcreteRecordAssignmentExpression, ConcreteRecordExpression, ConcreteRecordType,
+    ConcreteStringLiteralExpression, ConcreteTagUnionType, ConcreteType,
+    ConcreteUnaryOperatorExpression, ConcreteVariableDeclaration, PrimitiveType,
+    TypedVariableDeclaration,
 };
 
 // TODO(aaron) return correct tag for non-boolean
@@ -239,18 +240,16 @@ fn resolve_identifier(
     simplified_schema: &TypeSchema,
     substitutions: &mut TypeSchemaSubstitutions,
     generic_identifier: GenericIdentifierExpression,
-) -> Result<ConcreteExpression, ()> {
-    Ok(ConcreteExpression::Identifier(Box::new(
-        ConcreteIdentifierExpression {
-            expression_type: resolve_generic_type(
-                simplified_schema,
-                substitutions,
-                generic_identifier.expression_type.type_id,
-            )?,
-            name: generic_identifier.name,
-            is_disregarded: generic_identifier.is_disregarded,
-        },
-    )))
+) -> Result<ConcreteIdentifierExpression, ()> {
+    Ok(ConcreteIdentifierExpression {
+        expression_type: resolve_generic_type(
+            simplified_schema,
+            substitutions,
+            generic_identifier.expression_type.type_id,
+        )?,
+        name: generic_identifier.name,
+        is_disregarded: generic_identifier.is_disregarded,
+    })
 }
 
 fn resolve_integer(
@@ -266,6 +265,32 @@ fn resolve_integer(
                 generic_integer.expression_type.type_id,
             )?,
             value: generic_integer.value,
+        },
+    )))
+}
+
+fn resolve_record_assignment(
+    simplified_schema: &TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    generic_record_assignment: GenericRecordAssignmentExpression,
+) -> Result<ConcreteExpression, ()> {
+    Ok(ConcreteExpression::RecordAssignment(Box::new(
+        ConcreteRecordAssignmentExpression {
+            expression_type: resolve_generic_type(
+                simplified_schema,
+                substitutions,
+                generic_record_assignment.expression_type.type_id,
+            )?,
+            identifier: resolve_identifier(
+                simplified_schema,
+                substitutions,
+                generic_record_assignment.identifier,
+            )?,
+            contents: resolve_record(
+                simplified_schema,
+                substitutions,
+                generic_record_assignment.contents,
+            )?,
         },
     )))
 }
@@ -293,26 +318,24 @@ fn resolve_record(
     simplified_schema: &TypeSchema,
     substitutions: &mut TypeSchemaSubstitutions,
     generic_record: GenericRecordExpression,
-) -> Result<ConcreteExpression, ()> {
-    Ok(ConcreteExpression::Record(Box::new(
-        ConcreteRecordExpression {
-            expression_type: resolve_generic_type(
-                simplified_schema,
-                substitutions,
-                generic_record.expression_type.type_id,
-            )?,
-            contents: generic_record
-                .contents
-                .into_iter()
-                .map(|(key, value)| {
-                    Ok((
-                        key,
-                        resolve_expression(simplified_schema, substitutions, value)?,
-                    ))
-                })
-                .collect::<Result<HashMap<_, _>, _>>()?,
-        },
-    )))
+) -> Result<ConcreteRecordExpression, ()> {
+    Ok(ConcreteRecordExpression {
+        expression_type: resolve_generic_type(
+            simplified_schema,
+            substitutions,
+            generic_record.expression_type.type_id,
+        )?,
+        contents: generic_record
+            .contents
+            .into_iter()
+            .map(|(key, value)| {
+                Ok((
+                    key,
+                    resolve_expression(simplified_schema, substitutions, value)?,
+                ))
+            })
+            .collect::<Result<HashMap<_, _>, _>>()?,
+    })
 }
 
 fn resolve_string_literal(
@@ -378,15 +401,21 @@ fn resolve_expression(
         // TODO(aaron) GenericExpression::FunctionArguments
         GenericExpression::Identifier(generic_identifier) => {
             resolve_identifier(simplified_schema, substitutions, *generic_identifier)
+                .map(Box::new)
+                .map(ConcreteExpression::Identifier)
         }
         // TODO(aaron) GenericExpression::If
         GenericExpression::Integer(generic_integer) => {
             resolve_integer(simplified_schema, substitutions, &generic_integer)
         }
-        // TODO(aaron) GenericExpression::RecordAssignment
+        GenericExpression::RecordAssignment(generic_record_assignment) => {
+            resolve_record_assignment(simplified_schema, substitutions, *generic_record_assignment)
+        }
         GenericExpression::List(list) => resolve_list(simplified_schema, substitutions, *list),
         GenericExpression::Record(record) => {
             resolve_record(simplified_schema, substitutions, *record)
+                .map(Box::new)
+                .map(ConcreteExpression::Record)
         }
         GenericExpression::StringLiteral(generic_string_literal) => {
             resolve_string_literal(simplified_schema, substitutions, *generic_string_literal)
