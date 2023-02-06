@@ -1,5 +1,8 @@
 # Buri
 
+DO NOT MERGE THIS PR.
+It is only a test.
+
 > "Simplicity is about subtracting the obvious and adding the meaningful."
 >
 > ~ John Maeda: The Laws of Simplicity.
