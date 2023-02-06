@@ -6,3 +6,17 @@ listOfStrings = ["a", "b", "c"]
 
 @export
 nestedLists = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+
+@export
+expressionsInList = [1 + 1, 3 ** 6 + 2]
+
+@export
+recordsInList = [{ id: 12345, job: "janitor" }, { id: 54321, job: "accountant" }]
+
+@export
+multilineList = [
+    1,
+    2,
+    3,
+    4,
+]
