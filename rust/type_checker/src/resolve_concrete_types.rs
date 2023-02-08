@@ -104,7 +104,7 @@ fn resolve_generic_type(
     let Some(constraint_vec) = simplified_schema
         .constraints
         .get(&substitutions.get_canonical_id(type_id)) else {
-        return Err(());
+        return Ok(ConcreteType::Primitive(PrimitiveType::CompilerBoolean));
     };
     let broad_type = compute_broad_type(constraint_vec)?;
     match broad_type {
