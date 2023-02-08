@@ -425,6 +425,18 @@ fn resolve_variable_declaration_types(
 }
 
 pub fn resolve_concrete_types(input: GenericDocument) -> Result<ConcreteDocument, ()> {
+    let mut constraints: HashMap<String, HashMap<GenericTypeId, Vec<Constraint>>> = HashMap::new();
+    for declaration in &input.variable_declarations {
+        match constraints.get(&declaration.declaration.declaration.identifier_name) {
+            Some(_) => return Err(()),
+            None => {
+                constraints.insert(
+                    declaration.declaration.declaration.identifier_name.clone(),
+                    declaration.declaration.schema.constraints.clone(),
+                );
+            }
+        }
+    }
     let variable_declarations: Result<
         Vec<TopLevelDeclaration<TypedVariableDeclaration<ConcreteType>>>,
         (),
