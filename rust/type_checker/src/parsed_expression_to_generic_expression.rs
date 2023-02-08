@@ -282,6 +282,7 @@ fn translate_block<'a>(
 ) -> Result<GenericBlockExpression<'a>, ()> {
     let type_id = schema.make_id();
     substitutions.insert_new_id(type_id);
+    schema.move_to_sub_scope();
     let mut element_translations = Vec::new();
     element_translations.reserve_exact(node.value.len());
     for element in node.value {
@@ -295,6 +296,7 @@ fn translate_block<'a>(
             substitutions.set_types_equal(get_generic_type_id(last_element), type_id);
         }
     }
+    schema.move_to_parent_scope();
     Ok(GenericBlockExpression {
         expression_type: GenericSourcedType {
             type_id,
@@ -304,13 +306,21 @@ fn translate_block<'a>(
     })
 }
 
-// TODO(aaron) handle variable lookup
 fn translate_identifier<'a>(
     schema: &mut TypeSchema,
     substitutions: &mut TypeSchemaSubstitutions,
     node: IdentifierNode<'a>,
 ) -> GenericIdentifierExpression<'a> {
-    let type_id = schema.make_id();
+    let type_id = match &schema.scope {
+        Some(scope) => {
+            if let Some(typ) = scope.get_variable_declaration_type(&node.value.name) {
+                typ
+            } else {
+                schema.register_import(&node.value.name)
+            }
+        }
+        None => schema.register_import(&node.value.name),
+    };
     substitutions.insert_new_id(type_id);
     GenericIdentifierExpression {
         expression_type: GenericSourcedType {
@@ -338,11 +348,14 @@ fn translate_if<'a>(
         get_generic_type_id(&translated_condition),
         constrain_at_most_boolean_tag(),
     );
+    schema.move_to_sub_scope();
     let translated_true_path = translate_parsed_expression_to_generic_expression(
         schema,
         substitutions,
         *node.value.path_if_true,
     )?;
+    schema.move_to_parent_scope();
+    schema.move_to_sub_scope();
     let translated_false_path = if let Some(false_path) = node.value.path_if_false {
         substitutions.set_types_equal(type_id, get_generic_type_id(&translated_true_path));
         let translated_false_path =
@@ -366,6 +379,7 @@ fn translate_if<'a>(
         );
         None
     };
+    schema.move_to_parent_scope();
     Ok(GenericIfExpression {
         expression_type: GenericSourcedType {
             type_id,

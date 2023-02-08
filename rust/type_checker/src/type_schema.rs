@@ -1,11 +1,12 @@
-use crate::{constraints::Constraint, GenericTypeId};
-use std::collections::HashMap;
+use crate::{constraints::Constraint, scope::Scope, GenericTypeId};
+use std::{collections::HashMap, mem::swap};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct TypeSchema {
     pub next_id: GenericTypeId,
     pub constraints: HashMap<GenericTypeId, Vec<Constraint>>,
     pub imports: HashMap<String, GenericTypeId>,
+    pub scope: Option<Box<Scope>>,
 }
 
 impl TypeSchema {
@@ -14,6 +15,7 @@ impl TypeSchema {
             next_id: 0,
             constraints: HashMap::new(),
             imports: HashMap::new(),
+            scope: Some(Scope::new_head()),
         }
     }
     /// Return an id which is unique in this `TypeSchema`.
@@ -40,5 +42,37 @@ impl TypeSchema {
             constraint_count += constraint_vec.len();
         }
         constraint_count
+    }
+    /// Return the generic type id for an imported identifier, creating the id if necessary.
+    pub fn register_import(&mut self, identifier_name: &str) -> GenericTypeId {
+        if let Some(x) = self.imports.get(identifier_name) {
+            *x
+        } else {
+            let new_id = self.make_id();
+            self.imports.insert(identifier_name.to_owned(), new_id);
+            new_id
+        }
+    }
+    /// Replaces the scope with a new value, returning the old value.
+    fn update_scope(&mut self, mut value: Option<Box<Scope>>) -> Option<Box<Scope>> {
+        swap(&mut self.scope, &mut value);
+        value
+    }
+    /// Create a new sub scope within the current scope and navigate to it.
+    pub fn move_to_sub_scope(&mut self) {
+        let current_scope = self
+            .update_scope(None)
+            .map_or_else(|| Scope::new_head(), |x| x);
+        self.update_scope(Some(Scope::new_sub_scope(current_scope)));
+    }
+    /// Delete the current scope and navigate to the current scope's parent scope.
+    pub fn move_to_parent_scope(&mut self) {
+        let current_scope = self
+            .update_scope(None)
+            .map_or_else(|| Scope::new_head(), |x| x);
+        self.update_scope(current_scope.parent_scope);
+    }
+    fn get_current_scope_helper(&mut self) -> Option<&Scope> {
+        self.scope.as_ref().map_or(None, |x| Some(x))
     }
 }
