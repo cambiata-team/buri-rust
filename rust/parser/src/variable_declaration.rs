@@ -183,4 +183,13 @@ mod test {
         let result = variable_declaration(input);
         assert!(result.is_err());
     }
+
+    #[test]
+    fn right_hand_side_can_be_identifier() {
+        let input = "foo = bar";
+        let input = ParserInput::new(input);
+        let result = variable_declaration(input);
+        let (remainder, _) = result.unwrap();
+        assert_eq!(remainder, "");
+    }
 }
