@@ -139,6 +139,7 @@ impl TypeSchemaSubstitutions {
             next_id: input.next_id,
             constraints: self.apply_to_constraints_map(input.constraints),
             imports: self.apply_to_imports_map(input.imports),
+            scope: None,
         }
     }
 }
