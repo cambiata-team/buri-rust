@@ -316,10 +316,10 @@ fn translate_identifier<'a>(
             if let Some(typ) = scope.get_variable_declaration_type(&node.value.name) {
                 typ
             } else {
-                schema.register_import(&node.value.name)
+                schema.register_import(node.value.name.clone())
             }
         }
-        None => schema.register_import(&node.value.name),
+        None => schema.register_import(node.value.name.clone()),
     };
     substitutions.insert_new_id(type_id);
     GenericIdentifierExpression {

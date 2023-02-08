@@ -5,7 +5,7 @@ use std::{collections::HashMap, mem::swap};
 pub struct TypeSchema {
     pub next_id: GenericTypeId,
     pub constraints: HashMap<GenericTypeId, Vec<Constraint>>,
-    pub imports: HashMap<String, GenericTypeId>,
+    pub imports: HashMap<GenericTypeId, String>,
     pub scope: Option<Box<Scope>>,
 }
 
@@ -44,14 +44,10 @@ impl TypeSchema {
         constraint_count
     }
     /// Return the generic type id for an imported identifier, creating the id if necessary.
-    pub fn register_import(&mut self, identifier_name: &str) -> GenericTypeId {
-        if let Some(x) = self.imports.get(identifier_name) {
-            *x
-        } else {
-            let new_id = self.make_id();
-            self.imports.insert(identifier_name.to_owned(), new_id);
-            new_id
-        }
+    pub fn register_import(&mut self, identifier_name: String) -> GenericTypeId {
+        let new_id = self.make_id();
+        self.imports.insert(new_id, identifier_name);
+        new_id
     }
     /// Replaces the scope with a new value, returning the old value.
     fn update_scope(&mut self, mut value: Option<Box<Scope>>) -> Option<Box<Scope>> {

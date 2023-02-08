@@ -126,11 +126,11 @@ impl TypeSchemaSubstitutions {
     }
     fn apply_to_imports_map(
         &mut self,
-        input: HashMap<String, GenericTypeId>,
-    ) -> HashMap<String, GenericTypeId> {
+        input: HashMap<GenericTypeId, String>,
+    ) -> HashMap<GenericTypeId, String> {
         let mut output = HashMap::new();
         for (key, value) in input {
-            output.insert(key, self.get_canonical_id(value));
+            output.insert(self.get_canonical_id(key), value);
         }
         output
     }
@@ -408,31 +408,22 @@ mod test {
     fn apply_to_type_schema_replaces_all_instances_of_a_given_id_in_import_values() {
         let mut substitutions = TypeSchemaSubstitutions::new();
         let mut schema = TypeSchema::new();
-        let type_a = schema.make_id();
-        let type_b = schema.make_id();
-        let type_c = schema.make_id();
+        let type_a = schema.register_import("apple".to_owned());
+        let type_b = schema.register_import("banana".to_owned());
+        let type_c = schema.register_import("carrot".to_owned());
         substitutions.insert_new_id(type_a);
         substitutions.insert_new_id(type_b);
         substitutions.insert_new_id(type_c);
-        schema.imports.insert("apple".to_owned(), type_a);
-        schema.imports.insert("banana".to_owned(), type_b);
-        schema.imports.insert("carrot".to_owned(), type_c);
         substitutions.set_types_equal(type_a, type_b);
         assert_eq!(
-            substitutions.get_canonical_id(*schema.imports.get("apple").unwrap()),
-            substitutions.get_canonical_id(type_a)
-        );
-        assert_eq!(
-            substitutions.get_canonical_id(*schema.imports.get("apple").unwrap()),
-            substitutions.get_canonical_id(type_b)
-        );
-        assert_eq!(
-            substitutions.get_canonical_id(*schema.imports.get("banana").unwrap()),
-            substitutions.get_canonical_id(type_a)
-        );
-        assert_eq!(
-            substitutions.get_canonical_id(*schema.imports.get("banana").unwrap()),
-            substitutions.get_canonical_id(type_b)
+            schema
+                .imports
+                .get(&substitutions.get_canonical_id(type_a))
+                .unwrap(),
+            schema
+                .imports
+                .get(&substitutions.get_canonical_id(type_b))
+                .unwrap()
         );
     }
 
@@ -440,19 +431,19 @@ mod test {
     fn apply_to_type_schema_does_not_replace_non_substituted_ids_in_import_values() {
         let mut substitutions = TypeSchemaSubstitutions::new();
         let mut schema = TypeSchema::new();
-        let type_a = schema.make_id();
-        let type_b = schema.make_id();
-        let type_c = schema.make_id();
+        let type_a = schema.register_import("apple".to_owned());
+        let type_b = schema.register_import("banana".to_owned());
+        let type_c = schema.register_import("carrot".to_owned());
         substitutions.insert_new_id(type_a);
         substitutions.insert_new_id(type_b);
         substitutions.insert_new_id(type_c);
-        schema.imports.insert("apple".to_owned(), type_a);
-        schema.imports.insert("banana".to_owned(), type_b);
-        schema.imports.insert("carrot".to_owned(), type_c);
         substitutions.set_types_equal(type_a, type_b);
         assert_eq!(
-            substitutions.get_canonical_id(*schema.imports.get("carrot").unwrap()),
-            substitutions.get_canonical_id(type_c)
+            schema
+                .imports
+                .get(&substitutions.get_canonical_id(type_c))
+                .unwrap(),
+            "carrot"
         );
     }
 }
