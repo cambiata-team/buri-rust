@@ -1,0 +1,23 @@
+@export
+oneTimesTwo = 1 * 2
+
+@export
+oneTimesNegativeTwo = 1 * -2
+
+@export
+negativeOneTimesTwo = -1 * 2
+
+@export
+negativeOneTimesNegativeTwo = -1 * -2
+
+@export
+threeTimesFour = 3 * 4
+
+@export
+threeTimesNegativeFour = 3 * -4
+
+@export
+negativeThreeTimesFour = -3 * 4
+
+@export
+negativeThreeTimesNegativeFour = -3 * -4
