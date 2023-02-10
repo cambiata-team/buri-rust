@@ -16,6 +16,7 @@ import {
     tenMinusFiveMinusTwo,
     tenMinusLParenFiveMinusTwoRParen,
     twoPowerLParenThreePowerTwoRParen,
+    twoPowerThreePowerTwo,
 } from "@tests/js/valid/integers/associativity.mjs"
 import { describe, expect, it } from "bun:test"
 
@@ -99,6 +100,10 @@ describe("non-associative operators", () => {
             )
         })
 
-        // TODO(B-226): Write a test that shows that power is _right_ associative by default.
+        it("power is right associative by default: 2 ** 3 ** 2 == 2 ** (3 ** 2)", () => {
+            expect(twoPowerThreePowerTwo.valueOf()).toBe(
+                twoPowerLParenThreePowerTwoRParen.valueOf()
+            )
+        })
     })
 })
