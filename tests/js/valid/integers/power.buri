@@ -1,0 +1,20 @@
+@export
+fivePowerEight = 5 ** 8
+
+@export
+twoPowerThree = 2 ** 3
+
+@export
+twentyPowerZero = 20 ** 0
+
+@export
+twentyPowerOne = 20 ** 1
+
+@export
+zeroPowerZero = 0 ** 0
+
+@export
+zeroPowerTwenty = 0 ** 20
+
+@export
+onePowerTwenty = 1 ** 20
