@@ -1,0 +1,23 @@
+@export
+eightModFive = 8 % 5
+
+@export
+eightModNegativeFive = 8 % -5
+
+@export
+negativeEightModFive = -8 % 5
+
+@export
+negativeEightModNegativeFive = -8 % -5
+
+@export
+fiveModEight = 5 % 8
+
+@export
+fiveModNegativeEight = 5 % -8
+
+@export
+negativeFiveModEight = -5 % 8
+
+@export
+negativeFiveModNegativeEight = -5 % -8

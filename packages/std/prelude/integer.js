@@ -21,8 +21,12 @@ Object.assign(Number.prototype, {
         return new this.constructor(truncated)
     },
 
+    // Using a custom modulo function because the built-in one is mathematically incorrect.
+    // https://stackoverflow.com/questions/4467539/javascript-modulo-gives-a-negative-result-for-negative-numbers
     modulo(num) {
-        return new this.constructor(this.valueOf() % num.valueOf())
+        let m = this.valueOf()
+        let n = num.valueOf()
+        return new this.constructor(((m % n) + n) % n)
     },
 
     power(num) {
