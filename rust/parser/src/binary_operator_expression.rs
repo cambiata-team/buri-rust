@@ -186,15 +186,18 @@ fn push_bin_op_segment<'a>(
     segment: BinaryOperatorSegment<'a>,
 ) -> BinaryOperatorTreeNode<'a> {
     if let BinaryOperatorTreeNode::Internal(ref internal_node_reference) = node {
-        if order_of_operations(&segment.symbol)
-            < order_of_operations(&internal_node_reference.symbol)
-        {
+        let is_lower_precedence = order_of_operations(&segment.symbol)
+            < order_of_operations(&internal_node_reference.symbol);
+        let is_equal_precedence_and_right_associative = order_of_operations(&segment.symbol)
+            == order_of_operations(&internal_node_reference.symbol)
+            && is_right_associative(&segment.symbol);
+        if is_lower_precedence || is_equal_precedence_and_right_associative {
             if let BinaryOperatorTreeNode::Internal(mut internal_node) = node {
                 internal_node.right_child =
                     Box::new(push_bin_op_segment(*internal_node.right_child, segment));
                 return BinaryOperatorTreeNode::Internal(internal_node);
             };
-        };
+        }
     };
     BinaryOperatorTreeNode::Internal(InternalNode {
         source: segment.source,
@@ -218,6 +221,10 @@ fn transform_to_ast(node: BinaryOperatorTreeNode) -> Expression {
         }
         BinaryOperatorTreeNode::Leaf(expression) => expression,
     }
+}
+
+const fn is_right_associative(symbol: &BinaryOperatorSymbol) -> bool {
+    matches!(symbol, BinaryOperatorSymbol::Power)
 }
 
 /// Parse an expression optionally containing binary operators at the top level.
@@ -450,6 +457,33 @@ mod test {
                 ..
             })
         ));
+    }
+
+    #[test]
+    fn power_is_right_associative() {
+        let input = ParserInput::new("1**2**3");
+        let result = binary_operator_expression(
+            ExpressionContext::new().allow_newlines_in_expressions(),
+        )(input);
+        let (remainder, expression) = result.unwrap();
+        assert_eq!(remainder, "");
+        if let Expression::BinaryOperator(BinaryOperatorNode {
+            value:
+                BinaryOperatorValue {
+                    symbol,
+                    left_child,
+                    right_child,
+                    ..
+                },
+            ..
+        }) = expression
+        {
+            assert_eq!(symbol, BinaryOperatorSymbol::Power);
+            assert!(matches!(*left_child, Expression::Integer(_)));
+            assert!(matches!(*right_child, Expression::BinaryOperator(_)));
+        } else {
+            panic!("Expected binary operator expression");
+        }
     }
 
     #[test]

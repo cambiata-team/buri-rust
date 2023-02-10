@@ -18,15 +18,6 @@ oneTimesLParenTwoTimesThreeRParen = 1 * (2 * 3)
 @export
 lParenOneTimesTwoRParenTimesThree = (1 * 2) * 3
 
-@export
-twoPowerThreePowerTwo = 2 ** 3 ** 2
-
-@export
-twoPowerLParenThreePowerTwoRParen = 2 ** (3 ** 2)
-
-@export
-lParenTwoPowerThreeRParenPowerTwo = (2 ** 3) ** 2
-
 -- Non-associative operators.
 
 @export
@@ -55,3 +46,12 @@ eightModLParenFiveModTwoRParen = 8 % (5 % 2)
 
 @export
 lParenEightModFiveRParenModTwo = (8 % 5) % 2
+
+@export
+twoPowerThreePowerTwo = 2 ** 3 ** 2
+
+@export
+twoPowerLParenThreePowerTwoRParen = 2 ** (3 ** 2)
+
+@export
+lParenTwoPowerThreeRParenPowerTwo = (2 ** 3) ** 2
