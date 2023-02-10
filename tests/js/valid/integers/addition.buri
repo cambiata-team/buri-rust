@@ -1,0 +1,23 @@
+@export
+onePlusTwo = 1 + 2
+
+@export
+onePlusNegativeTwo = 1 + -2
+
+@export
+negativeOnePlusTwo = -1 + 2
+
+@export
+negativeOnePlusNegativeTwo = -1 + -2
+
+@export
+threePlusFour = 3 + 4
+
+@export
+threePlusNegativeFour = 3 + -4
+
+@export
+negativeThreePlusFour = -3 + 4
+
+@export
+negativeThreePlusNegativeFour = -3 + -4
