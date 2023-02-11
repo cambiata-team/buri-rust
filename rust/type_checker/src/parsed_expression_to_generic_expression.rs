@@ -4,19 +4,22 @@ use crate::{
     },
     generic_nodes::{
         get_generic_type_id, GenericBinaryOperatorExpression, GenericBlockExpression,
-        GenericExpression, GenericIdentifierExpression, GenericIfExpression,
-        GenericIntegerLiteralExpression, GenericListExpression, GenericRecordAssignmentExpression,
-        GenericRecordExpression, GenericSourcedType, GenericStringLiteralExpression,
-        GenericTagExpression, GenericUnaryOperatorExpression,
+        GenericDeclarationExpression, GenericExpression, GenericIdentifierExpression,
+        GenericIfExpression, GenericIntegerLiteralExpression, GenericListExpression,
+        GenericRecordAssignmentExpression, GenericRecordExpression, GenericSourcedType,
+        GenericStringLiteralExpression, GenericTagExpression, GenericTypeDeclarationExpression,
+        GenericTypeIdentifierExpression, GenericUnaryOperatorExpression,
     },
     type_schema::TypeSchema,
     type_schema_substitutions::TypeSchemaSubstitutions,
     GenericTypeId,
 };
 use ast::{
-    BinaryOperatorNode, BinaryOperatorSymbol, BlockNode, Expression, IdentifierNode, IfNode,
-    IntegerNode, ListNode, RecordAssignmentNode, RecordNode, StringLiteralNode, TagNode,
-    UnaryOperatorNode, UnaryOperatorSymbol,
+    BinaryOperatorNode, BinaryOperatorSymbol, BlockNode, DeclarationNode, Expression,
+    FunctionTypeNode, IdentifierNode, IfNode, IntegerNode, ListNode, ListTypeNode,
+    RecordAssignmentNode, RecordNode, RecordTypeNode, StringLiteralNode, TagGroupTypeNode, TagNode,
+    TypeDeclarationNode, TypeExpression, TypeIdentifierNode, UnaryOperatorNode,
+    UnaryOperatorSymbol,
 };
 use std::collections::HashMap;
 use typed_ast::PrimitiveType;
@@ -46,6 +49,12 @@ fn constrain_at_least_false() -> Constraint {
 fn constrain_at_most_boolean_tag() -> Constraint {
     Constraint::TagAtMost(TagAtMostConstraint {
         tags: HashMap::from([("true".to_owned(), vec![]), ("false".to_owned(), vec![])]),
+    })
+}
+
+fn constrain_at_most_none_tag() -> Constraint {
+    Constraint::TagAtMost(TagAtMostConstraint {
+        tags: HashMap::from([("none".to_owned(), vec![])]),
     })
 }
 
@@ -303,6 +312,40 @@ fn translate_block<'a>(
             source_of_type: node.source,
         },
         contents: element_translations,
+    })
+}
+
+fn translate_declaration<'a>(
+    schema: &mut TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    node: DeclarationNode<'a>,
+) -> Result<GenericDeclarationExpression<'a>, ()> {
+    let type_id = schema.make_id();
+    substitutions.insert_new_id(type_id);
+    let expression_type = constrain_at_most_none_tag();
+    schema.insert(type_id, expression_type);
+
+    let identifier = translate_identifier(schema, substitutions, node.value.identifier.clone());
+    let translated_name = GenericExpression::Identifier(Box::new(identifier.clone()));
+    let name_type_id = get_generic_type_id(&translated_name);
+    let expression = translate_parsed_expression_to_generic_expression(
+        schema,
+        substitutions,
+        *node.value.expression,
+    )?;
+    let expression_id = get_generic_type_id(&expression);
+    substitutions.set_types_equal(name_type_id, expression_id);
+    Ok(GenericDeclarationExpression {
+        declaration_type: GenericSourcedType {
+            type_id: name_type_id,
+            source_of_type: node.source.clone(),
+        },
+        expression_type: GenericSourcedType {
+            type_id,
+            source_of_type: node.source,
+        },
+        identifier,
+        value: expression,
     })
 }
 
@@ -628,6 +671,168 @@ fn translate_record_assignment<'a>(
     })
 }
 
+fn translate_type_declaration<'a>(
+    schema: &mut TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    node: TypeDeclarationNode<'a>,
+) -> Result<GenericTypeDeclarationExpression<'a>, ()> {
+    let type_id = schema.make_id();
+    substitutions.insert_new_id(type_id);
+    let expression_type = constrain_at_most_none_tag();
+    schema.insert(type_id, expression_type);
+
+    let identifier_name =
+        translate_type_identifier(schema, substitutions, node.value.identifier.clone());
+    let translated_name = GenericExpression::TypeIdentifier(Box::new(identifier_name.clone()));
+    let name_type_id = get_generic_type_id(&translated_name);
+    let type_expression_id =
+        translate_parsed_type_expression(schema, substitutions, &node.value.type_expression)?;
+    substitutions.set_types_equal(name_type_id, type_expression_id);
+    Ok(GenericTypeDeclarationExpression {
+        declaration_type: GenericSourcedType {
+            type_id: name_type_id,
+            source_of_type: node.source.clone(),
+        },
+        expression_type: GenericSourcedType {
+            type_id,
+            source_of_type: node.source,
+        },
+        identifier_name,
+    })
+}
+
+fn translate_type_identifier<'a>(
+    schema: &mut TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    node: TypeIdentifierNode<'a>,
+) -> GenericTypeIdentifierExpression<'a> {
+    let type_id = match &schema.scope {
+        Some(scope) => {
+            if let Some(typ) = scope.get_variable_declaration_type(&node.value) {
+                typ
+            } else {
+                schema.register_import(node.value.clone())
+            }
+        }
+        None => schema.register_import(node.value.clone()),
+    };
+    substitutions.insert_new_id(type_id);
+    GenericTypeIdentifierExpression {
+        expression_type: GenericSourcedType {
+            type_id,
+            source_of_type: node.source,
+        },
+        name: node.value,
+    }
+}
+
+fn translate_function_type(
+    schema: &mut TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    node: &FunctionTypeNode,
+) -> Result<GenericTypeId, ()> {
+    let type_id = schema.make_id();
+    substitutions.insert_new_id(type_id);
+    let mut argument_types = Vec::new();
+    for argument in &node.value.arguments {
+        let argument_type_id = translate_parsed_type_expression(schema, substitutions, argument)?;
+        argument_types.push(argument_type_id);
+    }
+    schema.insert(type_id, Constraint::HasArgumentTypes(argument_types));
+    let return_type_id =
+        translate_parsed_type_expression(schema, substitutions, &node.value.return_type)?;
+    schema.insert(type_id, Constraint::HasReturnType(return_type_id));
+    Ok(type_id)
+}
+
+fn translate_type_identifier_type(
+    schema: &mut TypeSchema,
+    node: &TypeIdentifierNode,
+) -> Result<GenericTypeId, ()> {
+    schema.scope.as_ref().map_or(Err(()), |scope| {
+        scope.get_variable_declaration_type(&node.value).ok_or(())
+    })
+}
+
+fn translate_list_type(
+    schema: &mut TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    expression: &ListTypeNode,
+) -> Result<GenericTypeId, ()> {
+    let type_id = schema.make_id();
+    substitutions.insert_new_id(type_id);
+    let contents_type_id =
+        translate_parsed_type_expression(schema, substitutions, &expression.value)?;
+    schema.insert(type_id, Constraint::ListOfType(contents_type_id));
+    Ok(type_id)
+}
+
+fn translate_record_type(
+    schema: &mut TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    expression: &RecordTypeNode,
+) -> Result<GenericTypeId, ()> {
+    let type_id = schema.make_id();
+    substitutions.insert_new_id(type_id);
+
+    for field in &expression.value {
+        let field_type_id = translate_parsed_type_expression(schema, substitutions, &field.value)?;
+
+        schema.insert(
+            type_id,
+            Constraint::HasField(HasFieldConstraint {
+                field_name: field.identifier.value.name.clone(),
+                field_type: field_type_id,
+            }),
+        );
+    }
+    Ok(type_id)
+}
+
+fn translate_tag_group_type(
+    schema: &mut TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    expression: &TagGroupTypeNode,
+) -> Result<GenericTypeId, ()> {
+    let type_id = schema.make_id();
+    substitutions.insert_new_id(type_id);
+
+    let mut tags: HashMap<String, Vec<GenericTypeId>> = HashMap::new();
+    for tag in &expression.value {
+        let tag_name = tag.value.name.value.clone();
+        if tags.contains_key(&tag_name) {
+            return Err(());
+        }
+        let mut content_item_ids = vec![];
+        for content_item in &tag.value.contents {
+            let content_item_id =
+                translate_parsed_type_expression(schema, substitutions, content_item)?;
+            content_item_ids.push(content_item_id);
+        }
+        tags.insert(tag_name, content_item_ids);
+    }
+    schema.insert(type_id, Constraint::TagAtMost(TagAtMostConstraint { tags }));
+    Ok(type_id)
+}
+
+fn translate_parsed_type_expression(
+    schema: &mut TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    expression: &TypeExpression,
+) -> Result<GenericTypeId, ()> {
+    match expression {
+        TypeExpression::Function(function) => {
+            translate_function_type(schema, substitutions, function)
+        }
+        TypeExpression::Identifier(identifier) => {
+            translate_type_identifier_type(schema, identifier)
+        }
+        TypeExpression::List(list) => translate_list_type(schema, substitutions, list),
+        TypeExpression::Record(record) => translate_record_type(schema, substitutions, record),
+        TypeExpression::TagGroup(tags) => translate_tag_group_type(schema, substitutions, tags),
+    }
+}
+
 pub fn translate_parsed_expression_to_generic_expression<'a>(
     schema: &mut TypeSchema,
     substitutions: &mut TypeSchemaSubstitutions,
@@ -640,7 +845,11 @@ pub fn translate_parsed_expression_to_generic_expression<'a>(
         Expression::Block(node) => translate_block(schema, substitutions, node)
             .map(Box::new)
             .map(GenericExpression::Block),
+        Expression::Declaration(node) => translate_declaration(schema, substitutions, node)
+            .map(Box::new)
+            .map(GenericExpression::Declaration),
         // TODO(aaron): Expression::Function(node) => translate_function(schema, node),
+        Expression::Function(_) => unimplemented!(),
         Expression::FunctionApplicationArguments(_) => Err(()),
         Expression::Identifier(node) => Ok(GenericExpression::Identifier(Box::new(
             translate_identifier(schema, substitutions, node),
@@ -670,10 +879,14 @@ pub fn translate_parsed_expression_to_generic_expression<'a>(
         Expression::Tag(node) => translate_tag(schema, substitutions, node)
             .map(Box::new)
             .map(GenericExpression::Tag),
+        Expression::TypeDeclaration(node) => {
+            translate_type_declaration(schema, substitutions, node)
+                .map(Box::new)
+                .map(GenericExpression::TypeDeclaration)
+        }
         Expression::UnaryOperator(node) => translate_unary_operator(schema, substitutions, node)
             .map(Box::new)
             .map(GenericExpression::UnaryOperator),
-        Expression::Function(_) => unimplemented!(),
     }
 }
 

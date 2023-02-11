@@ -4,7 +4,7 @@ use crate::{
     TypedFunctionExpression, TypedIdentifierExpression, TypedIfExpression,
     TypedIntegerLiteralExpression, TypedListExpression, TypedRecordAssignmentExpression,
     TypedRecordExpression, TypedStringLiteralExpression, TypedTagExpression,
-    TypedUnaryOperatorExpression, TypedVariableDeclaration,
+    TypedTypeDeclarationExpression, TypedTypeIdentifierExpression, TypedUnaryOperatorExpression,
 };
 
 pub type ConcreteBinaryOperatorExpression = TypedBinaryOperatorExpression<ConcreteType>;
@@ -20,11 +20,12 @@ pub type ConcreteRecordExpression = TypedRecordExpression<ConcreteType>;
 pub type ConcreteRecordAssignmentExpression = TypedRecordAssignmentExpression<ConcreteType>;
 pub type ConcreteStringLiteralExpression = TypedStringLiteralExpression<ConcreteType>;
 pub type ConcreteTagExpression = TypedTagExpression<ConcreteType>;
+pub type ConcreteTypeDeclarationExpression = TypedTypeDeclarationExpression<ConcreteType>;
+pub type ConcreteTypeIdentifierExpression = TypedTypeIdentifierExpression<ConcreteType>;
 pub type ConcreteUnaryOperatorExpression = TypedUnaryOperatorExpression<ConcreteType>;
 
 pub type ConcreteExpression = TypedExpression<ConcreteType>;
 
-pub type ConcreteVariableDeclaration = TypedVariableDeclaration<ConcreteType>;
 pub type ConcreteDocument<'a> = TypedDocument<'a, ConcreteType>;
 
 impl ConcreteExpression {

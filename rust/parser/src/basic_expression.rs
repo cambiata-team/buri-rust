@@ -1,7 +1,8 @@
 use crate::{
     function::function, identifier::identifier, integer::integer, list::list,
     parentheses::parentheses, record::record, record_assignment::record_assignment,
-    string_literal::string_literal, tag::tag, unary_operator::unary_operator_expression,
+    string_literal::string_literal, tag::tag, type_declaration::type_declaration,
+    unary_operator::unary_operator_expression, variable_declaration::variable_declaration,
     ExpressionContext,
 };
 use ast::{Expression, IResult, ParserInput};
@@ -27,6 +28,8 @@ pub fn basic_expression<'a>(
             move |input| record_assignment(context, input),
             Expression::RecordAssignment,
         ),
+        map(type_declaration, Expression::TypeDeclaration),
+        map(variable_declaration, Expression::Declaration),
     ))
 }
 

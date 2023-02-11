@@ -3,15 +3,15 @@ use crate::{
     intra_expression_whitespace::intra_expression_whitespace, type_expression::type_expression,
     ExpressionContext,
 };
+use ast::{DeclarationNode, DeclarationValue};
 use ast::{IResult, ParserInput};
-use ast::{VariableDeclarationNode, VariableDeclarationValue};
 use nom::{
     character::complete::{char, space0},
     combinator::{consumed, map, opt},
     sequence::{preceded, separated_pair, tuple},
 };
 
-pub fn variable_declaration(input: ParserInput) -> IResult<VariableDeclarationNode> {
+pub fn variable_declaration(input: ParserInput) -> IResult<DeclarationNode> {
     map(
         consumed(separated_pair(
             tuple((
@@ -30,11 +30,11 @@ pub fn variable_declaration(input: ParserInput) -> IResult<VariableDeclarationNo
             )),
             binary_operator_expression(ExpressionContext::new().allow_newlines_in_expressions()),
         )),
-        |(consumed, ((identifier, type_expression), expression))| VariableDeclarationNode {
-            value: VariableDeclarationValue {
+        |(consumed, ((identifier, type_expression), expression))| DeclarationNode {
+            value: DeclarationValue {
                 identifier,
                 type_expression,
-                expression,
+                expression: Box::new(expression),
             },
             source: consumed,
         },
@@ -66,7 +66,10 @@ mod test {
         let input = "foo = 1";
         let input = ParserInput::new(input);
         let (_, node) = variable_declaration(input).unwrap();
-        assert!(matches!(node.value.expression, ast::Expression::Integer(_)));
+        assert!(matches!(
+            *node.value.expression,
+            ast::Expression::Integer(_)
+        ));
     }
 
     #[test]

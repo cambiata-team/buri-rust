@@ -5,7 +5,8 @@ use crate::{
         GenericDeclarationExpression, GenericDocument, GenericExpression,
         GenericFunctionExpression, GenericIdentifierExpression, GenericIntegerLiteralExpression,
         GenericListExpression, GenericRecordAssignmentExpression, GenericRecordExpression,
-        GenericStringLiteralExpression, GenericUnaryOperatorExpression, GenericVariableDeclaration,
+        GenericStringLiteralExpression, GenericTopLevelDeclarationExpression,
+        GenericUnaryOperatorExpression,
     },
     type_schema::TypeSchema,
     type_schema_substitutions::TypeSchemaSubstitutions,
@@ -20,8 +21,7 @@ use typed_ast::{
     ConcreteIntegerLiteralExpression, ConcreteListExpression, ConcreteListType,
     ConcreteRecordAssignmentExpression, ConcreteRecordExpression, ConcreteRecordType,
     ConcreteStringLiteralExpression, ConcreteTagUnionType, ConcreteType,
-    ConcreteUnaryOperatorExpression, ConcreteVariableDeclaration, PrimitiveType,
-    TypedVariableDeclaration,
+    ConcreteUnaryOperatorExpression, PrimitiveType, TypedDeclarationExpression,
 };
 
 // TODO(aaron) return correct tag for non-boolean
@@ -197,13 +197,15 @@ fn resolve_declaration(
     substitutions: &mut TypeSchemaSubstitutions,
     generic_declaration: GenericDeclarationExpression,
 ) -> Result<ConcreteExpression, ()> {
+    let generic_type = resolve_generic_type(
+        simplified_schema,
+        substitutions,
+        generic_declaration.expression_type.type_id,
+    )?;
     Ok(ConcreteExpression::Declaration(Box::new(
         ConcreteDeclarationExpression {
-            expression_type: resolve_generic_type(
-                simplified_schema,
-                substitutions,
-                generic_declaration.expression_type.type_id,
-            )?,
+            declaration_type: generic_type.clone(),
+            expression_type: generic_type,
             identifier: match resolve_expression(
                 simplified_schema,
                 substitutions,
@@ -429,24 +431,30 @@ fn resolve_expression(
 }
 
 fn resolve_variable_declaration_types(
-    mut input: TopLevelDeclaration<GenericVariableDeclaration>,
-) -> Result<TopLevelDeclaration<ConcreteVariableDeclaration>, ()> {
+    mut input: TopLevelDeclaration<GenericTopLevelDeclarationExpression>,
+) -> Result<TopLevelDeclaration<ConcreteDeclarationExpression>, ()> {
     let simplified_schema = input
         .declaration
         .substitutions
         .apply_to_type_schema(input.declaration.schema);
+    let resolved_type = resolve_generic_type(
+        &simplified_schema,
+        &mut input.declaration.substitutions,
+        input.declaration.declaration.declaration_type.type_id,
+    )?;
     Ok(TopLevelDeclaration {
-        declaration: ConcreteVariableDeclaration {
-            declaration_type: resolve_generic_type(
+        declaration: ConcreteDeclarationExpression {
+            declaration_type: resolved_type.clone(),
+            expression_type: resolved_type,
+            identifier: resolve_identifier(
                 &simplified_schema,
                 &mut input.declaration.substitutions,
-                input.declaration.declaration.declaration_type.type_id,
+                input.declaration.declaration.identifier,
             )?,
-            identifier_name: input.declaration.declaration.identifier_name,
-            expression: resolve_expression(
+            value: resolve_expression(
                 &simplified_schema,
                 &mut input.declaration.substitutions,
-                input.declaration.declaration.expression,
+                input.declaration.declaration.value,
             )?,
         },
         is_exported: input.is_exported,
@@ -456,18 +464,18 @@ fn resolve_variable_declaration_types(
 pub fn resolve_concrete_types(input: GenericDocument) -> Result<ConcreteDocument, ()> {
     let mut constraints: HashMap<String, HashMap<GenericTypeId, Vec<Constraint>>> = HashMap::new();
     for declaration in &input.variable_declarations {
-        match constraints.get(&declaration.declaration.declaration.identifier_name) {
+        match constraints.get(&declaration.declaration.declaration.identifier.name) {
             Some(_) => return Err(()),
             None => {
                 constraints.insert(
-                    declaration.declaration.declaration.identifier_name.clone(),
+                    declaration.declaration.declaration.identifier.name.clone(),
                     declaration.declaration.schema.constraints.clone(),
                 );
             }
         }
     }
     let variable_declarations: Result<
-        Vec<TopLevelDeclaration<TypedVariableDeclaration<ConcreteType>>>,
+        Vec<TopLevelDeclaration<TypedDeclarationExpression<ConcreteType>>>,
         (),
     > = input
         .variable_declarations

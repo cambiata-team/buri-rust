@@ -26,7 +26,7 @@ pub fn type_declaration(input: ParserInput) -> IResult<TypeDeclarationNode> {
         |(consumed, (identifier, type_expression))| TypeDeclarationNode {
             value: TypeDeclarationValue {
                 identifier,
-                type_expression,
+                type_expression: Box::new(type_expression),
             },
             source: consumed,
         },
@@ -57,11 +57,8 @@ mod test {
         let input = ParserInput::new("Hello = World");
         let (_, declaration) = type_declaration(input.clone()).unwrap();
         assert!(matches!(
-            declaration.value,
-            TypeDeclarationValue {
-                type_expression: TypeExpression::Identifier(_),
-                ..
-            }
+            *declaration.value.type_expression,
+            TypeExpression::Identifier(_),
         ));
     }
 

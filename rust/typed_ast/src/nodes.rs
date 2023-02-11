@@ -23,6 +23,7 @@ pub struct TypedBooleanLiteralExpression<T> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypedDeclarationExpression<T> {
+    pub declaration_type: T,
     pub expression_type: T,
     pub identifier: TypedIdentifierExpression<T>,
     pub value: TypedExpression<T>,
@@ -89,6 +90,19 @@ pub struct TypedTagExpression<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypedTypeDeclarationExpression<T> {
+    pub declaration_type: T,
+    pub expression_type: T,
+    pub identifier_name: TypedTypeIdentifierExpression<T>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypedTypeIdentifierExpression<T> {
+    pub expression_type: T,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypedUnaryOperatorExpression<T> {
     pub expression_type: T,
     pub symbol: UnaryOperatorSymbol,
@@ -111,26 +125,15 @@ pub enum TypedExpression<T> {
     RecordAssignment(Box<TypedRecordAssignmentExpression<T>>),
     StringLiteral(Box<TypedStringLiteralExpression<T>>),
     Tag(Box<TypedTagExpression<T>>),
+    TypeDeclaration(Box<TypedTypeDeclarationExpression<T>>),
+    TypeIdentifier(Box<TypedTypeIdentifierExpression<T>>),
     UnaryOperator(Box<TypedUnaryOperatorExpression<T>>),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TypedTypeDeclaration<T> {
-    pub declaration_type: T,
-    pub identifier_name: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TypedVariableDeclaration<T> {
-    pub declaration_type: T,
-    pub identifier_name: String,
-    pub expression: TypedExpression<T>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypedDocument<'a, T> {
     pub imports: Vec<ImportNode<'a>>,
-    pub type_declarations: Vec<TopLevelDeclaration<TypedTypeDeclaration<T>>>,
-    pub variable_declarations: Vec<TopLevelDeclaration<TypedVariableDeclaration<T>>>,
+    pub type_declarations: Vec<TopLevelDeclaration<TypedTypeDeclarationExpression<T>>>,
+    pub variable_declarations: Vec<TopLevelDeclaration<TypedDeclarationExpression<T>>>,
     pub expressions: Vec<TypedExpression<T>>,
 }
