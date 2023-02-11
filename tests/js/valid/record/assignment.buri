@@ -1,0 +1,30 @@
+@export
+originalName = "Mr. Knowitall"
+
+@export
+originalTeacher = {
+    name: "Mr. Knowitall",
+    grade: 11,
+    subject: "Math",
+    students: {
+        john: {
+            grade: 11,
+            subject: "Math"
+        },
+        jane: {
+            grade: 11,
+            subject: "Math"
+        }
+    }
+}
+
+@export
+substituteTeacherName = "Mr. Fillin"
+
+@export
+substituteTeacher = { originalTeacher | name: substituteTeacherName }
+
+students = originalTeacher.students
+
+@export
+johnSkipsAYear = { originalTeacher | students: { students | john: { grade: 12, subject: "Math" } } }

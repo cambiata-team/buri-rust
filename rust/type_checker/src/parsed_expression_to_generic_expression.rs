@@ -5,9 +5,9 @@ use crate::{
     generic_nodes::{
         get_generic_type_id, GenericBinaryOperatorExpression, GenericBlockExpression,
         GenericExpression, GenericIdentifierExpression, GenericIfExpression,
-        GenericIntegerLiteralExpression, GenericListExpression, GenericRecordExpression,
-        GenericSourcedType, GenericStringLiteralExpression, GenericTagExpression,
-        GenericUnaryOperatorExpression,
+        GenericIntegerLiteralExpression, GenericListExpression, GenericRecordAssignmentExpression,
+        GenericRecordExpression, GenericSourcedType, GenericStringLiteralExpression,
+        GenericTagExpression, GenericUnaryOperatorExpression,
     },
     type_schema::TypeSchema,
     type_schema_substitutions::TypeSchemaSubstitutions,
@@ -15,8 +15,8 @@ use crate::{
 };
 use ast::{
     BinaryOperatorNode, BinaryOperatorSymbol, BlockNode, Expression, IdentifierNode, IfNode,
-    IntegerNode, ListNode, RecordNode, StringLiteralNode, TagNode, UnaryOperatorNode,
-    UnaryOperatorSymbol,
+    IntegerNode, ListNode, RecordAssignmentNode, RecordNode, StringLiteralNode, TagNode,
+    UnaryOperatorNode, UnaryOperatorSymbol,
 };
 use std::collections::HashMap;
 use typed_ast::PrimitiveType;
@@ -577,6 +577,57 @@ fn translate_unary_operator<'a>(
     })
 }
 
+fn translate_record_assignment<'a>(
+    schema: &mut TypeSchema,
+    substitutions: &mut TypeSchemaSubstitutions,
+    node: RecordAssignmentNode<'a>,
+) -> Result<GenericRecordAssignmentExpression<'a>, ()> {
+    let type_id = schema.make_id();
+    substitutions.insert_new_id(type_id);
+    let raw_translated_name = translate_identifier(schema, substitutions, node.value.identifier);
+    let translated_name = GenericExpression::Identifier(Box::new(raw_translated_name.clone()));
+    let name_type_id = get_generic_type_id(&translated_name);
+
+    let mut field_translations = HashMap::new();
+    field_translations.reserve(node.value.new_values.len());
+
+    for element in node.value.new_values {
+        let field_type_id = schema.make_id();
+        substitutions.insert_new_id(field_type_id);
+        let field_name = element.identifier.value.name;
+        schema.insert(
+            type_id,
+            Constraint::HasField(HasFieldConstraint {
+                field_name: field_name.clone(),
+                field_type: field_type_id,
+            }),
+        );
+        let field_translation = translate_parsed_expression_to_generic_expression(
+            schema,
+            substitutions,
+            element.value,
+        )?;
+        substitutions.set_types_equal(get_generic_type_id(&field_translation), field_type_id);
+        field_translations.insert(field_name, field_translation);
+    }
+
+    substitutions.set_types_equal(name_type_id, type_id);
+    Ok(GenericRecordAssignmentExpression {
+        expression_type: GenericSourcedType {
+            type_id,
+            source_of_type: node.source.clone(),
+        },
+        identifier: raw_translated_name,
+        contents: GenericRecordExpression {
+            expression_type: GenericSourcedType {
+                type_id,
+                source_of_type: node.source,
+            },
+            contents: field_translations,
+        },
+    })
+}
+
 pub fn translate_parsed_expression_to_generic_expression<'a>(
     schema: &mut TypeSchema,
     substitutions: &mut TypeSchemaSubstitutions,
@@ -608,6 +659,11 @@ pub fn translate_parsed_expression_to_generic_expression<'a>(
         Expression::Record(node) => translate_record(schema, substitutions, node)
             .map(Box::new)
             .map(GenericExpression::Record),
+        Expression::RecordAssignment(node) => {
+            translate_record_assignment(schema, substitutions, node)
+                .map(Box::new)
+                .map(GenericExpression::RecordAssignment)
+        }
         Expression::StringLiteral(node) => Ok(GenericExpression::StringLiteral(Box::new(
             translate_string(schema, substitutions, node),
         ))),
@@ -617,7 +673,7 @@ pub fn translate_parsed_expression_to_generic_expression<'a>(
         Expression::UnaryOperator(node) => translate_unary_operator(schema, substitutions, node)
             .map(Box::new)
             .map(GenericExpression::UnaryOperator),
-        _ => unimplemented!(),
+        Expression::Function(_) => unimplemented!(),
     }
 }
 
