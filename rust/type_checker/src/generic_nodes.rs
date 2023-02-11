@@ -6,8 +6,9 @@ use typed_ast::{
     TypedBinaryOperatorExpression, TypedBlockExpression, TypedBooleanLiteralExpression,
     TypedDeclarationExpression, TypedExpression, TypedFunctionExpression,
     TypedIdentifierExpression, TypedIfExpression, TypedIntegerLiteralExpression,
-    TypedListExpression, TypedRecordExpression, TypedStringLiteralExpression, TypedTagExpression,
-    TypedTypeDeclaration, TypedUnaryOperatorExpression, TypedVariableDeclaration,
+    TypedListExpression, TypedRecordAssignmentExpression, TypedRecordExpression,
+    TypedStringLiteralExpression, TypedTagExpression, TypedTypeDeclaration,
+    TypedUnaryOperatorExpression, TypedVariableDeclaration,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -29,6 +30,8 @@ pub type GenericIfExpression<'a> = TypedIfExpression<GenericSourcedType<'a>>;
 pub type GenericIntegerLiteralExpression<'a> =
     TypedIntegerLiteralExpression<GenericSourcedType<'a>>;
 pub type GenericListExpression<'a> = TypedListExpression<GenericSourcedType<'a>>;
+pub type GenericRecordAssignmentExpression<'a> =
+    TypedRecordAssignmentExpression<GenericSourcedType<'a>>;
 pub type GenericRecordExpression<'a> = TypedRecordExpression<GenericSourcedType<'a>>;
 pub type GenericStringLiteralExpression<'a> = TypedStringLiteralExpression<GenericSourcedType<'a>>;
 pub type GenericTagExpression<'a> = TypedTagExpression<GenericSourcedType<'a>>;
