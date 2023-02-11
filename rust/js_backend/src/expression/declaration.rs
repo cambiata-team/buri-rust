@@ -16,6 +16,7 @@ mod test {
     #[test]
     fn declare_an_integer() {
         let declaration = ConcreteDeclarationExpression {
+            declaration_type: ConcreteType::default_integer_for_test(),
             expression_type: ConcreteType::default_integer_for_test(),
             identifier: ConcreteExpression::raw_identifier_for_test("foo"),
             value: ConcreteExpression::integer_for_test(42),
@@ -26,6 +27,7 @@ mod test {
     #[test]
     fn declare_a_string() {
         let declaration = ConcreteDeclarationExpression {
+            declaration_type: ConcreteType::default_integer_for_test(),
             expression_type: ConcreteType::default_string_for_test(),
             identifier: ConcreteExpression::raw_identifier_for_test("hello"),
             value: ConcreteExpression::string_for_test("world"),

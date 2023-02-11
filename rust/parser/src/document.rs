@@ -3,8 +3,8 @@ use crate::{
     variable_declaration::variable_declaration, ExpressionContext,
 };
 use ast::{
-    DocumentNode, DocumentValue, Expression, IResult, ImportNode, ParserInput, TopLevelDeclaration,
-    TypeDeclarationNode, VariableDeclarationNode,
+    DeclarationNode, DocumentNode, DocumentValue, Expression, IResult, ImportNode, ParserInput,
+    TopLevelDeclaration, TypeDeclarationNode,
 };
 use nom::{
     branch::alt,
@@ -19,7 +19,7 @@ enum DocumentElement<'a> {
     None,
     Import(ImportNode<'a>),
     TypeDeclaration(TypeDeclarationNode<'a>),
-    VariableDeclaration(VariableDeclarationNode<'a>),
+    VariableDeclaration(DeclarationNode<'a>),
     Expression(Expression<'a>),
 }
 

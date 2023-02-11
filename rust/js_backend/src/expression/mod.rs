@@ -17,7 +17,9 @@ use crate::{
 };
 use typed_ast::ConcreteExpression;
 
-pub fn print_expression(expression: &ConcreteExpression) -> String {
+pub use declaration::print_declaration;
+
+fn print_expression(expression: &ConcreteExpression) -> String {
     match expression {
         ConcreteExpression::Identifier(identifier) => print_identifier(identifier),
         ConcreteExpression::Integer(integer) => print_integer_literal(integer),
@@ -43,6 +45,9 @@ pub fn print_expression(expression: &ConcreteExpression) -> String {
         ConcreteExpression::Declaration(declaration) => declaration::print_declaration(declaration),
         ConcreteExpression::FunctionArguments(arguments) => {
             function_arguments::print_function_arguments(arguments)
+        }
+        ConcreteExpression::TypeDeclaration(_) | ConcreteExpression::TypeIdentifier(_) => {
+            String::new()
         }
     }
 }
@@ -186,6 +191,7 @@ mod test {
     fn print_declaration() {
         let declaration =
             ConcreteExpression::Declaration(Box::new(ConcreteDeclarationExpression {
+                declaration_type: ConcreteType::default_integer_for_test(),
                 expression_type: ConcreteType::default_integer_for_test(),
                 identifier: ConcreteExpression::raw_identifier_for_test("foo"),
                 value: ConcreteExpression::integer_for_test(42),

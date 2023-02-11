@@ -60,7 +60,7 @@ pub struct TopLevelDeclaration<T> {
 pub struct DocumentValue<'a> {
     pub imports: Vec<ImportNode<'a>>,
     pub type_declarations: Vec<TopLevelDeclaration<TypeDeclarationNode<'a>>>,
-    pub variable_declarations: Vec<TopLevelDeclaration<VariableDeclarationNode<'a>>>,
+    pub variable_declarations: Vec<TopLevelDeclaration<DeclarationNode<'a>>>,
     pub expressions: Vec<Expression<'a>>,
 }
 
@@ -140,7 +140,7 @@ pub struct TagTypeValue<'a> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeDeclarationValue<'a> {
     pub identifier: TypeIdentifierNode<'a>,
-    pub type_expression: TypeExpression<'a>,
+    pub type_expression: Box<TypeExpression<'a>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -167,10 +167,10 @@ pub struct UnaryOperatorValue<'a> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct VariableDeclarationValue<'a> {
+pub struct DeclarationValue<'a> {
     pub identifier: IdentifierNode<'a>,
     pub type_expression: Option<TypeExpression<'a>>,
-    pub expression: Expression<'a>,
+    pub expression: Box<Expression<'a>>,
 }
 
 pub type BinaryOperatorNode<'a> = ParsedNode<'a, BinaryOperatorValue<'a>>;
@@ -199,12 +199,13 @@ pub type TagTypeNode<'a> = ParsedNode<'a, TagTypeValue<'a>>;
 pub type TypeIdentifierNode<'a> = ParsedNode<'a, String>;
 pub type TypeDeclarationNode<'a> = ParsedNode<'a, TypeDeclarationValue<'a>>;
 pub type UnaryOperatorNode<'a> = ParsedNode<'a, UnaryOperatorValue<'a>>;
-pub type VariableDeclarationNode<'a> = ParsedNode<'a, VariableDeclarationValue<'a>>;
+pub type DeclarationNode<'a> = ParsedNode<'a, DeclarationValue<'a>>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expression<'a> {
     BinaryOperator(BinaryOperatorNode<'a>),
     Block(BlockNode<'a>),
+    Declaration(DeclarationNode<'a>),
     Function(FunctionNode<'a>),
     FunctionApplicationArguments(FunctionApplicationArgumentsNode<'a>),
     Identifier(IdentifierNode<'a>),
@@ -215,6 +216,7 @@ pub enum Expression<'a> {
     RecordAssignment(RecordAssignmentNode<'a>),
     StringLiteral(StringLiteralNode<'a>),
     Tag(TagNode<'a>),
+    TypeDeclaration(TypeDeclarationNode<'a>),
     UnaryOperator(UnaryOperatorNode<'a>),
 }
 

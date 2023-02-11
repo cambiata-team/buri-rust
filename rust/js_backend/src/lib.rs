@@ -1,4 +1,4 @@
-use expression::print_expression;
+use expression::print_declaration;
 use imports::print_imports;
 use typed_ast::{ConcreteType, TypedDocument};
 
@@ -16,12 +16,7 @@ pub fn print_js_document(document: &TypedDocument<ConcreteType>) -> String {
         if declaration.is_exported {
             result.push_str("export ");
         }
-        result.push_str("const ");
-        // TODO(B-218): Clean this up to use the print_declaration method instead
-        // manually rewriting that code here.
-        result.push_str(&declaration.declaration.identifier_name);
-        result.push('=');
-        result.push_str(&print_expression(&declaration.declaration.expression));
+        result.push_str(&print_declaration(&declaration.declaration));
     }
     result
 }

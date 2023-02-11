@@ -7,8 +7,8 @@ use typed_ast::{
     TypedDeclarationExpression, TypedExpression, TypedFunctionExpression,
     TypedIdentifierExpression, TypedIfExpression, TypedIntegerLiteralExpression,
     TypedListExpression, TypedRecordAssignmentExpression, TypedRecordExpression,
-    TypedStringLiteralExpression, TypedTagExpression, TypedTypeDeclaration,
-    TypedUnaryOperatorExpression, TypedVariableDeclaration,
+    TypedStringLiteralExpression, TypedTagExpression, TypedTypeDeclarationExpression,
+    TypedTypeIdentifierExpression, TypedUnaryOperatorExpression,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,13 +35,17 @@ pub type GenericRecordAssignmentExpression<'a> =
 pub type GenericRecordExpression<'a> = TypedRecordExpression<GenericSourcedType<'a>>;
 pub type GenericStringLiteralExpression<'a> = TypedStringLiteralExpression<GenericSourcedType<'a>>;
 pub type GenericTagExpression<'a> = TypedTagExpression<GenericSourcedType<'a>>;
+pub type GenericTypeDeclarationExpression<'a> =
+    TypedTypeDeclarationExpression<GenericSourcedType<'a>>;
+pub type GenericTypeIdentifierExpression<'a> =
+    TypedTypeIdentifierExpression<GenericSourcedType<'a>>;
 pub type GenericUnaryOperatorExpression<'a> = TypedUnaryOperatorExpression<GenericSourcedType<'a>>;
 
 pub type GenericExpression<'a> = TypedExpression<GenericSourcedType<'a>>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct GenericVariableDeclaration<'a> {
-    pub declaration: TypedVariableDeclaration<GenericSourcedType<'a>>,
+pub struct GenericTopLevelDeclarationExpression<'a> {
+    pub declaration: TypedDeclarationExpression<GenericSourcedType<'a>>,
     pub schema: TypeSchema,
     pub substitutions: TypeSchemaSubstitutions,
 }
@@ -49,8 +53,9 @@ pub struct GenericVariableDeclaration<'a> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GenericDocument<'a> {
     pub imports: Vec<ImportNode<'a>>,
-    pub type_declarations: Vec<TopLevelDeclaration<TypedTypeDeclaration<GenericSourcedType<'a>>>>,
-    pub variable_declarations: Vec<TopLevelDeclaration<GenericVariableDeclaration<'a>>>,
+    pub type_declarations:
+        Vec<TopLevelDeclaration<TypedTypeDeclarationExpression<GenericSourcedType<'a>>>>,
+    pub variable_declarations: Vec<TopLevelDeclaration<GenericTopLevelDeclarationExpression<'a>>>,
     pub expressions: Vec<TypedExpression<GenericSourcedType<'a>>>,
 }
 
@@ -70,6 +75,8 @@ pub const fn get_generic_type_id(input: &GenericExpression) -> GenericTypeId {
         GenericExpression::RecordAssignment(node) => node.expression_type.type_id,
         GenericExpression::StringLiteral(node) => node.expression_type.type_id,
         GenericExpression::Tag(node) => node.expression_type.type_id,
+        GenericExpression::TypeDeclaration(node) => node.expression_type.type_id,
+        GenericExpression::TypeIdentifier(node) => node.expression_type.type_id,
         GenericExpression::UnaryOperator(node) => node.expression_type.type_id,
     }
 }
