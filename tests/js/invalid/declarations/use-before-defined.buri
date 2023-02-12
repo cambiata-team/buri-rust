@@ -1,0 +1,4 @@
+-- cannot use an identifier before it's defined
+
+b = a
+a = 1
