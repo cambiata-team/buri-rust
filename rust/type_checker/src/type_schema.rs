@@ -56,19 +56,12 @@ impl TypeSchema {
     }
     /// Create a new sub scope within the current scope and navigate to it.
     pub fn move_to_sub_scope(&mut self) {
-        let current_scope = self
-            .update_scope(None)
-            .map_or_else(|| Scope::new_head(), |x| x);
+        let current_scope = self.update_scope(None).map_or_else(Scope::new_head, |x| x);
         self.update_scope(Some(Scope::new_sub_scope(current_scope)));
     }
     /// Delete the current scope and navigate to the current scope's parent scope.
     pub fn move_to_parent_scope(&mut self) {
-        let current_scope = self
-            .update_scope(None)
-            .map_or_else(|| Scope::new_head(), |x| x);
+        let current_scope = self.update_scope(None).map_or_else(Scope::new_head, |x| x);
         self.update_scope(current_scope.parent_scope);
-    }
-    fn get_current_scope_helper(&mut self) -> Option<&Scope> {
-        self.scope.as_ref().map_or(None, |x| Some(x))
     }
 }

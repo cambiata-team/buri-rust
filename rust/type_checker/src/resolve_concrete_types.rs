@@ -30,7 +30,7 @@ fn resolve_tag_union_type(constraint_vec: &Vec<Constraint>) -> ConcreteType {
         match constraint {
             Constraint::HasTag(tag) => {
                 if (tag.tag_name != "true" && tag.tag_name != "false")
-                    || tag.tag_content_types.len() > 0
+                    || !tag.tag_content_types.is_empty()
                 {
                     return ConcreteType::TagUnion(Box::new(ConcreteTagUnionType {
                         tag_types: HashMap::new(),
