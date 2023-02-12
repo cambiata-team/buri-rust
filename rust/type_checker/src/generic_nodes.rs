@@ -1,6 +1,4 @@
-use crate::{
-    type_schema::TypeSchema, type_schema_substitutions::TypeSchemaSubstitutions, GenericTypeId,
-};
+use crate::GenericTypeId;
 use ast::{ImportNode, ParserInput, TopLevelDeclaration};
 use typed_ast::{
     TypedBinaryOperatorExpression, TypedBlockExpression, TypedBooleanLiteralExpression,
@@ -44,18 +42,11 @@ pub type GenericUnaryOperatorExpression<'a> = TypedUnaryOperatorExpression<Gener
 pub type GenericExpression<'a> = TypedExpression<GenericSourcedType<'a>>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct GenericTopLevelDeclarationExpression<'a> {
-    pub declaration: TypedDeclarationExpression<GenericSourcedType<'a>>,
-    pub schema: TypeSchema,
-    pub substitutions: TypeSchemaSubstitutions,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GenericDocument<'a> {
     pub imports: Vec<ImportNode<'a>>,
     pub type_declarations:
         Vec<TopLevelDeclaration<TypedTypeDeclarationExpression<GenericSourcedType<'a>>>>,
-    pub variable_declarations: Vec<TopLevelDeclaration<GenericTopLevelDeclarationExpression<'a>>>,
+    pub variable_declarations: Vec<TopLevelDeclaration<GenericDeclarationExpression<'a>>>,
     pub expressions: Vec<TypedExpression<GenericSourcedType<'a>>>,
 }
 
