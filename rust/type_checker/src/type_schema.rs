@@ -1,67 +1,106 @@
 use crate::{constraints::Constraint, scope::Scope, GenericTypeId};
-use std::{collections::HashMap, mem::swap};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct TypeSchema {
-    pub next_id: GenericTypeId,
-    pub constraints: HashMap<GenericTypeId, Vec<Constraint>>,
-    pub imports: HashMap<GenericTypeId, String>,
-    pub scope: Option<Box<Scope>>,
+    types: Vec<GenericTypeId>,
+    constraints: HashMap<GenericTypeId, Vec<Constraint>>,
+    scope: Scope,
 }
 
 impl TypeSchema {
     pub fn new() -> Self {
         Self {
-            next_id: 0,
+            types: Vec::new(),
+            scope: Scope::new(),
             constraints: HashMap::new(),
-            imports: HashMap::new(),
-            scope: Some(Scope::new_head()),
         }
     }
     /// Return an id which is unique in this `TypeSchema`.
     pub fn make_id(&mut self) -> GenericTypeId {
-        let return_value = self.next_id;
-        self.next_id += 1;
-        return_value
+        let id = self.types.len();
+        self.types.push(id);
+        id
     }
     /// Insert a new constraint for a given type.
-    pub fn insert(&mut self, typ: GenericTypeId, constraint: Constraint) {
-        match self.constraints.get_mut(&typ) {
-            Some(constraint_vec) => {
-                constraint_vec.push(constraint);
-            }
-            None => {
-                self.constraints.insert(typ, vec![constraint]);
-            }
+    pub fn add_constraint(&mut self, type_id: GenericTypeId, constraint: Constraint) {
+        let canonical_id = self.get_canonical_id(type_id);
+        if let Some(constraint_vec) = self.constraints.get_mut(&canonical_id) {
+            constraint_vec.push(constraint);
+        } else {
+            self.constraints.insert(canonical_id, vec![constraint]);
         }
     }
+    pub fn get_constraints(&mut self, type_id: GenericTypeId) -> Option<&Vec<Constraint>> {
+        let canonical_id = self.get_canonical_id(type_id);
+        self.constraints.get(&canonical_id)
+    }
+    pub fn get_canonical_id(&mut self, mut type_id: GenericTypeId) -> GenericTypeId {
+        loop {
+            let parent_id = self.types[type_id];
+            if parent_id == type_id {
+                return type_id;
+            }
+            self.types[type_id] = self.types[parent_id];
+            type_id = parent_id;
+        }
+    }
+    pub fn count_ids(&self) -> usize {
+        self.types.len()
+    }
     /// Return the total number of constraints in the system.
-    pub fn number_of_constraints(&self) -> usize {
+    pub fn get_total_constraints(&self) -> usize {
         let mut constraint_count: usize = 0;
         for constraint_vec in self.constraints.values() {
             constraint_count += constraint_vec.len();
         }
         constraint_count
     }
-    /// Return the generic type id for an imported identifier, creating the id if necessary.
-    pub fn register_import(&mut self, identifier_name: String) -> GenericTypeId {
-        let new_id = self.make_id();
-        self.imports.insert(new_id, identifier_name);
-        new_id
+
+    pub fn get_total_canonical_ids(&mut self) -> usize {
+        self.types
+            .iter()
+            .enumerate()
+            .filter(|(index, canonical_id)| index == *canonical_id)
+            .count()
     }
-    /// Replaces the scope with a new value, returning the old value.
-    fn update_scope(&mut self, mut value: Option<Box<Scope>>) -> Option<Box<Scope>> {
-        swap(&mut self.scope, &mut value);
-        value
+    pub fn set_types_equal(&mut self, type_a: GenericTypeId, type_b: GenericTypeId) {
+        let canonical_a = self.get_canonical_id(type_a);
+        let canonical_b = self.get_canonical_id(type_b);
+        self.types[canonical_a] = canonical_b;
+        let b_constraints = self
+            .constraints
+            .get(&canonical_b)
+            .map_or(Vec::new(), std::clone::Clone::clone);
+        let a_constraints = self.constraints.get_mut(&canonical_a);
+        match a_constraints {
+            Some(a_constraints) => a_constraints.extend(b_constraints),
+            None => {
+                self.constraints.insert(canonical_a, b_constraints);
+            }
+        }
     }
-    /// Create a new sub scope within the current scope and navigate to it.
-    pub fn move_to_sub_scope(&mut self) {
-        let current_scope = self.update_scope(None).map_or_else(Scope::new_head, |x| x);
-        self.update_scope(Some(Scope::new_sub_scope(current_scope)));
+    pub fn start_sub_scope(&mut self) {
+        self.scope.start_sub_scope();
     }
-    /// Delete the current scope and navigate to the current scope's parent scope.
-    pub fn move_to_parent_scope(&mut self) {
-        let current_scope = self.update_scope(None).map_or_else(Scope::new_head, |x| x);
-        self.update_scope(current_scope.parent_scope);
+    pub fn end_sub_scope(&mut self) {
+        self.scope.end_sub_scope();
+    }
+    pub fn get_variable_declaration_type(&self, identifier_name: &str) -> Option<GenericTypeId> {
+        self.scope.get_variable_declaration_type(identifier_name)
+    }
+    pub fn declare_identifier(&mut self, identifier_name: String, identifier_type: GenericTypeId) {
+        self.scope
+            .declare_identifier(identifier_name, identifier_type);
+    }
+
+    #[cfg(test)]
+    pub fn make_identifier_for_test<S: Into<String>>(
+        &mut self,
+        identifier_name: S,
+    ) -> GenericTypeId {
+        let id = self.make_id();
+        self.declare_identifier(identifier_name.into(), id);
+        id
     }
 }

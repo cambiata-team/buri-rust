@@ -5,11 +5,9 @@ use crate::{
         GenericDeclarationExpression, GenericDocument, GenericExpression,
         GenericFunctionExpression, GenericIdentifierExpression, GenericIntegerLiteralExpression,
         GenericListExpression, GenericRecordAssignmentExpression, GenericRecordExpression,
-        GenericStringLiteralExpression, GenericTopLevelDeclarationExpression,
-        GenericUnaryOperatorExpression,
+        GenericStringLiteralExpression, GenericUnaryOperatorExpression,
     },
     type_schema::TypeSchema,
-    type_schema_substitutions::TypeSchemaSubstitutions,
     GenericTypeId,
 };
 use ast::TopLevelDeclaration;
@@ -98,14 +96,11 @@ fn compute_broad_type(constraint_vec: &Vec<Constraint>) -> Result<TypeCategory, 
 }
 
 fn resolve_generic_type(
-    simplified_schema: &TypeSchema,
-    substitutions: &mut TypeSchemaSubstitutions,
+    schema: &mut TypeSchema,
     type_id: GenericTypeId,
 ) -> Result<ConcreteType, ()> {
-    let Some(constraint_vec) = simplified_schema
-        .constraints
-        .get(&substitutions.get_canonical_id(type_id)) else {
-        return Ok(ConcreteType::Primitive(PrimitiveType::CompilerBoolean));
+    let Some(constraint_vec) = schema.get_constraints(type_id) else {
+        return Ok(ConcreteType::Primitive(PrimitiveType::CompilerBoolean))
     };
     let broad_type = compute_broad_type(constraint_vec)?;
     match broad_type {
@@ -131,26 +126,19 @@ fn resolve_generic_type(
 }
 
 fn resolve_binary_operator(
-    simplified_schema: &TypeSchema,
-    substitutions: &mut TypeSchemaSubstitutions,
+    simplified_schema: &mut TypeSchema,
     generic_binary_operator: GenericBinaryOperatorExpression,
 ) -> Result<ConcreteExpression, ()> {
     Ok(ConcreteExpression::BinaryOperator(Box::new(
         ConcreteBinaryOperatorExpression {
             expression_type: resolve_generic_type(
                 simplified_schema,
-                substitutions,
                 generic_binary_operator.expression_type.type_id,
             )?,
             symbol: generic_binary_operator.symbol,
-            left_child: resolve_expression(
-                simplified_schema,
-                substitutions,
-                generic_binary_operator.left_child,
-            )?,
+            left_child: resolve_expression(simplified_schema, generic_binary_operator.left_child)?,
             right_child: resolve_expression(
                 simplified_schema,
-                substitutions,
                 generic_binary_operator.right_child,
             )?,
         },
@@ -158,15 +146,13 @@ fn resolve_binary_operator(
 }
 
 fn resolve_block(
-    simplified_schema: &TypeSchema,
-    substitutions: &mut TypeSchemaSubstitutions,
+    simplified_schema: &mut TypeSchema,
     generic_block: &GenericBlockExpression,
 ) -> Result<ConcreteExpression, ()> {
     Ok(ConcreteExpression::Block(Box::new(
         ConcreteBlockExpression {
             expression_type: resolve_generic_type(
                 simplified_schema,
-                substitutions,
                 generic_block.expression_type.type_id,
             )?,
             // TODO(aaron) add block contents to return value
@@ -176,15 +162,13 @@ fn resolve_block(
 }
 
 fn resolve_boolean(
-    simplified_schema: &TypeSchema,
-    substitutions: &mut TypeSchemaSubstitutions,
+    simplified_schema: &mut TypeSchema,
     generic_boolean: &GenericBooleanExpression,
 ) -> Result<ConcreteExpression, ()> {
     Ok(ConcreteExpression::Boolean(Box::new(
         ConcreteBooleanExpression {
             expression_type: resolve_generic_type(
                 simplified_schema,
-                substitutions,
                 generic_boolean.expression_type.type_id,
             )?,
             value: generic_boolean.value,
@@ -193,13 +177,11 @@ fn resolve_boolean(
 }
 
 fn resolve_declaration(
-    simplified_schema: &TypeSchema,
-    substitutions: &mut TypeSchemaSubstitutions,
+    simplified_schema: &mut TypeSchema,
     generic_declaration: GenericDeclarationExpression,
 ) -> Result<ConcreteExpression, ()> {
     let generic_type = resolve_generic_type(
         simplified_schema,
-        substitutions,
         generic_declaration.expression_type.type_id,
     )?;
     Ok(ConcreteExpression::Declaration(Box::new(
@@ -208,45 +190,40 @@ fn resolve_declaration(
             expression_type: generic_type,
             identifier: match resolve_expression(
                 simplified_schema,
-                substitutions,
                 GenericExpression::Identifier(Box::new(generic_declaration.identifier)),
             )? {
                 ConcreteExpression::Identifier(x) => *x,
                 _ => return Err(()),
             },
-            value: resolve_expression(simplified_schema, substitutions, generic_declaration.value)?,
+            value: resolve_expression(simplified_schema, generic_declaration.value)?,
         },
     )))
 }
 
 fn resolve_function(
-    simplified_schema: &TypeSchema,
-    substitutions: &mut TypeSchemaSubstitutions,
+    simplified_schema: &mut TypeSchema,
     generic_function: GenericFunctionExpression,
 ) -> Result<ConcreteExpression, ()> {
     Ok(ConcreteExpression::Function(Box::new(
         ConcreteFunctionExpression {
             expression_type: resolve_generic_type(
                 simplified_schema,
-                substitutions,
                 generic_function.expression_type.type_id,
             )?,
             // TODO(aaron) add argument names to return value
             argument_names: vec![],
-            body: resolve_expression(simplified_schema, substitutions, generic_function.body)?,
+            body: resolve_expression(simplified_schema, generic_function.body)?,
         },
     )))
 }
 
 fn resolve_identifier(
-    simplified_schema: &TypeSchema,
-    substitutions: &mut TypeSchemaSubstitutions,
+    simplified_schema: &mut TypeSchema,
     generic_identifier: GenericIdentifierExpression,
 ) -> Result<ConcreteIdentifierExpression, ()> {
     Ok(ConcreteIdentifierExpression {
         expression_type: resolve_generic_type(
             simplified_schema,
-            substitutions,
             generic_identifier.expression_type.type_id,
         )?,
         name: generic_identifier.name,
@@ -255,15 +232,13 @@ fn resolve_identifier(
 }
 
 fn resolve_integer(
-    simplified_schema: &TypeSchema,
-    substitutions: &mut TypeSchemaSubstitutions,
+    simplified_schema: &mut TypeSchema,
     generic_integer: &GenericIntegerLiteralExpression,
 ) -> Result<ConcreteExpression, ()> {
     Ok(ConcreteExpression::Integer(Box::new(
         ConcreteIntegerLiteralExpression {
             expression_type: resolve_generic_type(
                 simplified_schema,
-                substitutions,
                 generic_integer.expression_type.type_id,
             )?,
             value: generic_integer.value,
@@ -272,84 +247,66 @@ fn resolve_integer(
 }
 
 fn resolve_record_assignment(
-    simplified_schema: &TypeSchema,
-    substitutions: &mut TypeSchemaSubstitutions,
+    simplified_schema: &mut TypeSchema,
     generic_record_assignment: GenericRecordAssignmentExpression,
 ) -> Result<ConcreteExpression, ()> {
     Ok(ConcreteExpression::RecordAssignment(Box::new(
         ConcreteRecordAssignmentExpression {
             expression_type: resolve_generic_type(
                 simplified_schema,
-                substitutions,
                 generic_record_assignment.expression_type.type_id,
             )?,
             identifier: resolve_identifier(
                 simplified_schema,
-                substitutions,
                 generic_record_assignment.identifier,
             )?,
-            contents: resolve_record(
-                simplified_schema,
-                substitutions,
-                generic_record_assignment.contents,
-            )?,
+            contents: resolve_record(simplified_schema, generic_record_assignment.contents)?,
         },
     )))
 }
 
 fn resolve_list(
-    simplified_schema: &TypeSchema,
-    substitutions: &mut TypeSchemaSubstitutions,
+    simplified_schema: &mut TypeSchema,
     generic_list: GenericListExpression,
 ) -> Result<ConcreteExpression, ()> {
     Ok(ConcreteExpression::List(Box::new(ConcreteListExpression {
         expression_type: resolve_generic_type(
             simplified_schema,
-            substitutions,
             generic_list.expression_type.type_id,
         )?,
         contents: generic_list
             .contents
             .into_iter()
-            .map(|item| resolve_expression(simplified_schema, substitutions, item))
+            .map(|item| resolve_expression(simplified_schema, item))
             .collect::<Result<Vec<_>, _>>()?,
     })))
 }
 
 fn resolve_record(
-    simplified_schema: &TypeSchema,
-    substitutions: &mut TypeSchemaSubstitutions,
+    simplified_schema: &mut TypeSchema,
     generic_record: GenericRecordExpression,
 ) -> Result<ConcreteRecordExpression, ()> {
     Ok(ConcreteRecordExpression {
         expression_type: resolve_generic_type(
             simplified_schema,
-            substitutions,
             generic_record.expression_type.type_id,
         )?,
         contents: generic_record
             .contents
             .into_iter()
-            .map(|(key, value)| {
-                Ok((
-                    key,
-                    resolve_expression(simplified_schema, substitutions, value)?,
-                ))
-            })
+            .map(|(key, value)| Ok((key, resolve_expression(simplified_schema, value)?)))
             .collect::<Result<HashMap<_, _>, _>>()?,
     })
 }
 
 fn resolve_string_literal(
-    simplified_schema: &TypeSchema,
-    substitutions: &mut TypeSchemaSubstitutions,
+    simplified_schema: &mut TypeSchema,
     generic_string_literal: GenericStringLiteralExpression,
 ) -> Result<ConcreteExpression, ()> {
     Ok(ConcreteExpression::StringLiteral(Box::new(
         ConcreteStringLiteralExpression {
             expression_type: resolve_generic_type(
                 simplified_schema,
-                substitutions,
                 generic_string_literal.expression_type.type_id,
             )?,
             value: generic_string_literal.value,
@@ -358,129 +315,94 @@ fn resolve_string_literal(
 }
 
 fn resolve_unary_operator(
-    simplified_schema: &TypeSchema,
-    substitutions: &mut TypeSchemaSubstitutions,
+    simplified_schema: &mut TypeSchema,
     generic_unary_operator: GenericUnaryOperatorExpression,
 ) -> Result<ConcreteExpression, ()> {
     Ok(ConcreteExpression::UnaryOperator(Box::new(
         ConcreteUnaryOperatorExpression {
             expression_type: resolve_generic_type(
                 simplified_schema,
-                substitutions,
                 generic_unary_operator.expression_type.type_id,
             )?,
             symbol: generic_unary_operator.symbol,
-            child: resolve_expression(
-                simplified_schema,
-                substitutions,
-                generic_unary_operator.child,
-            )?,
+            child: resolve_expression(simplified_schema, generic_unary_operator.child)?,
         },
     )))
 }
 
 fn resolve_expression(
-    simplified_schema: &TypeSchema,
-    substitutions: &mut TypeSchemaSubstitutions,
+    simplified_schema: &mut TypeSchema,
     expression: GenericExpression,
 ) -> Result<ConcreteExpression, ()> {
     match expression {
         GenericExpression::BinaryOperator(generic_binary_operator) => {
-            resolve_binary_operator(simplified_schema, substitutions, *generic_binary_operator)
+            resolve_binary_operator(simplified_schema, *generic_binary_operator)
         }
-        GenericExpression::Block(generic_block) => {
-            resolve_block(simplified_schema, substitutions, &generic_block)
-        }
+        GenericExpression::Block(generic_block) => resolve_block(simplified_schema, &generic_block),
         GenericExpression::Boolean(generic_boolean) => {
-            resolve_boolean(simplified_schema, substitutions, &generic_boolean)
+            resolve_boolean(simplified_schema, &generic_boolean)
         }
         GenericExpression::Declaration(generic_declaration) => {
-            resolve_declaration(simplified_schema, substitutions, *generic_declaration)
+            resolve_declaration(simplified_schema, *generic_declaration)
         }
         GenericExpression::Function(generic_function) => {
-            resolve_function(simplified_schema, substitutions, *generic_function)
+            resolve_function(simplified_schema, *generic_function)
         }
         // TODO(aaron) GenericExpression::FunctionArguments
         GenericExpression::Identifier(generic_identifier) => {
-            resolve_identifier(simplified_schema, substitutions, *generic_identifier)
+            resolve_identifier(simplified_schema, *generic_identifier)
                 .map(Box::new)
                 .map(ConcreteExpression::Identifier)
         }
         // TODO(aaron) GenericExpression::If
         GenericExpression::Integer(generic_integer) => {
-            resolve_integer(simplified_schema, substitutions, &generic_integer)
+            resolve_integer(simplified_schema, &generic_integer)
         }
         GenericExpression::RecordAssignment(generic_record_assignment) => {
-            resolve_record_assignment(simplified_schema, substitutions, *generic_record_assignment)
+            resolve_record_assignment(simplified_schema, *generic_record_assignment)
         }
-        GenericExpression::List(list) => resolve_list(simplified_schema, substitutions, *list),
-        GenericExpression::Record(record) => {
-            resolve_record(simplified_schema, substitutions, *record)
-                .map(Box::new)
-                .map(ConcreteExpression::Record)
-        }
+        GenericExpression::List(list) => resolve_list(simplified_schema, *list),
+        GenericExpression::Record(record) => resolve_record(simplified_schema, *record)
+            .map(Box::new)
+            .map(ConcreteExpression::Record),
         GenericExpression::StringLiteral(generic_string_literal) => {
-            resolve_string_literal(simplified_schema, substitutions, *generic_string_literal)
+            resolve_string_literal(simplified_schema, *generic_string_literal)
         }
         // TODO(aaron) GenericExpression::Tag
         GenericExpression::UnaryOperator(generic_unary_operator) => {
-            resolve_unary_operator(simplified_schema, substitutions, *generic_unary_operator)
+            resolve_unary_operator(simplified_schema, *generic_unary_operator)
         }
         _ => unimplemented!(),
     }
 }
 
 fn resolve_variable_declaration_types(
-    mut input: TopLevelDeclaration<GenericTopLevelDeclarationExpression>,
+    schema: &mut TypeSchema,
+    input: TopLevelDeclaration<GenericDeclarationExpression>,
 ) -> Result<TopLevelDeclaration<ConcreteDeclarationExpression>, ()> {
-    let simplified_schema = input
-        .declaration
-        .substitutions
-        .apply_to_type_schema(input.declaration.schema);
-    let resolved_type = resolve_generic_type(
-        &simplified_schema,
-        &mut input.declaration.substitutions,
-        input.declaration.declaration.declaration_type.type_id,
-    )?;
+    let resolved_type = resolve_generic_type(schema, input.declaration.declaration_type.type_id)?;
     Ok(TopLevelDeclaration {
         declaration: ConcreteDeclarationExpression {
             declaration_type: resolved_type.clone(),
             expression_type: resolved_type,
-            identifier: resolve_identifier(
-                &simplified_schema,
-                &mut input.declaration.substitutions,
-                input.declaration.declaration.identifier,
-            )?,
-            value: resolve_expression(
-                &simplified_schema,
-                &mut input.declaration.substitutions,
-                input.declaration.declaration.value,
-            )?,
+            identifier: resolve_identifier(schema, input.declaration.identifier)?,
+            value: resolve_expression(schema, input.declaration.value)?,
         },
         is_exported: input.is_exported,
     })
 }
 
-pub fn resolve_concrete_types(input: GenericDocument) -> Result<ConcreteDocument, ()> {
-    let mut constraints: HashMap<String, HashMap<GenericTypeId, Vec<Constraint>>> = HashMap::new();
-    for declaration in &input.variable_declarations {
-        match constraints.get(&declaration.declaration.declaration.identifier.name) {
-            Some(_) => return Err(()),
-            None => {
-                constraints.insert(
-                    declaration.declaration.declaration.identifier.name.clone(),
-                    declaration.declaration.schema.constraints.clone(),
-                );
-            }
-        }
-    }
+pub fn resolve_concrete_types(
+    mut schema: TypeSchema,
+    input: GenericDocument,
+) -> Result<ConcreteDocument, ()> {
     let variable_declarations: Result<
         Vec<TopLevelDeclaration<TypedDeclarationExpression<ConcreteType>>>,
         (),
     > = input
         .variable_declarations
         .into_iter()
-        .map(resolve_variable_declaration_types)
+        .map(|input| resolve_variable_declaration_types(&mut schema, input))
         .collect();
     Ok(ConcreteDocument {
         imports: input.imports,

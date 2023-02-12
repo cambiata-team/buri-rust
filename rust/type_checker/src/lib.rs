@@ -5,7 +5,6 @@ mod parsed_expression_to_generic_expression;
 mod resolve_concrete_types;
 mod scope;
 mod type_schema;
-mod type_schema_substitutions;
 
 type GenericTypeId = usize;
 
