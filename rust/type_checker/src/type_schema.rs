@@ -1,106 +1,217 @@
-use crate::{constraints::Constraint, scope::Scope, GenericTypeId};
+use crate::{constraints::Constraint, parsed_constraint::ParsedConstraint, scope::Scope, TypeId};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct TypeSchema {
-    types: Vec<GenericTypeId>,
-    constraints: HashMap<GenericTypeId, Vec<Constraint>>,
-    scope: Scope,
-}
+pub struct CanonicalIds(Vec<TypeId>);
 
-impl TypeSchema {
-    pub fn new() -> Self {
-        Self {
-            types: Vec::new(),
-            scope: Scope::new(),
-            constraints: HashMap::new(),
-        }
+impl CanonicalIds {
+    const fn new() -> Self {
+        Self(Vec::new())
     }
+
     /// Return an id which is unique in this `TypeSchema`.
-    pub fn make_id(&mut self) -> GenericTypeId {
-        let id = self.types.len();
-        self.types.push(id);
+    fn make_id(&mut self) -> TypeId {
+        let id = self.0.len();
+        self.0.push(id);
         id
     }
-    /// Insert a new constraint for a given type.
-    pub fn add_constraint(&mut self, type_id: GenericTypeId, constraint: Constraint) {
-        let canonical_id = self.get_canonical_id(type_id);
-        if let Some(constraint_vec) = self.constraints.get_mut(&canonical_id) {
-            constraint_vec.push(constraint);
-        } else {
-            self.constraints.insert(canonical_id, vec![constraint]);
-        }
-    }
-    pub fn get_constraints(&mut self, type_id: GenericTypeId) -> Option<&Vec<Constraint>> {
-        let canonical_id = self.get_canonical_id(type_id);
-        self.constraints.get(&canonical_id)
-    }
-    pub fn get_canonical_id(&mut self, mut type_id: GenericTypeId) -> GenericTypeId {
+
+    pub fn get_canonical_id(&self, mut type_id: TypeId) -> TypeId {
         loop {
-            let parent_id = self.types[type_id];
+            let parent_id = self.0[type_id];
             if parent_id == type_id {
                 return type_id;
             }
-            self.types[type_id] = self.types[parent_id];
             type_id = parent_id;
         }
     }
-    pub fn count_ids(&self) -> usize {
-        self.types.len()
-    }
-    /// Return the total number of constraints in the system.
-    pub fn get_total_constraints(&self) -> usize {
-        let mut constraint_count: usize = 0;
-        for constraint_vec in self.constraints.values() {
-            constraint_count += constraint_vec.len();
-        }
-        constraint_count
+    fn count_ids(&self) -> usize {
+        self.0.len()
     }
 
-    pub fn get_total_canonical_ids(&mut self) -> usize {
-        self.types
+    fn get_total_canonical_ids(&mut self) -> usize {
+        self.0
             .iter()
             .enumerate()
             .filter(|(index, canonical_id)| index == *canonical_id)
             .count()
     }
-    pub fn set_types_equal(&mut self, type_a: GenericTypeId, type_b: GenericTypeId) {
+
+    fn set_types_equal(&mut self, type_a: TypeId, type_b: TypeId) {
         let canonical_a = self.get_canonical_id(type_a);
         let canonical_b = self.get_canonical_id(type_b);
-        self.types[canonical_a] = canonical_b;
-        let b_constraints = self
-            .constraints
-            .get(&canonical_b)
-            .map_or(Vec::new(), std::clone::Clone::clone);
-        let a_constraints = self.constraints.get_mut(&canonical_a);
-        match a_constraints {
-            Some(a_constraints) => a_constraints.extend(b_constraints),
-            None => {
-                self.constraints.insert(canonical_a, b_constraints);
-            }
+        self.0[canonical_a] = canonical_b;
+        // Makes future canonical id lookups faster.
+        self.0[type_a] = canonical_b;
+        self.0[type_b] = canonical_b;
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct TypeSchema {
+    pub types: CanonicalIds,
+    constraints: HashMap<TypeId, ParsedConstraint>,
+    pub scope: Scope,
+}
+
+impl TypeSchema {
+    pub fn new() -> Self {
+        Self {
+            types: CanonicalIds::new(),
+            constraints: HashMap::new(),
+            scope: Scope::new(),
         }
     }
-    pub fn start_sub_scope(&mut self) {
-        self.scope.start_sub_scope();
+    pub fn make_id(&mut self) -> TypeId {
+        self.types.make_id()
     }
-    pub fn end_sub_scope(&mut self) {
-        self.scope.end_sub_scope();
+    /// Insert a new constraint for a given type.
+    pub fn add_constraint(&mut self, type_id: TypeId, constraint: Constraint) -> Result<(), ()> {
+        let canonical_id = self.get_canonical_id(type_id);
+        // Get the existing parsed constraint with an immutable reference so we can still
+        // use the type schema.
+        if let Some(parsed_constraint) = self.constraints.get(&canonical_id) {
+            let new_constraint = ParsedConstraint::new(constraint, self);
+            if parsed_constraint.is_compatible_with(&new_constraint, self) {
+                // Getting the parsed constraint again so we can mutate it.
+                if let Some(parsed_constraint) = self.constraints.get_mut(&canonical_id) {
+                    parsed_constraint.add_constraints(new_constraint, &self.types);
+                }
+            } else {
+                return Err(());
+            }
+        } else {
+            self.constraints
+                .insert(canonical_id, ParsedConstraint::new(constraint, self));
+        };
+        Ok(())
     }
-    pub fn get_variable_declaration_type(&self, identifier_name: &str) -> Option<GenericTypeId> {
-        self.scope.get_variable_declaration_type(identifier_name)
+    /// TODO(nick): update this function to work with
+    pub fn get_constraints(&mut self, type_id: TypeId) -> Option<&Vec<Constraint>> {
+        let _ = self.get_canonical_id(type_id);
+        None
     }
-    pub fn declare_identifier(&mut self, identifier_name: String, identifier_type: GenericTypeId) {
-        self.scope
-            .declare_identifier(identifier_name, identifier_type);
+    pub fn get_canonical_id(&self, type_id: TypeId) -> TypeId {
+        self.types.get_canonical_id(type_id)
+    }
+    pub fn count_ids(&self) -> usize {
+        self.types.count_ids()
+    }
+    pub fn get_total_canonical_ids(&mut self) -> usize {
+        self.types.get_total_canonical_ids()
+    }
+    pub fn set_types_equal(&mut self, type_a: TypeId, type_b: TypeId) -> Result<(), ()> {
+        if !self.types_are_compatible(type_a, type_b) {
+            return Err(());
+        }
+        self.types.set_types_equal(type_a, type_b);
+        Ok(())
+    }
+    pub fn types_are_compatible(&self, base_type: TypeId, other_type: TypeId) -> bool {
+        let base_canonical_id = self.get_canonical_id(base_type);
+        let other_canonical_id = self.get_canonical_id(other_type);
+        if base_canonical_id == other_canonical_id {
+            return true;
+        }
+        match (
+            self.constraints.get(&base_canonical_id),
+            self.constraints.get(&other_canonical_id),
+        ) {
+            (Some(base_constraint), Some(other_constraint)) => {
+                base_constraint.is_compatible_with(other_constraint, self)
+            }
+            _ => true,
+        }
     }
 
     #[cfg(test)]
-    pub fn make_identifier_for_test<S: Into<String>>(
-        &mut self,
-        identifier_name: S,
-    ) -> GenericTypeId {
+    pub fn make_identifier_for_test<S: Into<String>>(&mut self, identifier_name: S) -> TypeId {
         let id = self.make_id();
-        self.declare_identifier(identifier_name.into(), id);
+        self.scope.declare_identifier(identifier_name.into(), id);
         id
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn make_id_starts_with_zero_and_increments_by_one() {
+        let mut type_schema = TypeSchema::new();
+        assert_eq!(type_schema.make_id(), 0);
+        assert_eq!(type_schema.make_id(), 1);
+        assert_eq!(type_schema.make_id(), 2);
+        assert_eq!(type_schema.make_id(), 3);
+        assert_eq!(type_schema.make_id(), 4);
+        assert_eq!(type_schema.make_id(), 5);
+    }
+
+    #[test]
+    fn each_id_is_its_own_canonical_id_by_default() {
+        let mut type_schema = TypeSchema::new();
+        let id = type_schema.make_id();
+        assert_eq!(type_schema.get_canonical_id(id), id);
+    }
+
+    #[test]
+    fn set_types_equal_sets_the_canonical_id_of_the_first_type_to_the_canonical_id_of_the_second() {
+        let mut type_schema = TypeSchema::new();
+        let id_a = type_schema.make_id();
+        let id_b = type_schema.make_id();
+        type_schema.set_types_equal(id_a, id_b).unwrap();
+        assert_eq!(type_schema.get_canonical_id(id_a), id_b);
+        assert_eq!(type_schema.get_canonical_id(id_b), id_b);
+    }
+
+    #[test]
+    fn set_equal_types_sets_the_canonical_ids_even_if_theres_a_chain_of_ids() {
+        let mut type_schema = TypeSchema::new();
+        let id_a = type_schema.make_id();
+        let id_b = type_schema.make_id();
+        let id_c = type_schema.make_id();
+        type_schema.set_types_equal(id_a, id_b).unwrap();
+        type_schema.set_types_equal(id_b, id_c).unwrap();
+        assert_eq!(type_schema.get_canonical_id(id_a), id_c);
+    }
+
+    #[test]
+    fn count_ids_counts_the_total_number_of_ids() {
+        let mut type_schema = TypeSchema::new();
+        type_schema.make_id();
+        type_schema.make_id();
+        type_schema.make_id();
+        assert_eq!(type_schema.count_ids(), 3);
+    }
+
+    #[test]
+    fn count_ids_ignores_canonical_ids() {
+        let mut type_schema = TypeSchema::new();
+        let id_a = type_schema.make_id();
+        let id_b = type_schema.make_id();
+        let id_c = type_schema.make_id();
+        type_schema.set_types_equal(id_a, id_b).unwrap();
+        type_schema.set_types_equal(id_b, id_c).unwrap();
+        assert_eq!(type_schema.count_ids(), 3);
+    }
+
+    #[test]
+    fn count_canonical_ids_counts_the_total_number_of_canonical_ids() {
+        let mut type_schema = TypeSchema::new();
+        type_schema.make_id();
+        type_schema.make_id();
+        type_schema.make_id();
+        assert_eq!(type_schema.get_total_canonical_ids(), 3);
+    }
+
+    #[test]
+    fn set_types_equal_decreases_number_of_canonical_ids() {
+        let mut type_schema = TypeSchema::new();
+        let id_a = type_schema.make_id();
+        let id_b = type_schema.make_id();
+        let id_c = type_schema.make_id();
+        type_schema.set_types_equal(id_a, id_b).unwrap();
+        type_schema.set_types_equal(id_b, id_c).unwrap();
+        assert_eq!(type_schema.get_total_canonical_ids(), 1);
     }
 }

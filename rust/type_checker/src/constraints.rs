@@ -1,4 +1,4 @@
-use crate::GenericTypeId;
+use crate::TypeId;
 use std::collections::HashMap;
 use typed_ast::PrimitiveType;
 
@@ -7,7 +7,7 @@ use typed_ast::PrimitiveType;
 /// with a tag of given name whose payload has particular types.
 pub struct HasTagConstraint {
     pub tag_name: String,
-    pub tag_content_types: Vec<GenericTypeId>,
+    pub tag_content_types: Vec<TypeId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -16,7 +16,7 @@ pub struct HasTagConstraint {
 pub struct TagAtMostConstraint {
     /// The keys are the names of the tags in a tag union.
     /// The values are the types of the tag payloads.
-    pub tags: HashMap<String, Vec<GenericTypeId>>,
+    pub tags: HashMap<String, Vec<TypeId>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -24,7 +24,12 @@ pub struct TagAtMostConstraint {
 /// the type of which is `field_type`.
 pub struct HasFieldConstraint {
     pub field_name: String,
-    pub field_type: GenericTypeId,
+    pub field_type: TypeId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FieldAtMostConstraint {
+    pub fields: HashMap<String, TypeId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,7 +37,13 @@ pub struct HasFieldConstraint {
 /// the type of which is `method_type`.
 pub struct HasMethodConstraint {
     pub method_name: String,
-    pub method_type: GenericTypeId,
+    pub method_type: TypeId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HasFunctionShape {
+    pub argument_types: Vec<TypeId>,
+    pub return_type: TypeId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -40,15 +51,16 @@ pub enum Constraint {
     /// Constrain that a generic type be equal to some primitive type.
     EqualToPrimitive(PrimitiveType),
     /// Constrain that a generic type is a list whose contents have a particular type.
-    ListOfType(GenericTypeId),
+    ListOfType(TypeId),
     /// Constrain that a generic type is a tag union with at least a given set of tags.
     HasTag(HasTagConstraint),
     /// Constrain that a generic type is a tag union with at most a given set of tags.
     TagAtMost(TagAtMostConstraint),
     HasField(HasFieldConstraint),
+    FieldAtMost(FieldAtMostConstraint),
     HasMethod(HasMethodConstraint),
     /// Constrain that a generic type is a function with a given return type.
-    HasReturnType(GenericTypeId),
-    /// Constrain that a generic type is a function whose arguments have given types.
-    HasArgumentTypes(Vec<GenericTypeId>),
+    HasFunctionShape(HasFunctionShape),
+    // If the type must match a particular type identifier.
+    HasName(String),
 }

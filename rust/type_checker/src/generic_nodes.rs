@@ -1,4 +1,4 @@
-use crate::GenericTypeId;
+use crate::TypeId;
 use ast::{ImportNode, ParserInput, TopLevelDeclaration};
 use typed_ast::{
     TypedBinaryOperatorExpression, TypedBlockExpression, TypedBooleanLiteralExpression,
@@ -12,7 +12,7 @@ use typed_ast::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GenericSourcedType<'a> {
     /// The derived type of an expression.
-    pub type_id: GenericTypeId,
+    pub type_id: TypeId,
     /// Source code of the expression generating this type.
     pub source_of_type: ParserInput<'a>,
 }
@@ -50,7 +50,7 @@ pub struct GenericDocument<'a> {
     pub expressions: Vec<TypedExpression<GenericSourcedType<'a>>>,
 }
 
-pub const fn get_generic_type_id(input: &GenericExpression) -> GenericTypeId {
+pub const fn get_generic_type_id(input: &GenericExpression) -> TypeId {
     match input {
         GenericExpression::BinaryOperator(node) => node.expression_type.type_id,
         GenericExpression::Block(node) => node.expression_type.type_id,
