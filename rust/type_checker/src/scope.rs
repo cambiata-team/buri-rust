@@ -1,4 +1,4 @@
-use crate::GenericTypeId;
+use crate::TypeId;
 use std::collections::HashMap;
 
 /// An item in the scope stack.
@@ -13,7 +13,7 @@ enum ScopeItem {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Scope {
     stack: Vec<ScopeItem>,
-    pub identifiers: HashMap<String, GenericTypeId>,
+    pub identifiers: HashMap<String, TypeId>,
 }
 
 impl Scope {
@@ -31,11 +31,11 @@ impl Scope {
             self.identifiers.remove(&identifier);
         }
     }
-    pub fn get_variable_declaration_type(&self, identifier_name: &str) -> Option<GenericTypeId> {
+    pub fn get_variable_declaration_type(&self, identifier_name: &str) -> Option<TypeId> {
         let answer = self.identifiers.get(identifier_name).copied();
         answer
     }
-    pub fn declare_identifier(&mut self, identifier_name: String, identifier_type: GenericTypeId) {
+    pub fn declare_identifier(&mut self, identifier_name: String, identifier_type: TypeId) {
         self.identifiers
             .insert(identifier_name.clone(), identifier_type);
         self.stack.push(ScopeItem::Identifier(identifier_name));

@@ -8,7 +8,7 @@ use crate::{
         GenericStringLiteralExpression, GenericUnaryOperatorExpression,
     },
     type_schema::TypeSchema,
-    GenericTypeId,
+    TypeId,
 };
 use ast::TopLevelDeclaration;
 use std::collections::HashMap;
@@ -65,7 +65,7 @@ enum TypeCategory {
     Record,
 }
 
-fn compute_broad_type(constraint_vec: &Vec<Constraint>) -> Result<TypeCategory, ()> {
+fn compute_type_category(constraint_vec: &Vec<Constraint>) -> Result<TypeCategory, ()> {
     let mut broad_type = TypeCategory::Unknown;
     for constraint in constraint_vec {
         let predicted_type = match constraint {
@@ -76,10 +76,9 @@ fn compute_broad_type(constraint_vec: &Vec<Constraint>) -> Result<TypeCategory, 
             },
             Constraint::ListOfType(_) => TypeCategory::List,
             Constraint::HasTag(_) | Constraint::TagAtMost(_) => TypeCategory::TagUnion,
-            Constraint::HasField(_) | Constraint::HasMethod(_) => TypeCategory::Record,
-            Constraint::HasReturnType(_) | Constraint::HasArgumentTypes(_) => {
-                TypeCategory::Function
-            }
+            Constraint::HasField(_) | Constraint::FieldAtMost(_) => TypeCategory::Record,
+            Constraint::HasFunctionShape(_) => TypeCategory::Function,
+            Constraint::HasName(_) | Constraint::HasMethod(_) => TypeCategory::Unknown,
         };
         match broad_type {
             TypeCategory::Unknown => {
@@ -95,14 +94,11 @@ fn compute_broad_type(constraint_vec: &Vec<Constraint>) -> Result<TypeCategory, 
     Ok(broad_type)
 }
 
-fn resolve_generic_type(
-    schema: &mut TypeSchema,
-    type_id: GenericTypeId,
-) -> Result<ConcreteType, ()> {
+fn resolve_generic_type(schema: &mut TypeSchema, type_id: TypeId) -> Result<ConcreteType, ()> {
     let Some(constraint_vec) = schema.get_constraints(type_id) else {
         return Ok(ConcreteType::Primitive(PrimitiveType::CompilerBoolean))
     };
-    let broad_type = compute_broad_type(constraint_vec)?;
+    let broad_type = compute_type_category(constraint_vec)?;
     match broad_type {
         // If a type does not have constraints, then it does not matter what the type is.
         TypeCategory::Unknown => Ok(ConcreteType::Primitive(PrimitiveType::CompilerBoolean)),
