@@ -4,7 +4,7 @@ use crate::{
         GenericDeclarationExpression, GenericDocument, GenericExpression,
         GenericFunctionExpression, GenericIdentifierExpression, GenericIntegerLiteralExpression,
         GenericListExpression, GenericRecordAssignmentExpression, GenericRecordExpression,
-        GenericStringLiteralExpression, GenericUnaryOperatorExpression,
+        GenericStringLiteralExpression, GenericTagExpression, GenericUnaryOperatorExpression,
     },
     type_schema::TypeSchema,
     TypeId,
@@ -15,8 +15,8 @@ use typed_ast::{
     ConcreteDeclarationExpression, ConcreteDocument, ConcreteExpression,
     ConcreteFunctionExpression, ConcreteIdentifierExpression, ConcreteIntegerLiteralExpression,
     ConcreteListExpression, ConcreteRecordAssignmentExpression, ConcreteRecordExpression,
-    ConcreteStringLiteralExpression, ConcreteType, ConcreteUnaryOperatorExpression,
-    TypedDeclarationExpression,
+    ConcreteStringLiteralExpression, ConcreteTagExpression, ConcreteType,
+    ConcreteUnaryOperatorExpression, PrimitiveType, TypedDeclarationExpression,
 };
 
 fn resolve_generic_type(schema: &mut TypeSchema, type_id: TypeId) -> ConcreteType {
@@ -190,6 +190,29 @@ fn resolve_string_literal(
     }))
 }
 
+fn resolve_tag(
+    simplified_schema: &mut TypeSchema,
+    generic_tag: GenericTagExpression,
+) -> ConcreteExpression {
+    let expression_type =
+        resolve_generic_type(simplified_schema, generic_tag.expression_type.type_id);
+    if expression_type == ConcreteType::Primitive(PrimitiveType::CompilerBoolean) {
+        return ConcreteExpression::Boolean(Box::new(ConcreteBooleanExpression {
+            expression_type,
+            value: generic_tag.name == "true",
+        }));
+    }
+    ConcreteExpression::Tag(Box::new(ConcreteTagExpression {
+        expression_type,
+        name: generic_tag.name,
+        contents: generic_tag
+            .contents
+            .into_iter()
+            .map(|x| resolve_expression(simplified_schema, x))
+            .collect(),
+    }))
+}
+
 fn resolve_unary_operator(
     simplified_schema: &mut TypeSchema,
     generic_unary_operator: GenericUnaryOperatorExpression,
@@ -240,7 +263,7 @@ fn resolve_expression(
         GenericExpression::StringLiteral(generic_string_literal) => {
             resolve_string_literal(simplified_schema, *generic_string_literal)
         }
-        // TODO(aaron) GenericExpression::Tag
+        GenericExpression::Tag(tag) => resolve_tag(simplified_schema, *tag),
         GenericExpression::UnaryOperator(generic_unary_operator) => {
             resolve_unary_operator(simplified_schema, *generic_unary_operator)
         }
