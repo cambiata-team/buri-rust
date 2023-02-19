@@ -5,17 +5,18 @@ use crate::{
     },
     generic_nodes::{
         get_generic_type_id, GenericBinaryOperatorExpression, GenericBlockExpression,
-        GenericDeclarationExpression, GenericExpression, GenericIdentifierExpression,
-        GenericIfExpression, GenericIntegerLiteralExpression, GenericListExpression,
-        GenericRecordAssignmentExpression, GenericRecordExpression, GenericSourcedType,
-        GenericStringLiteralExpression, GenericTagExpression, GenericTypeDeclarationExpression,
-        GenericTypeIdentifierExpression, GenericUnaryOperatorExpression,
+        GenericDeclarationExpression, GenericExpression, GenericFunctionExpression,
+        GenericIdentifierExpression, GenericIfExpression, GenericIntegerLiteralExpression,
+        GenericListExpression, GenericRecordAssignmentExpression, GenericRecordExpression,
+        GenericSourcedType, GenericStringLiteralExpression, GenericTagExpression,
+        GenericTypeDeclarationExpression, GenericTypeIdentifierExpression,
+        GenericUnaryOperatorExpression,
     },
     type_schema::TypeSchema,
     TypeId,
 };
 use ast::{
-    BinaryOperatorNode, BinaryOperatorSymbol, BlockNode, DeclarationNode, Expression,
+    BinaryOperatorNode, BinaryOperatorSymbol, BlockNode, DeclarationNode, Expression, FunctionNode,
     FunctionTypeNode, IdentifierNode, IfNode, IntegerNode, ListNode, ListTypeNode,
     RecordAssignmentNode, RecordNode, RecordTypeNode, StringLiteralNode, TagGroupTypeNode, TagNode,
     TypeDeclarationNode, TypeExpression, TypeIdentifierNode, UnaryOperatorNode,
@@ -320,6 +321,53 @@ pub fn translate_declaration<'a>(
         },
         identifier,
         value: expression,
+    })
+}
+
+fn translate_function<'a>(
+    schema: &mut TypeSchema,
+    node: FunctionNode<'a>,
+) -> Result<GenericFunctionExpression<'a>, ()> {
+    let function_type = schema.make_id();
+    schema.scope.start_sub_scope();
+    let mut argument_names = Vec::new();
+    let mut argument_types = Vec::new();
+    argument_names.reserve_exact(node.value.arguments.len());
+    argument_types.reserve_exact(node.value.arguments.len());
+    for argument in node.value.arguments {
+        let identifier_type = schema.make_id();
+        schema.scope.declare_identifier(
+            argument.value.argument_name.value.name.clone(),
+            identifier_type,
+        );
+        if let Some(argument_type_expression) = argument.value.argument_type {
+            let Some(argument_type_id) = schema.scope.get_variable_declaration_type(&argument_type_expression.value) else {
+                return Err(())
+            };
+            schema.set_types_equal(identifier_type, argument_type_id)?;
+        }
+        argument_types.push(identifier_type);
+        argument_names.push(argument.value.argument_name.value.name.clone());
+    }
+    let body = translate_parsed_expression_to_generic_expression(schema, *node.value.body)?;
+    let body_id = get_generic_type_id(&body);
+    let return_type = schema.make_id();
+    schema.set_types_equal(body_id, return_type)?;
+    schema.add_constraint(
+        function_type,
+        Constraint::HasFunctionShape(HasFunctionShape {
+            argument_types,
+            return_type,
+        }),
+    )?;
+    schema.scope.end_sub_scope();
+    Ok(GenericFunctionExpression {
+        expression_type: GenericSourcedType {
+            type_id: function_type,
+            source_of_type: node.source,
+        },
+        argument_names,
+        body,
     })
 }
 
@@ -749,8 +797,9 @@ pub fn translate_parsed_expression_to_generic_expression<'a>(
         Expression::Declaration(node) => translate_declaration(schema, node)
             .map(Box::new)
             .map(GenericExpression::Declaration),
-        // TODO(aaron): Expression::Function(node) => translate_function(schema, node),
-        Expression::Function(_) => unimplemented!(),
+        Expression::Function(node) => translate_function(schema, node)
+            .map(Box::new)
+            .map(GenericExpression::Function),
         Expression::FunctionApplicationArguments(_) => Err(()),
         Expression::Identifier(node) => Ok(GenericExpression::Identifier(Box::new(
             translate_identifier(schema, node)?,
