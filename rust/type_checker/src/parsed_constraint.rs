@@ -364,7 +364,9 @@ impl ParsedConstraint {
                     })
                     .collect(),
             })),
-            CategoryConstraints::TagGroup(TagGroupConstraints::ClosedTags(t)) => {
+            CategoryConstraints::TagGroup(
+                TagGroupConstraints::ClosedTags(t) | TagGroupConstraints::OpenTags(t),
+            ) => {
                 // Check if this is a boolean tag union
                 if t.len() <= 2 {
                     let true_is_boolean = t.get("true").map_or(false, std::vec::Vec::is_empty);
@@ -375,22 +377,6 @@ impl ParsedConstraint {
                         return ConcreteType::Primitive(PrimitiveType::CompilerBoolean);
                     }
                 }
-                ConcreteType::TagUnion(Box::new(ConcreteTagUnionType {
-                    tag_types: t
-                        .iter()
-                        .map(|(name, type_ids)| {
-                            (
-                                name.clone(),
-                                type_ids
-                                    .iter()
-                                    .map(|type_id| schema.get_concrete_type_from_id(*type_id))
-                                    .collect(),
-                            )
-                        })
-                        .collect(),
-                }))
-            }
-            CategoryConstraints::TagGroup(TagGroupConstraints::OpenTags(t)) => {
                 ConcreteType::TagUnion(Box::new(ConcreteTagUnionType {
                     tag_types: t
                         .iter()
