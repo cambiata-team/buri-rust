@@ -41,15 +41,18 @@ fn resolve_binary_operator(
 
 fn resolve_block(
     simplified_schema: &mut TypeSchema,
-    generic_block: &GenericBlockExpression,
+    generic_block: GenericBlockExpression,
 ) -> ConcreteExpression {
     ConcreteExpression::Block(Box::new(ConcreteBlockExpression {
         expression_type: resolve_generic_type(
             simplified_schema,
             generic_block.expression_type.type_id,
         ),
-        // TODO(aaron) add block contents to return value
-        contents: vec![],
+        contents: generic_block
+            .contents
+            .into_iter()
+            .map(|x| resolve_expression(simplified_schema, x))
+            .collect(),
     }))
 }
 
@@ -253,7 +256,7 @@ fn resolve_expression(
         GenericExpression::BinaryOperator(generic_binary_operator) => {
             resolve_binary_operator(simplified_schema, *generic_binary_operator)
         }
-        GenericExpression::Block(generic_block) => resolve_block(simplified_schema, &generic_block),
+        GenericExpression::Block(generic_block) => resolve_block(simplified_schema, *generic_block),
         GenericExpression::Boolean(generic_boolean) => {
             resolve_boolean(simplified_schema, &generic_boolean)
         }
