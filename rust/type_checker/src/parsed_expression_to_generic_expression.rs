@@ -1317,8 +1317,6 @@ mod test {
                 source: ParserInput::new(""),
                 value: FunctionApplicationArgumentsValue { arguments: vec![] },
             });
-        // TODO(B-221): Remove the `let _ = ` and add .unwrap() to ensure this
-        // never errors.
         let _ = translate_parsed_expression_to_generic_expression(&mut schema, expression);
         assert_eq!(schema.count_ids(), 0);
     }
