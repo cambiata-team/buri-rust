@@ -13,6 +13,8 @@ pub fn basic_expression<'a>(
 ) -> impl FnMut(ParserInput<'a>) -> IResult<'a, Expression<'a>> {
     alt((
         parentheses,
+        map(type_declaration, Expression::TypeDeclaration),
+        map(variable_declaration, Expression::Declaration),
         map(
             move |input| unary_operator_expression(context, input),
             Expression::UnaryOperator,
@@ -28,8 +30,6 @@ pub fn basic_expression<'a>(
             move |input| record_assignment(context, input),
             Expression::RecordAssignment,
         ),
-        map(type_declaration, Expression::TypeDeclaration),
-        map(variable_declaration, Expression::Declaration),
     ))
 }
 
@@ -107,5 +107,14 @@ mod test {
             basic_expression(ExpressionContext::new().allow_newlines_in_expressions())(input);
         let (_, consumed) = result.unwrap();
         assert!(matches!(consumed, Expression::RecordAssignment(_)));
+    }
+
+    #[test]
+    fn declarations_take_precedence_over_other_identifiers() {
+        let input = ParserInput::new("hello = \"hello\"");
+        let result =
+            basic_expression(ExpressionContext::new().allow_newlines_in_expressions())(input);
+        let (_, consumed) = result.unwrap();
+        assert!(matches!(consumed, Expression::Declaration(_)));
     }
 }
