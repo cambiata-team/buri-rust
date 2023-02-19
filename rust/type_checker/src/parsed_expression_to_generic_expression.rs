@@ -645,7 +645,7 @@ fn translate_record_assignment<'a>(
     })
 }
 
-fn translate_type_declaration<'a>(
+pub fn translate_type_declaration<'a>(
     schema: &mut TypeSchema,
     node: TypeDeclarationNode<'a>,
 ) -> Result<GenericTypeDeclarationExpression<'a>, ()> {

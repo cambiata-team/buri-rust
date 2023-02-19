@@ -331,10 +331,12 @@ pub fn resolve_concrete_types(mut schema: TypeSchema, input: GenericDocument) ->
             .collect();
     ConcreteDocument {
         imports: input.imports,
-        // TODO(aaron) add type declarations to return value
+        // We don't need to resolve type declarations since they are always
+        // generic and never printed to the JS output.
         type_declarations: vec![],
         variable_declarations,
-        // TODO(aaron) add top level expressions to return value
+        // We don't need to resolve top-level expressions since they are
+        // printed to the JS output.
         expressions: vec![],
     }
 }
