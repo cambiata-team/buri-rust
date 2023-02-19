@@ -165,4 +165,14 @@ mod test {
         let result = intra_expression_whitespace(ExpressionContext::new())(input);
         assert!(result.is_err());
     }
+
+    #[test]
+    fn parses_comment_that_ends_file() {
+        let input = ParserInput::new("-- comment");
+        let result = intra_expression_whitespace(
+            ExpressionContext::new().allow_newlines_in_expressions(),
+        )(input);
+        let (remainder, _) = result.unwrap();
+        assert!(remainder.is_empty());
+    }
 }

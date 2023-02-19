@@ -1,10 +1,13 @@
 use crate::{
     binary_operator_expression::binary_operator_expression, identifier::identifier,
-    intra_expression_whitespace::intra_expression_whitespace, type_expression::type_expression,
-    ExpressionContext,
+    intra_expression_whitespace::intra_expression_whitespace, newline::newline,
+    type_expression::type_expression, ExpressionContext,
 };
 use ast::{DeclarationNode, DeclarationValue};
 use ast::{IResult, ParserInput};
+use nom::branch::alt;
+use nom::combinator::eof;
+use nom::sequence::terminated;
 use nom::{
     character::complete::{char, space0},
     combinator::{consumed, map, opt},
@@ -28,7 +31,15 @@ pub fn variable_declaration(input: ParserInput) -> IResult<DeclarationNode> {
                     ExpressionContext::new().allow_newlines_in_expressions(),
                 )),
             )),
-            binary_operator_expression(ExpressionContext::new().allow_newlines_in_expressions()),
+            terminated(
+                binary_operator_expression(
+                    ExpressionContext::new().allow_newlines_in_expressions(),
+                ),
+                tuple((
+                    opt(intra_expression_whitespace(ExpressionContext::new())),
+                    alt((newline, eof)),
+                )),
+            ),
         )),
         |(consumed, ((identifier, type_expression), expression))| DeclarationNode {
             value: DeclarationValue {
@@ -190,6 +201,15 @@ mod test {
     #[test]
     fn right_hand_side_can_be_identifier() {
         let input = "foo = bar";
+        let input = ParserInput::new(input);
+        let result = variable_declaration(input);
+        let (remainder, _) = result.unwrap();
+        assert_eq!(remainder, "");
+    }
+
+    #[test]
+    fn test() {
+        let input = "foo = bar -- comment";
         let input = ParserInput::new(input);
         let result = variable_declaration(input);
         let (remainder, _) = result.unwrap();
