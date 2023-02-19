@@ -1,9 +1,11 @@
 use crate::{
-    generic_nodes::{GenericDeclarationExpression, GenericDocument},
-    parsed_expression_to_generic_expression::translate_declaration,
+    generic_nodes::{
+        GenericDeclarationExpression, GenericDocument, GenericTypeDeclarationExpression,
+    },
+    parsed_expression_to_generic_expression::{translate_declaration, translate_type_declaration},
     type_schema::TypeSchema,
 };
-use ast::{DeclarationValue, DocumentNode, ParsedNode, TopLevelDeclaration};
+use ast::{DeclarationValue, DocumentNode, ParsedNode, TopLevelDeclaration, TypeDeclarationNode};
 
 fn translate_top_level_variable_declaration<'a>(
     schema: &mut TypeSchema,
@@ -11,6 +13,16 @@ fn translate_top_level_variable_declaration<'a>(
 ) -> Result<TopLevelDeclaration<GenericDeclarationExpression<'a>>, ()> {
     Ok(TopLevelDeclaration {
         declaration: translate_declaration(schema, input.declaration)?,
+        is_exported: input.is_exported,
+    })
+}
+
+fn translate_top_level_type_declaration<'a>(
+    schema: &mut TypeSchema,
+    input: TopLevelDeclaration<TypeDeclarationNode<'a>>,
+) -> Result<TopLevelDeclaration<GenericTypeDeclarationExpression<'a>>, ()> {
+    Ok(TopLevelDeclaration {
+        declaration: translate_type_declaration(schema, input.declaration)?,
         is_exported: input.is_exported,
     })
 }
@@ -26,13 +38,22 @@ pub fn apply_constraints(input: DocumentNode) -> Result<(GenericDocument, TypeSc
             variable_declaration,
         )?);
     }
+    let mut type_declarations: Vec<TopLevelDeclaration<GenericTypeDeclarationExpression>> =
+        Vec::new();
+    type_declarations.reserve_exact(input.value.type_declarations.len());
+    for type_declaration in input.value.type_declarations {
+        type_declarations.push(translate_top_level_type_declaration(
+            &mut schema,
+            type_declaration,
+        )?);
+    }
     Ok((
         GenericDocument {
             imports: input.value.imports,
-            // TODO(aaron) add type declarations to return value
-            type_declarations: vec![],
+            type_declarations,
             variable_declarations,
-            // TODO(aaron) add top level expressions to return value
+            // We don't need to check top-level expressions since they are
+            // inconsequential to the program.
             expressions: vec![],
         },
         schema,
