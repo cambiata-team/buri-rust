@@ -2,9 +2,10 @@ use crate::{
     generic_nodes::{
         GenericBinaryOperatorExpression, GenericBlockExpression, GenericBooleanExpression,
         GenericDeclarationExpression, GenericDocument, GenericExpression,
-        GenericFunctionExpression, GenericIdentifierExpression, GenericIntegerLiteralExpression,
-        GenericListExpression, GenericRecordAssignmentExpression, GenericRecordExpression,
-        GenericStringLiteralExpression, GenericTagExpression, GenericUnaryOperatorExpression,
+        GenericFunctionExpression, GenericIdentifierExpression, GenericIfExpression,
+        GenericIntegerLiteralExpression, GenericListExpression, GenericRecordAssignmentExpression,
+        GenericRecordExpression, GenericStringLiteralExpression, GenericTagExpression,
+        GenericUnaryOperatorExpression,
     },
     type_schema::TypeSchema,
     TypeId,
@@ -13,9 +14,9 @@ use ast::TopLevelDeclaration;
 use typed_ast::{
     ConcreteBinaryOperatorExpression, ConcreteBlockExpression, ConcreteBooleanExpression,
     ConcreteDeclarationExpression, ConcreteDocument, ConcreteExpression,
-    ConcreteFunctionExpression, ConcreteIdentifierExpression, ConcreteIntegerLiteralExpression,
-    ConcreteListExpression, ConcreteRecordAssignmentExpression, ConcreteRecordExpression,
-    ConcreteStringLiteralExpression, ConcreteTagExpression, ConcreteType,
+    ConcreteFunctionExpression, ConcreteIdentifierExpression, ConcreteIfExpression,
+    ConcreteIntegerLiteralExpression, ConcreteListExpression, ConcreteRecordAssignmentExpression,
+    ConcreteRecordExpression, ConcreteStringLiteralExpression, ConcreteTagExpression, ConcreteType,
     ConcreteUnaryOperatorExpression, PrimitiveType, TypedDeclarationExpression,
 };
 
@@ -114,6 +115,23 @@ fn resolve_identifier(
         name: generic_identifier.name,
         is_disregarded: generic_identifier.is_disregarded,
     }
+}
+
+fn resolve_if(
+    simplified_schema: &mut TypeSchema,
+    generic_if: GenericIfExpression,
+) -> ConcreteExpression {
+    ConcreteExpression::If(Box::new(ConcreteIfExpression {
+        expression_type: resolve_generic_type(
+            simplified_schema,
+            generic_if.expression_type.type_id,
+        ),
+        condition: resolve_expression(simplified_schema, generic_if.condition),
+        path_if_true: resolve_expression(simplified_schema, generic_if.path_if_true),
+        path_if_false: generic_if
+            .path_if_false
+            .map(|expression| resolve_expression(simplified_schema, expression)),
+    }))
 }
 
 fn resolve_integer(
@@ -249,7 +267,7 @@ fn resolve_expression(
         GenericExpression::Identifier(generic_identifier) => ConcreteExpression::Identifier(
             Box::new(resolve_identifier(simplified_schema, *generic_identifier)),
         ),
-        // TODO(aaron) GenericExpression::If
+        GenericExpression::If(generic_if) => resolve_if(simplified_schema, *generic_if),
         GenericExpression::Integer(generic_integer) => {
             resolve_integer(simplified_schema, &generic_integer)
         }
