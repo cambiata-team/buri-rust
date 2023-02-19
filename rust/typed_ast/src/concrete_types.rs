@@ -13,7 +13,7 @@ pub struct ConcreteFunctionType {
     /// If a function does not take any arguments, then the vec is empty.
     pub argument_types: Vec<ConcreteType>,
     /// return_type = None means that the function does not return a value.
-    pub return_type: Option<ConcreteType>,
+    pub return_type: ConcreteType,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -77,7 +77,7 @@ impl ConcreteType {
     pub fn default_binary_operator_for_test() -> Self {
         Self::Function(Box::new(ConcreteFunctionType {
             argument_types: vec![],
-            return_type: None,
+            return_type: Self::Primitive(PrimitiveType::Str),
         }))
     }
 
@@ -92,7 +92,7 @@ impl ConcreteType {
     pub fn default_function_for_test() -> Self {
         Self::Function(Box::new(ConcreteFunctionType {
             argument_types: vec![],
-            return_type: None,
+            return_type: Self::Primitive(PrimitiveType::Str),
         }))
     }
 }

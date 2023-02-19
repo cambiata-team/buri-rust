@@ -24,9 +24,6 @@ pub fn compile_buri_file(contents: &str) -> Result<String, CompilationError> {
         Ok(items) => items,
         Err(error) => return Err(CompilationError::TypeError(error)),
     };
-    let concrete_document = match resolve_concrete_types(type_schema, generic_document) {
-        Ok(document) => document,
-        Err(error) => return Err(CompilationError::TypeResolutionError(error)),
-    };
+    let concrete_document = resolve_concrete_types(type_schema, generic_document);
     Ok(print_js_document(&concrete_document))
 }
