@@ -674,7 +674,9 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let canonical_id = schema.make_id();
-        schema.set_types_equal(type_id, canonical_id).unwrap();
+        schema
+            .set_equal_to_canonical_type(type_id, canonical_id)
+            .unwrap();
         let mut parsed_constraint =
             ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Num), &schema);
         let new_constraint = ParsedConstraint::new(
@@ -1024,7 +1026,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
-        schema.set_types_equal(type_a, type_b).unwrap();
+        schema.set_equal_to_canonical_type(type_a, type_b).unwrap();
         let parsed_constraint = ParsedConstraint::new(
             Constraint::HasMethod(HasMethodConstraint {
                 method_name: "foo".to_string(),
@@ -1174,7 +1176,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
-        schema.set_types_equal(type_a, type_b).unwrap();
+        schema.set_equal_to_canonical_type(type_a, type_b).unwrap();
         let parsed_constraint = ParsedConstraint::new(Constraint::ListOfType(type_a), &schema);
         let other_constraint = ParsedConstraint::new(Constraint::ListOfType(type_b), &schema);
         assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
@@ -1312,7 +1314,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
-        schema.set_types_equal(type_a, type_b).unwrap();
+        schema.set_equal_to_canonical_type(type_a, type_b).unwrap();
         let parsed_constraint = ParsedConstraint::new(
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), vec![type_a])]),
@@ -1682,7 +1684,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
-        schema.set_types_equal(type_a, type_b).unwrap();
+        schema.set_equal_to_canonical_type(type_a, type_b).unwrap();
         let parsed_constraint = ParsedConstraint::new(
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
@@ -1860,7 +1862,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
-        schema.set_types_equal(type_a, type_b).unwrap();
+        schema.set_equal_to_canonical_type(type_a, type_b).unwrap();
         let parsed_constraint = ParsedConstraint::new(
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([(String::from("foo"), vec![type_a])]),
@@ -2017,7 +2019,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
-        schema.set_types_equal(type_a, type_b).unwrap();
+        schema.set_equal_to_canonical_type(type_a, type_b).unwrap();
         let parsed_constraint = ParsedConstraint::new(
             Constraint::FieldAtMost(FieldAtMostConstraint {
                 fields: HashMap::from([(String::from("foo"), type_a)]),
@@ -2180,7 +2182,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
-        schema.set_types_equal(type_a, type_b).unwrap();
+        schema.set_equal_to_canonical_type(type_a, type_b).unwrap();
         let parsed_constraint = ParsedConstraint::new(
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
@@ -2348,7 +2350,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
-        schema.set_types_equal(type_a, type_b).unwrap();
+        schema.set_equal_to_canonical_type(type_a, type_b).unwrap();
         let parsed_constraint = ParsedConstraint::new(
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
@@ -2507,7 +2509,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
-        schema.set_types_equal(type_a, type_b).unwrap();
+        schema.set_equal_to_canonical_type(type_a, type_b).unwrap();
         let parsed_constraint = ParsedConstraint::new(
             Constraint::FieldAtMost(FieldAtMostConstraint {
                 fields: HashMap::from([(String::from("foo"), type_a)]),
@@ -2605,7 +2607,7 @@ mod test {
         let return_type_a = schema.make_id();
         let return_type_b = schema.make_id();
         schema
-            .set_types_equal(return_type_a, return_type_b)
+            .set_equal_to_canonical_type(return_type_a, return_type_b)
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
             Constraint::HasFunctionShape(HasFunctionShape {
@@ -2731,7 +2733,7 @@ mod test {
         let argument_type_a = schema.make_id();
         let argument_type_b = schema.make_id();
         schema
-            .set_types_equal(argument_type_a, argument_type_b)
+            .set_equal_to_canonical_type(argument_type_a, argument_type_b)
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
             Constraint::HasFunctionShape(HasFunctionShape {

@@ -103,7 +103,8 @@ fn translate_binary_operator_add_equality_constraints(
     id_collection: &TranslateBinaryOperatorIdCollection,
 ) -> Result<(), ()> {
     schema.add_constraint(id_collection.type_id, constrain_at_most_boolean_tag())?;
-    schema.set_types_equal(id_collection.left_child_id, id_collection.right_child_id)?;
+    schema
+        .set_equal_to_canonical_type(id_collection.left_child_id, id_collection.right_child_id)?;
     Ok(())
 }
 
@@ -155,7 +156,7 @@ fn translate_binary_operator_add_method_lookup_constraints(
             method_type: id_collection.right_child_id,
         }),
     )?;
-    schema.set_types_equal(id_collection.type_id, id_collection.right_child_id)?;
+    schema.set_equal_to_canonical_type(id_collection.type_id, id_collection.right_child_id)?;
     Ok(())
 }
 
@@ -175,7 +176,7 @@ fn translate_binary_operator_add_field_lookup_constraints(
             field_type: id_collection.right_child_id,
         }),
     )?;
-    schema.set_types_equal(id_collection.type_id, id_collection.right_child_id)?;
+    schema.set_equal_to_canonical_type(id_collection.type_id, id_collection.right_child_id)?;
     Ok(())
 }
 
@@ -281,7 +282,7 @@ fn translate_block<'a>(
     match element_translations.last_mut() {
         None => return Err(()),
         Some(last_element) => {
-            schema.set_types_equal(get_generic_type_id(last_element), type_id)?;
+            schema.set_equal_to_canonical_type(get_generic_type_id(last_element), type_id)?;
         }
     }
     schema.scope.end_sub_scope();
@@ -309,7 +310,7 @@ pub fn translate_declaration<'a>(
     let expression =
         translate_parsed_expression_to_generic_expression(schema, *node.value.expression)?;
     let expression_id = get_generic_type_id(&expression);
-    schema.set_types_equal(name_type_id, expression_id)?;
+    schema.set_equal_to_canonical_type(name_type_id, expression_id)?;
     Ok(GenericDeclarationExpression {
         declaration_type: GenericSourcedType {
             type_id: name_type_id,
@@ -344,7 +345,7 @@ fn translate_function<'a>(
             let Some(argument_type_id) = schema.scope.get_variable_declaration_type(&argument_type_expression.value) else {
                 return Err(())
             };
-            schema.set_types_equal(identifier_type, argument_type_id)?;
+            schema.set_equal_to_canonical_type(identifier_type, argument_type_id)?;
         }
         argument_types.push(identifier_type);
         argument_names.push(argument.value.argument_name.value.name.clone());
@@ -352,7 +353,7 @@ fn translate_function<'a>(
     let body = translate_parsed_expression_to_generic_expression(schema, *node.value.body)?;
     let body_id = get_generic_type_id(&body);
     let return_type = schema.make_id();
-    schema.set_types_equal(body_id, return_type)?;
+    schema.set_equal_to_canonical_type(body_id, return_type)?;
     schema.add_constraint(
         function_type,
         Constraint::HasFunctionShape(HasFunctionShape {
@@ -405,10 +406,10 @@ fn translate_if<'a>(
     schema.scope.end_sub_scope();
     schema.scope.start_sub_scope();
     let translated_false_path = if let Some(false_path) = node.value.path_if_false {
-        schema.set_types_equal(type_id, get_generic_type_id(&translated_true_path))?;
+        schema.set_equal_to_canonical_type(type_id, get_generic_type_id(&translated_true_path))?;
         let translated_false_path =
             translate_parsed_expression_to_generic_expression(schema, *false_path)?;
-        schema.set_types_equal(type_id, get_generic_type_id(&translated_false_path))?;
+        schema.set_equal_to_canonical_type(type_id, get_generic_type_id(&translated_false_path))?;
         Some(translated_false_path)
     } else {
         schema.add_constraint(
@@ -466,7 +467,10 @@ fn translate_list<'a>(
     for element in node.value {
         let element_translation =
             translate_parsed_expression_to_generic_expression(schema, element)?;
-        schema.set_types_equal(get_generic_type_id(&element_translation), element_type_id)?;
+        schema.set_equal_to_canonical_type(
+            element_type_id,
+            get_generic_type_id(&element_translation),
+        )?;
         element_translations.push(element_translation);
     }
     Ok(GenericListExpression {
@@ -497,7 +501,10 @@ fn translate_record<'a>(
         )?;
         let element_translation =
             translate_parsed_expression_to_generic_expression(schema, element.value)?;
-        schema.set_types_equal(get_generic_type_id(&element_translation), field_type_id)?;
+        schema.set_equal_to_canonical_type(
+            get_generic_type_id(&element_translation),
+            field_type_id,
+        )?;
         element_translations.insert(field_name, element_translation);
     }
     Ok(GenericRecordExpression {
@@ -624,11 +631,12 @@ fn translate_record_assignment<'a>(
         )?;
         let field_translation =
             translate_parsed_expression_to_generic_expression(schema, element.value)?;
-        schema.set_types_equal(get_generic_type_id(&field_translation), field_type_id)?;
+        schema
+            .set_equal_to_canonical_type(get_generic_type_id(&field_translation), field_type_id)?;
         field_translations.insert(field_name, field_translation);
     }
 
-    schema.set_types_equal(name_type_id, type_id)?;
+    schema.set_equal_to_canonical_type(name_type_id, type_id)?;
     Ok(GenericRecordAssignmentExpression {
         expression_type: GenericSourcedType {
             type_id,
@@ -660,7 +668,7 @@ pub fn translate_type_declaration<'a>(
     let translated_name = GenericExpression::TypeIdentifier(Box::new(identifier_name.clone()));
     let name_type_id = get_generic_type_id(&translated_name);
     let type_expression_id = translate_parsed_type_expression(schema, &node.value.type_expression)?;
-    schema.set_types_equal(name_type_id, type_expression_id)?;
+    schema.set_equal_to_canonical_type(name_type_id, type_expression_id)?;
     Ok(GenericTypeDeclarationExpression {
         declaration_type: GenericSourcedType {
             type_id: name_type_id,
@@ -1657,6 +1665,26 @@ mod test {
         });
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 2);
+    }
+
+    #[test]
+    fn lists_of_mixed_types_errors() {
+        let mut schema = TypeSchema::new();
+        let expression = Expression::List(ListNode {
+            source: ParserInput::new(""),
+            value: vec![
+                Expression::Integer(IntegerNode {
+                    source: ParserInput::new(""),
+                    value: 2,
+                }),
+                Expression::StringLiteral(StringLiteralNode {
+                    source: ParserInput::new(""),
+                    value: "hello".to_string(),
+                }),
+            ],
+        });
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_err());
     }
 
     #[test]

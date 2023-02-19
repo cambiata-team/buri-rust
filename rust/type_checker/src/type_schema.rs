@@ -103,11 +103,15 @@ impl TypeSchema {
     pub fn get_total_canonical_ids(&mut self) -> usize {
         self.types.get_total_canonical_ids()
     }
-    pub fn set_types_equal(&mut self, type_a: TypeId, type_b: TypeId) -> Result<(), ()> {
-        if !self.types_are_compatible(type_a, type_b) {
+    pub fn set_equal_to_canonical_type(
+        &mut self,
+        canonical_type_id: TypeId,
+        other_type_id: TypeId,
+    ) -> Result<(), ()> {
+        if !self.types_are_compatible(canonical_type_id, other_type_id) {
             return Err(());
         }
-        self.types.set_types_equal(type_a, type_b);
+        self.types.set_types_equal(canonical_type_id, other_type_id);
         Ok(())
     }
     pub fn types_are_compatible(&self, base_type: TypeId, other_type: TypeId) -> bool {
@@ -162,7 +166,7 @@ mod test {
         let mut type_schema = TypeSchema::new();
         let id_a = type_schema.make_id();
         let id_b = type_schema.make_id();
-        type_schema.set_types_equal(id_a, id_b).unwrap();
+        type_schema.set_equal_to_canonical_type(id_a, id_b).unwrap();
         assert_eq!(type_schema.get_canonical_id(id_a), id_b);
         assert_eq!(type_schema.get_canonical_id(id_b), id_b);
     }
@@ -173,8 +177,8 @@ mod test {
         let id_a = type_schema.make_id();
         let id_b = type_schema.make_id();
         let id_c = type_schema.make_id();
-        type_schema.set_types_equal(id_a, id_b).unwrap();
-        type_schema.set_types_equal(id_b, id_c).unwrap();
+        type_schema.set_equal_to_canonical_type(id_a, id_b).unwrap();
+        type_schema.set_equal_to_canonical_type(id_b, id_c).unwrap();
         assert_eq!(type_schema.get_canonical_id(id_a), id_c);
     }
 
@@ -193,8 +197,8 @@ mod test {
         let id_a = type_schema.make_id();
         let id_b = type_schema.make_id();
         let id_c = type_schema.make_id();
-        type_schema.set_types_equal(id_a, id_b).unwrap();
-        type_schema.set_types_equal(id_b, id_c).unwrap();
+        type_schema.set_equal_to_canonical_type(id_a, id_b).unwrap();
+        type_schema.set_equal_to_canonical_type(id_b, id_c).unwrap();
         assert_eq!(type_schema.count_ids(), 3);
     }
 
@@ -213,8 +217,8 @@ mod test {
         let id_a = type_schema.make_id();
         let id_b = type_schema.make_id();
         let id_c = type_schema.make_id();
-        type_schema.set_types_equal(id_a, id_b).unwrap();
-        type_schema.set_types_equal(id_b, id_c).unwrap();
+        type_schema.set_equal_to_canonical_type(id_a, id_b).unwrap();
+        type_schema.set_equal_to_canonical_type(id_b, id_c).unwrap();
         assert_eq!(type_schema.get_total_canonical_ids(), 1);
     }
 }
