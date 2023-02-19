@@ -100,8 +100,7 @@ fn resolve_function(
             simplified_schema,
             generic_function.expression_type.type_id,
         ),
-        // TODO(aaron) add argument names to return value
-        argument_names: vec![],
+        argument_names: generic_function.argument_names,
         body: resolve_expression(simplified_schema, generic_function.body),
     }))
 }
