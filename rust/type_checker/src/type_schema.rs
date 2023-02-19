@@ -1,5 +1,6 @@
 use crate::{constraints::Constraint, parsed_constraint::ParsedConstraint, scope::Scope, TypeId};
 use std::collections::HashMap;
+use typed_ast::{ConcreteType, PrimitiveType};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct CanonicalIds(Vec<TypeId>);
@@ -86,10 +87,12 @@ impl TypeSchema {
         };
         Ok(())
     }
-    /// TODO(nick): update this function to work with
-    pub fn get_constraints(&mut self, type_id: TypeId) -> Option<&Vec<Constraint>> {
-        let _ = self.get_canonical_id(type_id);
-        None
+    pub fn get_concrete_type_from_id(&self, type_id: TypeId) -> ConcreteType {
+        let canonical_id = self.get_canonical_id(type_id);
+        self.constraints.get(&canonical_id).map_or_else(
+            || ConcreteType::Primitive(PrimitiveType::CompilerBoolean),
+            |parsed_constraint| parsed_constraint.to_concrete_type(self),
+        )
     }
     pub fn get_canonical_id(&self, type_id: TypeId) -> TypeId {
         self.types.get_canonical_id(type_id)

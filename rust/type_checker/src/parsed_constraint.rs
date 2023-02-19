@@ -4,7 +4,10 @@ use crate::{
     TypeId,
 };
 use std::collections::HashMap;
-use typed_ast::PrimitiveType;
+use typed_ast::{
+    ConcreteFunctionType, ConcreteListType, ConcreteRecordType, ConcreteTagUnionType, ConcreteType,
+    PrimitiveType,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum TagGroupConstraints {
@@ -326,88 +329,84 @@ impl ParsedConstraint {
         } else {
             self.category.update(constraint.category, ids);
         }
-        // match constraint {
-        //     Constraint::HasName(n) => self.name.set(n.clone()),
-        //     Constraint::HasMethod(m) => self.methods.add(m.method_name.clone(), m.method_type, ids),
-        //     Constraint::EqualToPrimitive(p) => {
-        //         self.category = CategoryConstraints::Primitive(*p);
-        //     }
-        //     Constraint::ListOfType(t) => {
-        //         self.category = CategoryConstraints::List(ids.get_canonical_id(*t));
-        //     }
-        //     Constraint::TagAtMost(t) => {
-        //         if let CategoryConstraints::TagGroup(TagGroupConstraints::ClosedTags(
-        //             existing_tags,
-        //         )) = &self.category
-        //         {
-        //             let mut new_tags = existing_tags.clone();
-        //             for (k, _) in existing_tags.iter() {
-        //                 if t.tags.get(k).is_none() {
-        //                     new_tags.remove(k);
-        //                 }
-        //             }
-        //             self.category =
-        //                 CategoryConstraints::TagGroup(TagGroupConstraints::ClosedTags(new_tags));
-        //         } else {
-        //             self.category = CategoryConstraints::TagGroup(TagGroupConstraints::ClosedTags(
-        //                 t.tags.clone(),
-        //             ));
-        //         }
-        //     }
-        //     Constraint::HasTag(t) => {
-        //         if let CategoryConstraints::TagGroup(TagGroupConstraints::OpenTags(existing_tags)) =
-        //             &mut self.category
-        //         {
-        //             existing_tags.insert(t.tag_name.clone(), t.tag_content_types.clone());
-        //         } else {
-        //             self.category = CategoryConstraints::TagGroup(TagGroupConstraints::OpenTags(
-        //                 HashMap::from([(t.tag_name.clone(), t.tag_content_types.clone())]),
-        //             ));
-        //         }
-        //     }
-        //     Constraint::FieldAtMost(f) => {
-        //         if let CategoryConstraints::Record(RecordConstraints::ClosedFields(
-        //             existing_fields,
-        //         )) = &self.category
-        //         {
-        //             let mut new_fields = existing_fields.clone();
-        //             for (k, _) in existing_fields.iter() {
-        //                 if f.fields.get(k).is_none() {
-        //                     new_fields.remove(k);
-        //                 }
-        //             }
-        //             self.category =
-        //                 CategoryConstraints::Record(RecordConstraints::ClosedFields(new_fields));
-        //         } else {
-        //             self.category = CategoryConstraints::Record(RecordConstraints::ClosedFields(
-        //                 f.fields.clone(),
-        //             ));
-        //         }
-        //     }
-        //     Constraint::HasField(f) => {
-        //         if let CategoryConstraints::Record(RecordConstraints::OpenFields(existing_fields)) =
-        //             &mut self.category
-        //         {
-        //             existing_fields.insert(f.field_name.clone(), f.field_type);
-        //         } else {
-        //             self.category = CategoryConstraints::Record(RecordConstraints::OpenFields(
-        //                 HashMap::from([(f.field_name.clone(), f.field_type)]),
-        //             ));
-        //         }
-        //     }
-        //     Constraint::HasFunctionShape(f) => {
-        //         self.category = CategoryConstraints::Function(FunctionConstraints {
-        //             argument_types: f.argument_types.clone(),
-        //             return_type: f.return_type,
-        //         });
-        //     }
-        // }
     }
 
     pub fn is_compatible_with(&self, other: &Self, schema: &TypeSchema) -> bool {
         self.name.is_compatible_with(&other.name)
             && self.methods.is_compatible_with(&other.methods, schema)
             && self.category.is_compatible_with(&other.category, schema)
+    }
+
+    pub fn to_concrete_type(&self, schema: &TypeSchema) -> ConcreteType {
+        match &self.category {
+            CategoryConstraints::Unknown => ConcreteType::Primitive(PrimitiveType::CompilerBoolean),
+            CategoryConstraints::Primitive(p) => ConcreteType::Primitive(*p),
+            CategoryConstraints::List(t) => ConcreteType::List(Box::new(ConcreteListType {
+                element_type: schema.get_concrete_type_from_id(*t),
+            })),
+            CategoryConstraints::Function(f) => {
+                ConcreteType::Function(Box::new(ConcreteFunctionType {
+                    argument_types: f
+                        .argument_types
+                        .iter()
+                        .map(|t| schema.get_concrete_type_from_id(*t))
+                        .collect(),
+                    return_type: schema.get_concrete_type_from_id(f.return_type),
+                }))
+            }
+            CategoryConstraints::Record(
+                RecordConstraints::ClosedFields(r) | RecordConstraints::OpenFields(r),
+            ) => ConcreteType::Record(Box::new(ConcreteRecordType {
+                field_types: r
+                    .iter()
+                    .map(|(name, type_id)| {
+                        (name.clone(), schema.get_concrete_type_from_id(*type_id))
+                    })
+                    .collect(),
+            })),
+            CategoryConstraints::TagGroup(TagGroupConstraints::ClosedTags(t)) => {
+                // Check if this is a boolean tag union
+                if t.len() <= 2 {
+                    let true_is_boolean = t.get("true").map_or(false, std::vec::Vec::is_empty);
+                    let false_is_boolean = t.get("false").map_or(false, std::vec::Vec::is_empty);
+                    if (t.len() == 2 && true_is_boolean && false_is_boolean)
+                        || (t.len() == 1 && (true_is_boolean || false_is_boolean))
+                    {
+                        return ConcreteType::Primitive(PrimitiveType::CompilerBoolean);
+                    }
+                }
+                ConcreteType::TagUnion(Box::new(ConcreteTagUnionType {
+                    tag_types: t
+                        .iter()
+                        .map(|(name, type_ids)| {
+                            (
+                                name.clone(),
+                                type_ids
+                                    .iter()
+                                    .map(|type_id| schema.get_concrete_type_from_id(*type_id))
+                                    .collect(),
+                            )
+                        })
+                        .collect(),
+                }))
+            }
+            CategoryConstraints::TagGroup(TagGroupConstraints::OpenTags(t)) => {
+                ConcreteType::TagUnion(Box::new(ConcreteTagUnionType {
+                    tag_types: t
+                        .iter()
+                        .map(|(name, type_ids)| {
+                            (
+                                name.clone(),
+                                type_ids
+                                    .iter()
+                                    .map(|type_id| schema.get_concrete_type_from_id(*type_id))
+                                    .collect(),
+                            )
+                        })
+                        .collect(),
+                }))
+            }
+        }
     }
 }
 
@@ -2824,46 +2823,286 @@ mod test {
     }
 
     //
-    // Compatible parsed constraints
+    // to_concrete_type
     //
 
     #[test]
-    fn two_constraints_have_compatible_names_when_names_are_equal() {
+    fn unknown_category_becomes_compiler_boolean() {
         let schema = TypeSchema::new();
-        let base_constraint =
-            ParsedConstraint::new(Constraint::HasName("foo".to_string()), &schema);
-        let other_constraint =
-            ParsedConstraint::new(Constraint::HasName("foo".to_string()), &schema);
-        assert!(base_constraint.is_compatible_with(&other_constraint, &schema));
+        let parsed_constraint =
+            ParsedConstraint::new(Constraint::HasName(String::from("foo")), &schema);
+        assert_eq!(
+            parsed_constraint.to_concrete_type(&schema),
+            ConcreteType::Primitive(PrimitiveType::CompilerBoolean)
+        );
     }
 
     #[test]
-    fn two_constraints_do_not_have_compatible_names_when_names_are_not_equal() {
+    fn number_to_concrete_type() {
         let schema = TypeSchema::new();
-        let base_constraint =
-            ParsedConstraint::new(Constraint::HasName("foo".to_string()), &schema);
-        let other_constraint =
-            ParsedConstraint::new(Constraint::HasName("bar".to_string()), &schema);
-        assert!(!base_constraint.is_compatible_with(&other_constraint, &schema));
-    }
-
-    #[test]
-    fn two_constraints_have_compatible_names_when_other_constraint_does_not_have_a_name() {
-        let schema = TypeSchema::new();
-        let base_constraint =
-            ParsedConstraint::new(Constraint::HasName("foo".to_string()), &schema);
-        let other_constraint =
+        let parsed_constraint =
             ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Num), &schema);
-        assert!(base_constraint.is_compatible_with(&other_constraint, &schema));
+        assert_eq!(
+            parsed_constraint.to_concrete_type(&schema),
+            ConcreteType::Primitive(PrimitiveType::Num)
+        );
     }
 
     #[test]
-    fn two_constraints_have_compatible_names_when_base_constraint_does_not_have_a_name() {
+    fn string_to_concrete_type() {
         let schema = TypeSchema::new();
-        let base_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Num), &schema);
-        let other_constraint =
-            ParsedConstraint::new(Constraint::HasName("foo".to_string()), &schema);
-        assert!(base_constraint.is_compatible_with(&other_constraint, &schema));
+        let parsed_constraint =
+            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Str), &schema);
+        assert_eq!(
+            parsed_constraint.to_concrete_type(&schema),
+            ConcreteType::Primitive(PrimitiveType::Str)
+        );
+    }
+
+    #[test]
+    fn list_to_concrete_type() {
+        let mut schema = TypeSchema::new();
+        let element_type = schema.make_id();
+        schema
+            .add_constraint(
+                element_type,
+                Constraint::EqualToPrimitive(PrimitiveType::Num),
+            )
+            .unwrap();
+        let parsed_constraint =
+            ParsedConstraint::new(Constraint::ListOfType(element_type), &schema);
+        assert_eq!(
+            parsed_constraint.to_concrete_type(&schema),
+            ConcreteType::List(Box::new(ConcreteListType {
+                element_type: ConcreteType::Primitive(PrimitiveType::Num)
+            }))
+        );
+    }
+
+    #[test]
+    fn function_to_concrete_type() {
+        let mut schema = TypeSchema::new();
+        let return_type = schema.make_id();
+        let argument_type = schema.make_id();
+        schema
+            .add_constraint(
+                return_type,
+                Constraint::EqualToPrimitive(PrimitiveType::Num),
+            )
+            .unwrap();
+        schema
+            .add_constraint(
+                argument_type,
+                Constraint::EqualToPrimitive(PrimitiveType::Str),
+            )
+            .unwrap();
+        let parsed_constraint = ParsedConstraint::new(
+            Constraint::HasFunctionShape(HasFunctionShape {
+                argument_types: vec![argument_type],
+                return_type,
+            }),
+            &schema,
+        );
+        assert_eq!(
+            parsed_constraint.to_concrete_type(&schema),
+            ConcreteType::Function(Box::new(ConcreteFunctionType {
+                argument_types: vec![ConcreteType::Primitive(PrimitiveType::Str)],
+                return_type: ConcreteType::Primitive(PrimitiveType::Num)
+            }))
+        );
+    }
+
+    #[test]
+    fn closed_record_to_concrete_type() {
+        let mut schema = TypeSchema::new();
+        let field_type = schema.make_id();
+        schema
+            .add_constraint(field_type, Constraint::EqualToPrimitive(PrimitiveType::Num))
+            .unwrap();
+        let parsed_constraint = ParsedConstraint::new(
+            Constraint::FieldAtMost(FieldAtMostConstraint {
+                fields: HashMap::from([(String::from("foo"), field_type)]),
+            }),
+            &schema,
+        );
+        assert_eq!(
+            parsed_constraint.to_concrete_type(&schema),
+            ConcreteType::Record(Box::new(ConcreteRecordType {
+                field_types: HashMap::from([(
+                    String::from("foo"),
+                    ConcreteType::Primitive(PrimitiveType::Num)
+                )])
+            }))
+        );
+    }
+
+    #[test]
+    fn open_record_to_concrete_type() {
+        let mut schema = TypeSchema::new();
+        let field_type = schema.make_id();
+        schema
+            .add_constraint(field_type, Constraint::EqualToPrimitive(PrimitiveType::Num))
+            .unwrap();
+        let parsed_constraint = ParsedConstraint::new(
+            Constraint::HasField(HasFieldConstraint {
+                field_name: String::from("foo"),
+                field_type,
+            }),
+            &schema,
+        );
+        assert_eq!(
+            parsed_constraint.to_concrete_type(&schema),
+            ConcreteType::Record(Box::new(ConcreteRecordType {
+                field_types: HashMap::from([(
+                    String::from("foo"),
+                    ConcreteType::Primitive(PrimitiveType::Num)
+                )])
+            }))
+        );
+    }
+
+    #[test]
+    fn closed_tag_union_to_concrete_type() {
+        let mut schema = TypeSchema::new();
+        let tag_type = schema.make_id();
+        schema
+            .add_constraint(tag_type, Constraint::EqualToPrimitive(PrimitiveType::Num))
+            .unwrap();
+        let parsed_constraint = ParsedConstraint::new(
+            Constraint::TagAtMost(TagAtMostConstraint {
+                tags: HashMap::from([(String::from("foo"), vec![tag_type])]),
+            }),
+            &schema,
+        );
+        assert_eq!(
+            parsed_constraint.to_concrete_type(&schema),
+            ConcreteType::TagUnion(Box::new(ConcreteTagUnionType {
+                tag_types: HashMap::from([(
+                    String::from("foo"),
+                    vec![ConcreteType::Primitive(PrimitiveType::Num)]
+                )])
+            }))
+        );
+    }
+
+    #[test]
+    fn open_tag_union_to_concrete_type() {
+        let mut schema = TypeSchema::new();
+        let tag_type = schema.make_id();
+        schema
+            .add_constraint(tag_type, Constraint::EqualToPrimitive(PrimitiveType::Num))
+            .unwrap();
+        let parsed_constraint = ParsedConstraint::new(
+            Constraint::HasTag(HasTagConstraint {
+                tag_name: String::from("foo"),
+                tag_content_types: vec![tag_type],
+            }),
+            &schema,
+        );
+        assert_eq!(
+            parsed_constraint.to_concrete_type(&schema),
+            ConcreteType::TagUnion(Box::new(ConcreteTagUnionType {
+                tag_types: HashMap::from([(
+                    String::from("foo"),
+                    vec![ConcreteType::Primitive(PrimitiveType::Num)]
+                )])
+            }))
+        );
+    }
+
+    #[test]
+    fn close_tag_to_compiler_boolean_for_true() {
+        let schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            Constraint::TagAtMost(TagAtMostConstraint {
+                tags: HashMap::from([(String::from("true"), Vec::new())]),
+            }),
+            &schema,
+        );
+        assert_eq!(
+            parsed_constraint.to_concrete_type(&schema),
+            ConcreteType::Primitive(PrimitiveType::CompilerBoolean)
+        );
+    }
+
+    #[test]
+    fn close_tag_to_compiler_boolean_for_false() {
+        let schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            Constraint::TagAtMost(TagAtMostConstraint {
+                tags: HashMap::from([(String::from("false"), Vec::new())]),
+            }),
+            &schema,
+        );
+        assert_eq!(
+            parsed_constraint.to_concrete_type(&schema),
+            ConcreteType::Primitive(PrimitiveType::CompilerBoolean)
+        );
+    }
+
+    #[test]
+    fn close_tag_to_compiler_boolean_for_true_and_false() {
+        let schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            Constraint::TagAtMost(TagAtMostConstraint {
+                tags: HashMap::from([
+                    (String::from("true"), Vec::new()),
+                    (String::from("false"), Vec::new()),
+                ]),
+            }),
+            &schema,
+        );
+        assert_eq!(
+            parsed_constraint.to_concrete_type(&schema),
+            ConcreteType::Primitive(PrimitiveType::CompilerBoolean)
+        );
+    }
+
+    #[test]
+    fn close_tag_to_concrete_tag_union_if_true_has_contents() {
+        let mut schema = TypeSchema::new();
+        let tag_type = schema.make_id();
+        schema
+            .add_constraint(tag_type, Constraint::EqualToPrimitive(PrimitiveType::Num))
+            .unwrap();
+        let parsed_constraint = ParsedConstraint::new(
+            Constraint::TagAtMost(TagAtMostConstraint {
+                tags: HashMap::from([(String::from("true"), vec![tag_type])]),
+            }),
+            &schema,
+        );
+        assert_eq!(
+            parsed_constraint.to_concrete_type(&schema),
+            ConcreteType::TagUnion(Box::new(ConcreteTagUnionType {
+                tag_types: HashMap::from([(
+                    String::from("true"),
+                    vec![ConcreteType::Primitive(PrimitiveType::Num)]
+                )])
+            }))
+        );
+    }
+
+    #[test]
+    fn close_tag_to_concrete_tag_union_if_false_has_contents() {
+        let mut schema = TypeSchema::new();
+        let tag_type = schema.make_id();
+        schema
+            .add_constraint(tag_type, Constraint::EqualToPrimitive(PrimitiveType::Num))
+            .unwrap();
+        let parsed_constraint = ParsedConstraint::new(
+            Constraint::TagAtMost(TagAtMostConstraint {
+                tags: HashMap::from([(String::from("false"), vec![tag_type])]),
+            }),
+            &schema,
+        );
+        assert_eq!(
+            parsed_constraint.to_concrete_type(&schema),
+            ConcreteType::TagUnion(Box::new(ConcreteTagUnionType {
+                tag_types: HashMap::from([(
+                    String::from("false"),
+                    vec![ConcreteType::Primitive(PrimitiveType::Num)]
+                )])
+            }))
+        );
     }
 }
