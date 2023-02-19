@@ -105,6 +105,18 @@ fn resolve_function(
     }))
 }
 
+fn resolve_function_arguments(
+    simplified_schema: &mut TypeSchema,
+    generic_function_arguments: Vec<GenericExpression>,
+) -> ConcreteExpression {
+    ConcreteExpression::FunctionArguments(
+        generic_function_arguments
+            .into_iter()
+            .map(|x| resolve_expression(simplified_schema, x))
+            .collect(),
+    )
+}
+
 fn resolve_identifier(
     simplified_schema: &mut TypeSchema,
     generic_identifier: GenericIdentifierExpression,
@@ -265,7 +277,9 @@ fn resolve_expression(
         GenericExpression::Function(generic_function) => {
             resolve_function(simplified_schema, *generic_function)
         }
-        // TODO(aaron) GenericExpression::FunctionArguments
+        GenericExpression::FunctionArguments(generic_function_arguments) => {
+            resolve_function_arguments(simplified_schema, generic_function_arguments)
+        }
         GenericExpression::Identifier(generic_identifier) => ConcreteExpression::Identifier(
             Box::new(resolve_identifier(simplified_schema, *generic_identifier)),
         ),
