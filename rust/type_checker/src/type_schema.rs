@@ -1,4 +1,7 @@
-use crate::{constraints::Constraint, parsed_constraint::ParsedConstraint, scope::Scope, TypeId};
+use crate::{
+    apply_constraints::TypeCheckingError, constraints::Constraint,
+    parsed_constraint::ParsedConstraint, scope::Scope, TypeId,
+};
 use std::collections::HashMap;
 use typed_ast::{ConcreteType, PrimitiveType};
 
@@ -67,7 +70,11 @@ impl TypeSchema {
         self.types.make_id()
     }
     /// Insert a new constraint for a given type.
-    pub fn add_constraint(&mut self, type_id: TypeId, constraint: Constraint) -> Result<(), ()> {
+    pub fn add_constraint(
+        &mut self,
+        type_id: TypeId,
+        constraint: Constraint,
+    ) -> Result<(), TypeCheckingError> {
         let canonical_id = self.get_canonical_id(type_id);
         // Get the existing parsed constraint with an immutable reference so we can still
         // use the type schema.
@@ -79,7 +86,7 @@ impl TypeSchema {
                     parsed_constraint.add_constraints(new_constraint, &self.types);
                 }
             } else {
-                return Err(());
+                return Err(TypeCheckingError::ConstraintsNotCompatible);
             }
         } else {
             self.constraints
@@ -107,9 +114,9 @@ impl TypeSchema {
         &mut self,
         canonical_type_id: TypeId,
         other_type_id: TypeId,
-    ) -> Result<(), ()> {
+    ) -> Result<(), TypeCheckingError> {
         if !self.types_are_compatible(canonical_type_id, other_type_id) {
-            return Err(());
+            return Err(TypeCheckingError::TypesAreNotCompatible);
         }
         self.types.set_types_equal(canonical_type_id, other_type_id);
         Ok(())
