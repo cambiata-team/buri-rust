@@ -31,6 +31,7 @@ pub fn document<'a>() -> impl FnMut(ParserInput<'a>) -> IResult<'a, DocumentNode
                 |maybe_export| maybe_export.is_some(),
             ),
             alt((
+                map(newline, |_| DocumentElement::None),
                 map(
                     terminated(import, alt((newline, eof))),
                     DocumentElement::Import,
@@ -39,10 +40,9 @@ pub fn document<'a>() -> impl FnMut(ParserInput<'a>) -> IResult<'a, DocumentNode
                     terminated(type_declaration, alt((newline, eof))),
                     DocumentElement::TypeDeclaration,
                 ),
-                map(
-                    terminated(variable_declaration, alt((newline, eof))),
-                    DocumentElement::VariableDeclaration,
-                ),
+                // Newlines are required by variable_declarations, so we don't
+                // need to add them here.
+                map(variable_declaration, DocumentElement::VariableDeclaration),
                 map(line(ExpressionContext::new()), |maybe_expression| {
                     maybe_expression.map_or(DocumentElement::None, |expression| {
                         DocumentElement::Expression(expression)
@@ -297,5 +297,14 @@ mod test {
                 .unwrap()
                 .is_exported
         );
+    }
+
+    #[test]
+    fn can_have_multiline_if_statements_in_declarations() {
+        let input = ParserInput::new("foo = if #true do\n    5\nelse\n    3");
+        let result = document()(input);
+        let (remainder, parsed) = result.unwrap();
+        assert_eq!(remainder.value(), "");
+        assert_eq!(parsed.value.variable_declarations.len(), 1);
     }
 }

@@ -1,0 +1,17 @@
+@export
+five = if #true do 5 else 3
+
+@export
+three = if #false do 5 else 3
+
+@export
+multilineFive = if #true do
+    5
+else
+    3
+
+@export
+multilineThree = if #false do
+    5
+else
+    3
