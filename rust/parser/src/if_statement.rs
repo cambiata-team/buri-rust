@@ -123,7 +123,6 @@ pub fn if_statement<'a>(
 #[cfg(test)]
 mod test {
     use super::*;
-
     use ast::{BinaryOperatorNode, BinaryOperatorSymbol, BinaryOperatorValue, IntegerNode};
 
     #[test]
@@ -334,6 +333,14 @@ mod test {
     #[test]
     fn else_can_follow_else_if() {
         let input = ParserInput::new("if 1 == 2 do\n    3\nelse if 4 == 5 do\n    6\nelse\n    7");
+        let result = if_statement(ExpressionContext::new())(input);
+        let (remainder, _) = result.unwrap();
+        assert_eq!(remainder, "");
+    }
+
+    #[test]
+    fn conditional_can_use_boolean_tag() {
+        let input = ParserInput::new("if #true do 5 else 3");
         let result = if_statement(ExpressionContext::new())(input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");
