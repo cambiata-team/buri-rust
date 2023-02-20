@@ -1,0 +1,13 @@
+@export
+someFive = if #true do 5
+
+@export
+none = if #false do 5
+
+@export
+multilineSomeFive = if #true do
+    5
+
+@export
+multilineNone = if #false do
+    5
