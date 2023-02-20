@@ -12,6 +12,7 @@ pub fn basic_expression<'a>(
     context: ExpressionContext,
 ) -> impl FnMut(ParserInput<'a>) -> IResult<'a, Expression<'a>> {
     alt((
+        map(move |input| function(context, input), Expression::Function),
         parentheses,
         map(type_declaration, Expression::TypeDeclaration),
         map(variable_declaration, Expression::Declaration),
@@ -25,7 +26,6 @@ pub fn basic_expression<'a>(
         map(list, Expression::List),
         map(record, Expression::Record),
         map(tag, Expression::Tag),
-        map(move |input| function(context, input), Expression::Function),
         map(
             move |input| record_assignment(context, input),
             Expression::RecordAssignment,
@@ -94,6 +94,24 @@ mod test {
     #[test]
     fn expression_can_be_a_function() {
         let input = ParserInput::new("() => 42");
+        let result =
+            basic_expression(ExpressionContext::new().allow_newlines_in_expressions())(input);
+        let (_, consumed) = result.unwrap();
+        assert!(matches!(consumed, Expression::Function(_)));
+    }
+
+    #[test]
+    fn expression_can_be_a_function_with_arguments() {
+        let input = ParserInput::new("(a) => a");
+        let result =
+            basic_expression(ExpressionContext::new().allow_newlines_in_expressions())(input);
+        let (_, consumed) = result.unwrap();
+        assert!(matches!(consumed, Expression::Function(_)));
+    }
+
+    #[test]
+    fn functions_can_access_argument_fields() {
+        let input = ParserInput::new("(a) => a.b");
         let result =
             basic_expression(ExpressionContext::new().allow_newlines_in_expressions())(input);
         let (_, consumed) = result.unwrap();

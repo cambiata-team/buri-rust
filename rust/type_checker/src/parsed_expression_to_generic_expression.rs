@@ -169,6 +169,7 @@ fn translate_binary_operator_add_field_lookup_constraints(
         GenericExpression::Identifier(identifier_expression) => identifier_expression.name.clone(),
         _ => return Err(()),
     };
+    schema.set_equal_to_canonical_type(id_collection.right_child_id, id_collection.type_id)?;
     schema.add_constraint(
         id_collection.left_child_id,
         Constraint::HasField(HasFieldConstraint {
@@ -176,7 +177,6 @@ fn translate_binary_operator_add_field_lookup_constraints(
             field_type: id_collection.right_child_id,
         }),
     )?;
-    schema.set_equal_to_canonical_type(id_collection.type_id, id_collection.right_child_id)?;
     Ok(())
 }
 
@@ -187,6 +187,7 @@ fn translate_binary_operator<'a>(
     let type_id = schema.make_id();
     let translated_left_child =
         translate_parsed_expression_to_generic_expression(schema, *node.value.left_child)?;
+    let should_declare_unknown_identifier = node.value.symbol == BinaryOperatorSymbol::FieldLookup;
     let translated_right_child = match *node.value.right_child {
         Expression::FunctionApplicationArguments(arguments) => {
             let function_arguments: Result<Vec<GenericExpression>, ()> = arguments
@@ -198,6 +199,16 @@ fn translate_binary_operator<'a>(
                 })
                 .collect();
             GenericExpression::FunctionArguments(function_arguments?)
+        }
+        Expression::Identifier(identifier) if should_declare_unknown_identifier => {
+            GenericExpression::Identifier(Box::new(GenericIdentifierExpression {
+                expression_type: GenericSourcedType {
+                    type_id: schema.make_id(),
+                    source_of_type: identifier.source,
+                },
+                name: identifier.value.name,
+                is_disregarded: identifier.value.is_disregarded,
+            }))
         }
         _ => translate_parsed_expression_to_generic_expression(schema, *node.value.right_child)?,
     };
@@ -345,7 +356,7 @@ fn translate_function<'a>(
             let Some(argument_type_id) = schema.scope.get_variable_declaration_type(&argument_type_expression.value) else {
                 return Err(())
             };
-            schema.set_equal_to_canonical_type(identifier_type, argument_type_id)?;
+            schema.set_equal_to_canonical_type(argument_type_id, identifier_type)?;
         }
         argument_types.push(identifier_type);
         argument_names.push(argument.value.argument_name.value.name.clone());
@@ -845,8 +856,9 @@ mod test {
 
     use ast::{
         BinaryOperatorValue, DeclarationValue, FunctionApplicationArgumentsNode,
-        FunctionApplicationArgumentsValue, IdentifierValue, IfValue, ListNode, ParserInput,
-        RecordAssignmentValue, RecordValue, TagIdentifierNode, TagValue, UnaryOperatorValue,
+        FunctionApplicationArgumentsValue, FunctionArgumentNode, FunctionArgumentValue,
+        FunctionValue, IdentifierValue, IfValue, ListNode, ParserInput, RecordAssignmentValue,
+        RecordValue, TagIdentifierNode, TagValue, UnaryOperatorValue,
     };
 
     #[test]
@@ -1178,7 +1190,7 @@ mod test {
             },
         });
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
-        assert_eq!(schema.get_total_canonical_ids(), 2);
+        assert_eq!(schema.get_total_canonical_ids(), 3);
     }
 
     #[test]
@@ -1208,7 +1220,7 @@ mod test {
             },
         });
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
-        assert_eq!(schema.get_total_canonical_ids(), 2);
+        assert_eq!(schema.get_total_canonical_ids(), 3);
     }
 
     #[test]
@@ -2244,5 +2256,102 @@ mod test {
         } else {
             panic!();
         }
+    }
+
+    #[test]
+    fn functions_can_accept_no_arguments_and_return_a_number() {
+        let mut schema = TypeSchema::new();
+        let expression = Expression::Function(FunctionNode {
+            source: ParserInput::new(""),
+            value: FunctionValue {
+                body: Box::new(Expression::Integer(IntegerNode {
+                    source: ParserInput::new(""),
+                    value: 314,
+                })),
+                return_type: None,
+                arguments: vec![],
+            },
+        });
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn function_can_accept_an_argument_and_return_it() {
+        let mut schema = TypeSchema::new();
+        let expression = Expression::Function(FunctionNode {
+            source: ParserInput::new(""),
+            value: FunctionValue {
+                body: Box::new(Expression::Identifier(IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "a".to_owned(),
+                        is_disregarded: false,
+                    },
+                })),
+                return_type: None,
+                arguments: vec![FunctionArgumentNode {
+                    source: ParserInput::new(""),
+                    value: FunctionArgumentValue {
+                        argument_name: IdentifierNode {
+                            source: ParserInput::new(""),
+                            value: IdentifierValue {
+                                name: "a".to_owned(),
+                                is_disregarded: false,
+                            },
+                        },
+                        argument_type: None,
+                    },
+                }],
+            },
+        });
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn function_can_return_an_arguments_field() {
+        let mut schema = TypeSchema::new();
+        let expression = Expression::Function(FunctionNode {
+            source: ParserInput::new(""),
+            value: FunctionValue {
+                body: Box::new(Expression::BinaryOperator(BinaryOperatorNode {
+                    source: ParserInput::new(""),
+                    value: BinaryOperatorValue {
+                        symbol: BinaryOperatorSymbol::FieldLookup,
+                        left_child: Box::new(Expression::Identifier(IdentifierNode {
+                            source: ParserInput::new(""),
+                            value: IdentifierValue {
+                                name: "a".to_owned(),
+                                is_disregarded: false,
+                            },
+                        })),
+                        right_child: Box::new(Expression::Identifier(IdentifierNode {
+                            source: ParserInput::new(""),
+                            value: IdentifierValue {
+                                name: "b".to_owned(),
+                                is_disregarded: false,
+                            },
+                        })),
+                    },
+                })),
+                return_type: None,
+                arguments: vec![FunctionArgumentNode {
+                    source: ParserInput::new(""),
+                    value: FunctionArgumentValue {
+                        argument_name: IdentifierNode {
+                            source: ParserInput::new(""),
+                            value: IdentifierValue {
+                                name: "a".to_owned(),
+                                is_disregarded: false,
+                            },
+                        },
+                        argument_type: None,
+                    },
+                }],
+            },
+        });
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_ok());
     }
 }
