@@ -1,0 +1,13 @@
+@export
+five = if #false do
+    1
+else if #false do
+    2
+else if #false do
+    3
+else if #false do
+    4
+else if #true do
+    5
+else
+    6
