@@ -1,0 +1,7 @@
+-- @export decorators can only be applied to top-level declarations
+
+@export
+item = if #true do
+    @export
+    a = 3
+    a
