@@ -1,7 +1,7 @@
 use crate::{
     constraints::{
-        Constraint, HasFieldConstraint, HasFunctionShape, HasMethodConstraint, HasTagConstraint,
-        TagAtMostConstraint,
+        Constraint, FieldAtMostConstraint, HasFieldConstraint, HasFunctionShape,
+        HasMethodConstraint, HasTagConstraint, TagAtMostConstraint,
     },
     generic_nodes::{
         get_generic_type_id, GenericBinaryOperatorExpression, GenericBlockExpression,
@@ -310,7 +310,7 @@ pub fn translate_declaration<'a>(
     let expression =
         translate_parsed_expression_to_generic_expression(schema, *node.value.expression)?;
     let expression_id = get_generic_type_id(&expression);
-    schema.set_equal_to_canonical_type(name_type_id, expression_id)?;
+    schema.set_equal_to_canonical_type(expression_id, name_type_id)?;
     Ok(GenericDeclarationExpression {
         declaration_type: GenericSourcedType {
             type_id: name_type_id,
@@ -468,8 +468,8 @@ fn translate_list<'a>(
         let element_translation =
             translate_parsed_expression_to_generic_expression(schema, element)?;
         schema.set_equal_to_canonical_type(
-            element_type_id,
             get_generic_type_id(&element_translation),
+            element_type_id,
         )?;
         element_translations.push(element_translation);
     }
@@ -486,19 +486,14 @@ fn translate_record<'a>(
     schema: &mut TypeSchema,
     node: RecordNode<'a>,
 ) -> Result<GenericRecordExpression<'a>, ()> {
-    let list_type_id = schema.make_id();
+    let record_type_id = schema.make_id();
     let mut element_translations = HashMap::new();
     element_translations.reserve(node.value.len());
+    let mut fields = HashMap::new();
     for element in node.value {
         let field_type_id = schema.make_id();
         let field_name = element.identifier.value.name;
-        schema.add_constraint(
-            list_type_id,
-            Constraint::HasField(HasFieldConstraint {
-                field_name: field_name.clone(),
-                field_type: field_type_id,
-            }),
-        )?;
+        fields.insert(field_name.clone(), field_type_id);
         let element_translation =
             translate_parsed_expression_to_generic_expression(schema, element.value)?;
         schema.set_equal_to_canonical_type(
@@ -507,9 +502,13 @@ fn translate_record<'a>(
         )?;
         element_translations.insert(field_name, element_translation);
     }
+    schema.add_constraint(
+        record_type_id,
+        Constraint::FieldAtMost(FieldAtMostConstraint { fields }),
+    )?;
     Ok(GenericRecordExpression {
         expression_type: GenericSourcedType {
-            type_id: list_type_id,
+            type_id: record_type_id,
             source_of_type: node.source,
         },
         contents: element_translations,
@@ -611,41 +610,39 @@ fn translate_record_assignment<'a>(
     schema: &mut TypeSchema,
     node: RecordAssignmentNode<'a>,
 ) -> Result<GenericRecordAssignmentExpression<'a>, ()> {
-    let type_id = schema.make_id();
+    let assignment_type_id = schema.make_id();
     let raw_translated_name = translate_identifier(schema, node.value.identifier)?;
     let translated_name = GenericExpression::Identifier(Box::new(raw_translated_name.clone()));
     let name_type_id = get_generic_type_id(&translated_name);
-
     let mut field_translations = HashMap::new();
     field_translations.reserve(node.value.new_values.len());
 
     for element in node.value.new_values {
         let field_type_id = schema.make_id();
         let field_name = element.identifier.value.name;
-        schema.add_constraint(
-            type_id,
-            Constraint::HasField(HasFieldConstraint {
-                field_name: field_name.clone(),
-                field_type: field_type_id,
-            }),
-        )?;
         let field_translation =
             translate_parsed_expression_to_generic_expression(schema, element.value)?;
         schema
             .set_equal_to_canonical_type(get_generic_type_id(&field_translation), field_type_id)?;
-        field_translations.insert(field_name, field_translation);
+        field_translations.insert(field_name.clone(), field_translation);
+        schema.add_constraint(
+            assignment_type_id,
+            Constraint::HasField(HasFieldConstraint {
+                field_name,
+                field_type: field_type_id,
+            }),
+        )?;
     }
-
-    schema.set_equal_to_canonical_type(name_type_id, type_id)?;
+    schema.set_equal_to_canonical_type(name_type_id, assignment_type_id)?;
     Ok(GenericRecordAssignmentExpression {
         expression_type: GenericSourcedType {
-            type_id,
+            type_id: assignment_type_id,
             source_of_type: node.source.clone(),
         },
         identifier: raw_translated_name,
         contents: GenericRecordExpression {
             expression_type: GenericSourcedType {
-                type_id,
+                type_id: assignment_type_id,
                 source_of_type: node.source,
             },
             contents: field_translations,
@@ -847,9 +844,9 @@ mod test {
     use super::*;
 
     use ast::{
-        BinaryOperatorValue, FunctionApplicationArgumentsNode, FunctionApplicationArgumentsValue,
-        IdentifierValue, IfValue, ListNode, ParserInput, RecordValue, TagIdentifierNode, TagValue,
-        UnaryOperatorValue,
+        BinaryOperatorValue, DeclarationValue, FunctionApplicationArgumentsNode,
+        FunctionApplicationArgumentsValue, IdentifierValue, IfValue, ListNode, ParserInput,
+        RecordAssignmentValue, RecordValue, TagIdentifierNode, TagValue, UnaryOperatorValue,
     };
 
     #[test]
@@ -1846,6 +1843,207 @@ mod test {
         });
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 3);
+    }
+
+    #[test]
+    fn record_assignment_type_checks() {
+        let mut schema = TypeSchema::new();
+        let expression = Expression::Declaration(DeclarationNode {
+            source: ParserInput::new(""),
+            value: DeclarationValue {
+                identifier: IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "a".to_string(),
+                        is_disregarded: false,
+                    },
+                },
+                type_expression: None,
+                expression: Box::new(Expression::Record(RecordNode {
+                    source: ParserInput::new(""),
+                    value: vec![RecordValue {
+                        identifier: IdentifierNode {
+                            source: ParserInput::new(""),
+                            value: IdentifierValue {
+                                name: "a".to_string(),
+                                is_disregarded: false,
+                            },
+                        },
+                        value: Expression::Integer(IntegerNode {
+                            source: ParserInput::new(""),
+                            value: 3,
+                        }),
+                    }],
+                })),
+            },
+        });
+        translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
+        let expression = Expression::RecordAssignment(RecordAssignmentNode {
+            source: ParserInput::new(""),
+            value: RecordAssignmentValue {
+                identifier: IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "a".to_string(),
+                        is_disregarded: false,
+                    },
+                },
+                new_values: vec![RecordValue {
+                    identifier: IdentifierNode {
+                        source: ParserInput::new(""),
+                        value: IdentifierValue {
+                            name: "a".to_string(),
+                            is_disregarded: false,
+                        },
+                    },
+                    value: Expression::Integer(IntegerNode {
+                        source: ParserInput::new(""),
+                        value: 2,
+                    }),
+                }],
+            },
+        });
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn record_assignment_only_needs_to_update_a_subset_of_fields() {
+        let mut schema = TypeSchema::new();
+        let expression = Expression::Declaration(DeclarationNode {
+            source: ParserInput::new(""),
+            value: DeclarationValue {
+                identifier: IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "a".to_string(),
+                        is_disregarded: false,
+                    },
+                },
+                type_expression: None,
+                expression: Box::new(Expression::Record(RecordNode {
+                    source: ParserInput::new(""),
+                    value: vec![
+                        RecordValue {
+                            identifier: IdentifierNode {
+                                source: ParserInput::new(""),
+                                value: IdentifierValue {
+                                    name: "a".to_string(),
+                                    is_disregarded: false,
+                                },
+                            },
+                            value: Expression::Integer(IntegerNode {
+                                source: ParserInput::new(""),
+                                value: 3,
+                            }),
+                        },
+                        RecordValue {
+                            identifier: IdentifierNode {
+                                source: ParserInput::new(""),
+                                value: IdentifierValue {
+                                    name: "extraField".to_string(),
+                                    is_disregarded: false,
+                                },
+                            },
+                            value: Expression::Integer(IntegerNode {
+                                source: ParserInput::new(""),
+                                value: 3,
+                            }),
+                        },
+                    ],
+                })),
+            },
+        });
+        translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
+        let expression = Expression::RecordAssignment(RecordAssignmentNode {
+            source: ParserInput::new(""),
+            value: RecordAssignmentValue {
+                identifier: IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "a".to_string(),
+                        is_disregarded: false,
+                    },
+                },
+                new_values: vec![RecordValue {
+                    identifier: IdentifierNode {
+                        source: ParserInput::new(""),
+                        value: IdentifierValue {
+                            name: "a".to_string(),
+                            is_disregarded: false,
+                        },
+                    },
+                    value: Expression::Integer(IntegerNode {
+                        source: ParserInput::new(""),
+                        value: 2,
+                    }),
+                }],
+            },
+        });
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn record_assignment_cannot_add_new_fields() {
+        let mut schema = TypeSchema::new();
+        let expression = Expression::Declaration(DeclarationNode {
+            source: ParserInput::new(""),
+            value: DeclarationValue {
+                identifier: IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "a".to_string(),
+                        is_disregarded: false,
+                    },
+                },
+                type_expression: None,
+                expression: Box::new(Expression::Record(RecordNode {
+                    source: ParserInput::new(""),
+                    value: vec![RecordValue {
+                        identifier: IdentifierNode {
+                            source: ParserInput::new(""),
+                            value: IdentifierValue {
+                                name: "a".to_string(),
+                                is_disregarded: false,
+                            },
+                        },
+                        value: Expression::Integer(IntegerNode {
+                            source: ParserInput::new(""),
+                            value: 3,
+                        }),
+                    }],
+                })),
+            },
+        });
+        translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
+        let expression = Expression::RecordAssignment(RecordAssignmentNode {
+            source: ParserInput::new(""),
+            value: RecordAssignmentValue {
+                identifier: IdentifierNode {
+                    source: ParserInput::new(""),
+                    value: IdentifierValue {
+                        name: "a".to_string(),
+                        is_disregarded: false,
+                    },
+                },
+                new_values: vec![RecordValue {
+                    identifier: IdentifierNode {
+                        source: ParserInput::new(""),
+                        value: IdentifierValue {
+                            name: "b".to_string(),
+                            is_disregarded: false,
+                        },
+                    },
+                    value: Expression::Integer(IntegerNode {
+                        source: ParserInput::new(""),
+                        value: 2,
+                    }),
+                }],
+            },
+        });
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_err());
     }
 
     #[test]

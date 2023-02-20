@@ -41,10 +41,10 @@ impl CanonicalIds {
     fn set_types_equal(&mut self, type_a: TypeId, type_b: TypeId) {
         let canonical_a = self.get_canonical_id(type_a);
         let canonical_b = self.get_canonical_id(type_b);
-        self.0[canonical_a] = canonical_b;
+        self.0[canonical_b] = canonical_a;
         // Makes future canonical id lookups faster.
-        self.0[type_a] = canonical_b;
-        self.0[type_b] = canonical_b;
+        self.0[type_a] = canonical_a;
+        self.0[type_b] = canonical_a;
     }
 }
 
@@ -167,8 +167,8 @@ mod test {
         let id_a = type_schema.make_id();
         let id_b = type_schema.make_id();
         type_schema.set_equal_to_canonical_type(id_a, id_b).unwrap();
-        assert_eq!(type_schema.get_canonical_id(id_a), id_b);
-        assert_eq!(type_schema.get_canonical_id(id_b), id_b);
+        assert_eq!(type_schema.get_canonical_id(id_a), id_a);
+        assert_eq!(type_schema.get_canonical_id(id_b), id_a);
     }
 
     #[test]
@@ -179,7 +179,7 @@ mod test {
         let id_c = type_schema.make_id();
         type_schema.set_equal_to_canonical_type(id_a, id_b).unwrap();
         type_schema.set_equal_to_canonical_type(id_b, id_c).unwrap();
-        assert_eq!(type_schema.get_canonical_id(id_a), id_c);
+        assert_eq!(type_schema.get_canonical_id(id_c), id_a);
     }
 
     #[test]
