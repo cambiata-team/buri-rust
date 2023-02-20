@@ -121,9 +121,9 @@ impl CategoryConstraints {
             (
                 Self::Record(RecordConstraints::ClosedFields(self_items)),
                 Self::Record(RecordConstraints::OpenFields(other_items)),
-            ) => self_items.iter().all(|(name, type_id)| {
-                other_items.get(name).map_or(false, |other_type_id| {
-                    schema.types_are_compatible(*type_id, *other_type_id)
+            ) => other_items.iter().all(|(name, other_type_id)| {
+                self_items.get(name).map_or(false, |self_type_id| {
+                    schema.types_are_compatible(*other_type_id, *self_type_id)
                 })
             }),
             (
@@ -675,7 +675,7 @@ mod test {
         let type_id = schema.make_id();
         let canonical_id = schema.make_id();
         schema
-            .set_equal_to_canonical_type(type_id, canonical_id)
+            .set_equal_to_canonical_type(canonical_id, type_id)
             .unwrap();
         let mut parsed_constraint =
             ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Num), &schema);
@@ -1393,9 +1393,8 @@ mod test {
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::HasTag(HasTagConstraint {
-                tag_name: String::from("foo"),
-                tag_content_types: Vec::new(),
+            Constraint::TagAtMost(TagAtMostConstraint {
+                tags: HashMap::from([("foo".to_string(), Vec::new())]),
             }),
             &schema,
         );
@@ -1421,9 +1420,8 @@ mod test {
         );
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         let other_constraint = ParsedConstraint::new(
-            Constraint::HasTag(HasTagConstraint {
-                tag_name: String::from("foo"),
-                tag_content_types: Vec::new(),
+            Constraint::TagAtMost(TagAtMostConstraint {
+                tags: HashMap::from([("foo".to_string(), Vec::new())]),
             }),
             &schema,
         );
@@ -1441,9 +1439,8 @@ mod test {
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::HasTag(HasTagConstraint {
-                tag_name: String::from("bar"),
-                tag_content_types: Vec::new(),
+            Constraint::TagAtMost(TagAtMostConstraint {
+                tags: HashMap::from([("bar".to_string(), Vec::new())]),
             }),
             &schema,
         );
@@ -1462,9 +1459,8 @@ mod test {
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::HasTag(HasTagConstraint {
-                tag_name: String::from("foo"),
-                tag_content_types: vec![type_id],
+            Constraint::TagAtMost(TagAtMostConstraint {
+                tags: HashMap::from([("foo".to_string(), vec![type_id])]),
             }),
             &schema,
         );
@@ -1483,9 +1479,8 @@ mod test {
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::HasTag(HasTagConstraint {
-                tag_name: String::from("foo"),
-                tag_content_types: vec![type_id],
+            Constraint::TagAtMost(TagAtMostConstraint {
+                tags: HashMap::from([("foo".to_string(), vec![type_id])]),
             }),
             &schema,
         );
@@ -1505,9 +1500,8 @@ mod test {
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::HasTag(HasTagConstraint {
-                tag_name: String::from("foo"),
-                tag_content_types: vec![type_b],
+            Constraint::TagAtMost(TagAtMostConstraint {
+                tags: HashMap::from([("foo".to_string(), vec![type_b])]),
             }),
             &schema,
         );
@@ -1533,9 +1527,8 @@ mod test {
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::HasTag(HasTagConstraint {
-                tag_name: String::from("foo"),
-                tag_content_types: vec![type_b],
+            Constraint::TagAtMost(TagAtMostConstraint {
+                tags: HashMap::from([("foo".to_string(), vec![type_b])]),
             }),
             &schema,
         );
@@ -1561,9 +1554,8 @@ mod test {
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::HasTag(HasTagConstraint {
-                tag_name: String::from("foo"),
-                tag_content_types: vec![type_b],
+            Constraint::TagAtMost(TagAtMostConstraint {
+                tags: HashMap::from([("foo".to_string(), vec![type_b])]),
             }),
             &schema,
         );
@@ -2435,8 +2427,9 @@ mod test {
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
-                fields: HashMap::from([(String::from("foo"), type_id)]),
+            Constraint::HasField(HasFieldConstraint {
+                field_name: String::from("foo"),
+                field_type: type_id,
             }),
             &schema,
         );
@@ -2457,8 +2450,9 @@ mod test {
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
-                fields: HashMap::from([(String::from("foo"), type_id)]),
+            Constraint::HasField(HasFieldConstraint {
+                field_name: String::from("foo"),
+                field_type: type_id,
             }),
             &schema,
         );
@@ -2476,8 +2470,9 @@ mod test {
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
-                fields: HashMap::from([(String::from("bar"), type_id)]),
+            Constraint::HasField(HasFieldConstraint {
+                field_name: String::from("bar"),
+                field_type: type_id,
             }),
             &schema,
         );

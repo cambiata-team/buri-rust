@@ -1,0 +1,4 @@
+-- You cannot add new fields to a record via record RecordAssignment
+
+alice = { name: "Alice" }
+withAge = { alice | age: 42 }
