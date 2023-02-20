@@ -7,3 +7,9 @@ export const getTagContents = (tag) => {
     contents.shift()
     return contents
 }
+
+export const tag = (name, ...contents) => {
+    if (name == "true" && contents.length == 0) return true
+    if (name == "false" && contents.length == 0) return false
+    return [name, ...contents]
+}

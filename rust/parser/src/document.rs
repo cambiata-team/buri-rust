@@ -307,4 +307,13 @@ mod test {
         assert_eq!(remainder.value(), "");
         assert_eq!(parsed.value.variable_declarations.len(), 1);
     }
+
+    #[test]
+    fn can_have_complex_functions_in_declarations() {
+        let input = ParserInput::new("ifTrueFiveElseThree = (a) => if a do 5 else 3");
+        let result = document()(input);
+        let (remainder, parsed) = result.unwrap();
+        assert_eq!(remainder.value(), "");
+        assert_eq!(parsed.value.variable_declarations.len(), 1);
+    }
 }
