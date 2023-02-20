@@ -10,7 +10,7 @@ use ast::{DeclarationValue, DocumentNode, ParsedNode, TopLevelDeclaration, TypeD
 fn translate_top_level_variable_declaration<'a>(
     schema: &mut TypeSchema,
     input: TopLevelDeclaration<ParsedNode<'a, DeclarationValue<'a>>>,
-) -> Result<TopLevelDeclaration<GenericDeclarationExpression<'a>>, ()> {
+) -> Result<TopLevelDeclaration<GenericDeclarationExpression<'a>>, TypeCheckingError> {
     Ok(TopLevelDeclaration {
         declaration: translate_declaration(schema, input.declaration)?,
         is_exported: input.is_exported,
@@ -20,14 +20,16 @@ fn translate_top_level_variable_declaration<'a>(
 fn translate_top_level_type_declaration<'a>(
     schema: &mut TypeSchema,
     input: TopLevelDeclaration<TypeDeclarationNode<'a>>,
-) -> Result<TopLevelDeclaration<GenericTypeDeclarationExpression<'a>>, ()> {
+) -> Result<TopLevelDeclaration<GenericTypeDeclarationExpression<'a>>, TypeCheckingError> {
     Ok(TopLevelDeclaration {
         declaration: translate_type_declaration(schema, input.declaration)?,
         is_exported: input.is_exported,
     })
 }
 
-pub fn apply_constraints(input: DocumentNode) -> Result<(GenericDocument, TypeSchema), ()> {
+pub fn apply_constraints(
+    input: DocumentNode,
+) -> Result<(GenericDocument, TypeSchema), TypeCheckingError> {
     let mut schema = TypeSchema::new();
     let mut variable_declarations: Vec<TopLevelDeclaration<GenericDeclarationExpression>> =
         Vec::new();
@@ -58,4 +60,19 @@ pub fn apply_constraints(input: DocumentNode) -> Result<(GenericDocument, TypeSc
         },
         schema,
     ))
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum TypeCheckingError {
+    ConstraintsNotCompatible,
+    DuplicateTagNamesInTagGroup,
+    FieldLookupDoesNotUseIdentifier,
+    FunctionApplicationDoesNotUseFunctionArguments,
+    IdentifierNotFound,
+    MethodLookupDoesNotUseIdentifier,
+    TypeIdentifierNotFound,
+    TypeIdentifierTypeNotFound,
+    TypesAreNotCompatible,
+    UnreachableBlockFinalExpression,
+    UnreachableFunctionApplicationArgumentExpression,
 }

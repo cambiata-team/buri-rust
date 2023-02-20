@@ -1,11 +1,11 @@
 use js_backend::print_js_document;
 use parser::parse_buri_file;
-use type_checker::{apply_constraints, resolve_concrete_types};
+use type_checker::{apply_constraints, resolve_concrete_types, TypeCheckingError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CompilationError {
     ParseError(String),
-    TypeError(()),
+    TypeError(TypeCheckingError),
     TypeResolutionError(()),
 }
 
