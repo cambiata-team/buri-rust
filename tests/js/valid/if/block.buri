@@ -1,0 +1,19 @@
+@export
+five = if #true do
+    a = 3
+    b = 2
+    a + b
+else
+    a = 1
+    b = 3
+    a + b
+
+@export
+four = if #false do
+    a = 3
+    b = 2
+    a + b
+else
+    a = 1
+    b = 3
+    a + b

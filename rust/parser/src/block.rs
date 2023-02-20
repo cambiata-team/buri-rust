@@ -163,4 +163,22 @@ mod test {
         assert_eq!(remainder, "");
         assert_eq!(lines.value.len(), 1);
     }
+
+    #[test]
+    fn block_can_include_a_declaration() {
+        let input = ParserInput::new("    x = 1");
+        let result = block(ExpressionContext::new().increment_indentation())(input);
+        let (remainder, lines) = result.unwrap();
+        assert_eq!(remainder, "");
+        assert_eq!(lines.value.len(), 1);
+    }
+
+    #[test]
+    fn block_can_include_two_declarations() {
+        let input = ParserInput::new("    x = 1\n    y = 2");
+        let result = block(ExpressionContext::new().increment_indentation())(input);
+        let (remainder, lines) = result.unwrap();
+        assert_eq!(remainder, "");
+        assert_eq!(lines.value.len(), 2);
+    }
 }
