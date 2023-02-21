@@ -21,3 +21,9 @@ negativeThreeTimesFour = -3 * 4
 
 @export
 negativeThreeTimesNegativeFour = -3 * -4
+
+@export
+fourTimesZero = 4 * 0
+
+@export
+negativeFourTimesZero = -4 * 0

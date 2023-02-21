@@ -12,7 +12,9 @@ Object.assign(Number.prototype, {
     },
 
     multiply(num) {
-        return new this.constructor(this.valueOf() * num.valueOf())
+        let result = this.valueOf() * num.valueOf()
+        if (result === -0) result = 0
+        return new this.constructor(result)
     },
 
     divide(num) {
