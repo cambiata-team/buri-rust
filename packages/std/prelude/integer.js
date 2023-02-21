@@ -26,7 +26,9 @@ Object.assign(Number.prototype, {
     modulo(num) {
         let m = this.valueOf()
         let n = num.valueOf()
-        return new this.constructor(((m % n) + n) % n)
+        let result = ((m % n) + n) % n
+        if (result === -0) result = 0
+        return new this.constructor(result)
     },
 
     power(num) {
