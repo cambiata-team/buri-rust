@@ -37,3 +37,21 @@ mod variable_declaration;
 use binary_operator_or_if::binary_operator_or_if as expression;
 use expression_context::ExpressionContext;
 pub use file::parse_buri_file;
+
+/// Parses an expression for use in unit tests.
+///
+/// # Panics
+///
+/// Panics if the input is not a valid expression.
+pub fn parse_test_expression(input: &str) -> ast::Expression {
+    use nom::{combinator::eof, sequence::terminated};
+
+    let input = ast::ParserInput::new(input);
+    #[allow(clippy::unwrap_used)] // because this should only be used in tests.
+    let (_, expression) = terminated(
+        expression(ExpressionContext::new().allow_newlines_in_expressions()),
+        eof,
+    )(input)
+    .unwrap();
+    expression
+}

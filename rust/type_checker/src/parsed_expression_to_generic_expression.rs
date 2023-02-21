@@ -862,31 +862,13 @@ pub fn translate_parsed_expression_to_generic_expression<'a>(
 #[cfg(test)]
 mod test {
     use super::*;
-
-    use ast::{
-        BinaryOperatorValue, DeclarationValue, FunctionApplicationArgumentsNode,
-        FunctionApplicationArgumentsValue, FunctionArgumentNode, FunctionArgumentValue,
-        FunctionValue, IdentifierValue, IfValue, ListNode, ParserInput, RecordAssignmentValue,
-        RecordValue, TagIdentifierNode, TagValue, UnaryOperatorValue,
-    };
+    use ast::{FunctionApplicationArgumentsNode, FunctionApplicationArgumentsValue, ParserInput};
+    use parser::parse_test_expression;
 
     #[test]
     fn binary_operator_increments_id_counter_by_one_more_than_total_number_of_ids_in_children() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::BinaryOperator(BinaryOperatorNode {
-            source: ParserInput::new(""),
-            value: BinaryOperatorValue {
-                symbol: BinaryOperatorSymbol::Add,
-                left_child: Box::new(Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 314,
-                })),
-                right_child: Box::new(Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 271,
-                })),
-            },
-        });
+        let expression = parse_test_expression("314 + 271");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.count_ids(), 3);
     }
@@ -894,20 +876,7 @@ mod test {
     #[test]
     fn arithmetic_binary_operator_adds_three_constraints_beyond_those_added_by_its_children() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::BinaryOperator(BinaryOperatorNode {
-            source: ParserInput::new(""),
-            value: BinaryOperatorValue {
-                symbol: BinaryOperatorSymbol::Add,
-                left_child: Box::new(Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 314,
-                })),
-                right_child: Box::new(Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 271,
-                })),
-            },
-        });
+        let expression = parse_test_expression("314 + 271");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 3);
     }
@@ -915,20 +884,7 @@ mod test {
     #[test]
     fn concatenate_binary_operator_adds_three_constraints_beyond_those_added_by_its_children() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::BinaryOperator(BinaryOperatorNode {
-            source: ParserInput::new(""),
-            value: BinaryOperatorValue {
-                symbol: BinaryOperatorSymbol::Concatenate,
-                left_child: Box::new(Expression::StringLiteral(StringLiteralNode {
-                    source: ParserInput::new(""),
-                    value: "Hello".to_owned(),
-                })),
-                right_child: Box::new(Expression::StringLiteral(StringLiteralNode {
-                    source: ParserInput::new(""),
-                    value: "World".to_owned(),
-                })),
-            },
-        });
+        let expression = parse_test_expression("\"Hello\" ++ \"World\"");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 3);
     }
@@ -938,26 +894,7 @@ mod test {
         let mut schema = TypeSchema::new();
         schema.make_identifier_for_test("a");
         schema.make_identifier_for_test("b");
-        let expression = Expression::BinaryOperator(BinaryOperatorNode {
-            source: ParserInput::new(""),
-            value: BinaryOperatorValue {
-                symbol: BinaryOperatorSymbol::And,
-                left_child: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "a".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-                right_child: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "b".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-            },
-        });
+        let expression = parse_test_expression("a and b");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 3);
     }
@@ -965,20 +902,7 @@ mod test {
     #[test]
     fn equality_binary_operator_adds_two_constraints_beyond_those_added_by_its_children() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::BinaryOperator(BinaryOperatorNode {
-            source: ParserInput::new(""),
-            value: BinaryOperatorValue {
-                symbol: BinaryOperatorSymbol::EqualTo,
-                left_child: Box::new(Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 314,
-                })),
-                right_child: Box::new(Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 271,
-                })),
-            },
-        });
+        let expression = parse_test_expression("314 == 271");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 2);
     }
@@ -986,20 +910,7 @@ mod test {
     #[test]
     fn equality_binary_operator_only_has_two_canonical_ids_when_children_only_have_one_type_each() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::BinaryOperator(BinaryOperatorNode {
-            source: ParserInput::new(""),
-            value: BinaryOperatorValue {
-                symbol: BinaryOperatorSymbol::EqualTo,
-                left_child: Box::new(Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 314,
-                })),
-                right_child: Box::new(Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 271,
-                })),
-            },
-        });
+        let expression = parse_test_expression("314 == 271");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 2);
     }
@@ -1008,20 +919,7 @@ mod test {
     fn ordered_comparison_binary_operator_adds_four_constraints_beyond_those_added_by_its_children()
     {
         let mut schema = TypeSchema::new();
-        let expression = Expression::BinaryOperator(BinaryOperatorNode {
-            source: ParserInput::new(""),
-            value: BinaryOperatorValue {
-                symbol: BinaryOperatorSymbol::LessThan,
-                left_child: Box::new(Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 314,
-                })),
-                right_child: Box::new(Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 271,
-                })),
-            },
-        });
+        let expression = parse_test_expression("314 < 271");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 3);
     }
@@ -1031,40 +929,7 @@ mod test {
     ) {
         let mut schema = TypeSchema::new();
         schema.make_identifier_for_test("a");
-        let expression = Expression::BinaryOperator(BinaryOperatorNode {
-            source: ParserInput::new(""),
-            value: BinaryOperatorValue {
-                symbol: BinaryOperatorSymbol::FunctionApplication,
-                left_child: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "a".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-                right_child: Box::new(Expression::FunctionApplicationArguments(
-                    FunctionApplicationArgumentsNode {
-                        source: ParserInput::new(""),
-                        value: FunctionApplicationArgumentsValue {
-                            arguments: vec![
-                                Expression::StringLiteral(StringLiteralNode {
-                                    source: ParserInput::new(""),
-                                    value: "Hello".to_owned(),
-                                }),
-                                Expression::Integer(IntegerNode {
-                                    source: ParserInput::new(""),
-                                    value: 314,
-                                }),
-                                Expression::Integer(IntegerNode {
-                                    source: ParserInput::new(""),
-                                    value: 271,
-                                }),
-                            ],
-                        },
-                    },
-                )),
-            },
-        });
+        let expression = parse_test_expression("a(\"hello\", 314, 271)");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 5);
     }
@@ -1074,40 +939,7 @@ mod test {
     {
         let mut schema = TypeSchema::new();
         schema.make_identifier_for_test("a");
-        let expression = Expression::BinaryOperator(BinaryOperatorNode {
-            source: ParserInput::new(""),
-            value: BinaryOperatorValue {
-                symbol: BinaryOperatorSymbol::FunctionApplication,
-                left_child: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "a".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-                right_child: Box::new(Expression::FunctionApplicationArguments(
-                    FunctionApplicationArgumentsNode {
-                        source: ParserInput::new(""),
-                        value: FunctionApplicationArgumentsValue {
-                            arguments: vec![
-                                Expression::StringLiteral(StringLiteralNode {
-                                    source: ParserInput::new(""),
-                                    value: "Hello".to_owned(),
-                                }),
-                                Expression::Integer(IntegerNode {
-                                    source: ParserInput::new(""),
-                                    value: 314,
-                                }),
-                                Expression::Integer(IntegerNode {
-                                    source: ParserInput::new(""),
-                                    value: 271,
-                                }),
-                            ],
-                        },
-                    },
-                )),
-            },
-        });
+        let expression = parse_test_expression("a(\"hello\", 314, 271)");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 5);
     }
@@ -1118,26 +950,7 @@ mod test {
         let mut schema = TypeSchema::new();
         schema.make_identifier_for_test("a");
         schema.make_identifier_for_test("b");
-        let expression = Expression::BinaryOperator(BinaryOperatorNode {
-            source: ParserInput::new(""),
-            value: BinaryOperatorValue {
-                symbol: BinaryOperatorSymbol::MethodLookup,
-                left_child: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "a".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-                right_child: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "b".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-            },
-        });
+        let expression = parse_test_expression("a:b");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 2);
     }
@@ -1148,26 +961,7 @@ mod test {
         let mut schema = TypeSchema::new();
         schema.make_identifier_for_test("a");
         schema.make_identifier_for_test("b");
-        let expression = Expression::BinaryOperator(BinaryOperatorNode {
-            source: ParserInput::new(""),
-            value: BinaryOperatorValue {
-                symbol: BinaryOperatorSymbol::MethodLookup,
-                left_child: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "a".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-                right_child: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "b".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-            },
-        });
+        let expression = parse_test_expression("a:b");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 2);
     }
@@ -1178,26 +972,7 @@ mod test {
         let mut schema = TypeSchema::new();
         schema.make_identifier_for_test("a");
         schema.make_identifier_for_test("b");
-        let expression = Expression::BinaryOperator(BinaryOperatorNode {
-            source: ParserInput::new(""),
-            value: BinaryOperatorValue {
-                symbol: BinaryOperatorSymbol::FieldLookup,
-                left_child: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "a".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-                right_child: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "b".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-            },
-        });
+        let expression = parse_test_expression("a.b");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 3);
     }
@@ -1208,26 +983,7 @@ mod test {
         let mut schema = TypeSchema::new();
         schema.make_identifier_for_test("a");
         schema.make_identifier_for_test("b");
-        let expression = Expression::BinaryOperator(BinaryOperatorNode {
-            source: ParserInput::new(""),
-            value: BinaryOperatorValue {
-                symbol: BinaryOperatorSymbol::FieldLookup,
-                left_child: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "a".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-                right_child: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "b".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-            },
-        });
+        let expression = parse_test_expression("a.b");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 3);
     }
@@ -1235,20 +991,7 @@ mod test {
     #[test]
     fn binary_operator_preserves_symbol() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::BinaryOperator(BinaryOperatorNode {
-            source: ParserInput::new(""),
-            value: BinaryOperatorValue {
-                symbol: BinaryOperatorSymbol::Add,
-                left_child: Box::new(Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 314,
-                })),
-                right_child: Box::new(Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 271,
-                })),
-            },
-        });
+        let expression = parse_test_expression("314 + 271");
         let result =
             translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         if let GenericExpression::BinaryOperator(binary_operator_expression) = result {
@@ -1363,13 +1106,7 @@ mod test {
     fn identifier_input_preserves_name() {
         let mut schema = TypeSchema::new();
         schema.make_identifier_for_test("hello");
-        let expression = Expression::Identifier(IdentifierNode {
-            source: ParserInput::new(""),
-            value: IdentifierValue {
-                name: "hello".to_owned(),
-                is_disregarded: false,
-            },
-        });
+        let expression = parse_test_expression("hello");
         let result =
             translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         if let GenericExpression::Identifier(identifier_expression) = result {
@@ -1384,26 +1121,7 @@ mod test {
         let mut schema = TypeSchema::new();
         schema.make_identifier_for_test("a");
         schema.make_identifier_for_test("b");
-        let expression = Expression::If(IfNode {
-            source: ParserInput::new(""),
-            value: IfValue {
-                condition: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "a".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-                path_if_true: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "b".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-                path_if_false: None,
-            },
-        });
+        let expression = parse_test_expression("if a do b");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.count_ids(), 3);
     }
@@ -1414,32 +1132,7 @@ mod test {
         schema.make_identifier_for_test("a");
         schema.make_identifier_for_test("b");
         schema.make_identifier_for_test("c");
-        let expression = Expression::If(IfNode {
-            source: ParserInput::new(""),
-            value: IfValue {
-                condition: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "a".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-                path_if_true: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "b".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-                path_if_false: Some(Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "c".to_owned(),
-                        is_disregarded: false,
-                    },
-                }))),
-            },
-        });
+        let expression = parse_test_expression("if a do b else c");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.count_ids(), 4);
     }
@@ -1451,32 +1144,7 @@ mod test {
         schema.make_identifier_for_test("a");
         schema.make_identifier_for_test("b");
         schema.make_identifier_for_test("c");
-        let expression = Expression::If(IfNode {
-            source: ParserInput::new(""),
-            value: IfValue {
-                condition: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "a".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-                path_if_true: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "b".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-                path_if_false: Some(Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "c".to_owned(),
-                        is_disregarded: false,
-                    },
-                }))),
-            },
-        });
+        let expression = parse_test_expression("if a do b else c");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 2);
     }
@@ -1486,26 +1154,7 @@ mod test {
         let mut schema = TypeSchema::new();
         schema.make_identifier_for_test("a");
         schema.make_identifier_for_test("b");
-        let expression = Expression::If(IfNode {
-            source: ParserInput::new(""),
-            value: IfValue {
-                condition: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "a".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-                path_if_true: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "b".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-                path_if_false: None,
-            },
-        });
+        let expression = parse_test_expression("if a do b");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 3);
     }
@@ -1516,32 +1165,7 @@ mod test {
         schema.make_identifier_for_test("a");
         schema.make_identifier_for_test("b");
         schema.make_identifier_for_test("c");
-        let expression = Expression::If(IfNode {
-            source: ParserInput::new(""),
-            value: IfValue {
-                condition: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "a".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-                path_if_true: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "b".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-                path_if_false: Some(Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "c".to_owned(),
-                        is_disregarded: false,
-                    },
-                }))),
-            },
-        });
+        let expression = parse_test_expression("if a do b else c");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 2);
     }
@@ -1549,10 +1173,7 @@ mod test {
     #[test]
     fn integer_input_increments_id_counter_by_one() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::Integer(IntegerNode {
-            source: ParserInput::new(""),
-            value: 314,
-        });
+        let expression = parse_test_expression("314");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.count_ids(), 1);
     }
@@ -1560,10 +1181,7 @@ mod test {
     #[test]
     fn integer_input_adds_one_constraint() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::Integer(IntegerNode {
-            source: ParserInput::new(""),
-            value: 314,
-        });
+        let expression = parse_test_expression("314");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 1);
     }
@@ -1571,10 +1189,7 @@ mod test {
     #[test]
     fn integer_input_returns_integer_with_preserved_value() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::Integer(IntegerNode {
-            source: ParserInput::new(""),
-            value: 314,
-        });
+        let expression = parse_test_expression("314");
         let result =
             translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         if let GenericExpression::Integer(integer_expression) = result {
@@ -1587,23 +1202,7 @@ mod test {
     #[test]
     fn list_input_increments_id_counter_by_two_more_than_total_number_of_ids_in_the_contents() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::List(ListNode {
-            source: ParserInput::new(""),
-            value: vec![
-                Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 2,
-                }),
-                Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 3,
-                }),
-                Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 5,
-                }),
-            ],
-        });
+        let expression = parse_test_expression("[2, 3, 5]");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.count_ids(), 5);
     }
@@ -1611,23 +1210,7 @@ mod test {
     #[test]
     fn list_input_adds_one_constraint_beyond_those_added_by_its_contents() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::List(ListNode {
-            source: ParserInput::new(""),
-            value: vec![
-                Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 2,
-                }),
-                Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 3,
-                }),
-                Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 5,
-                }),
-            ],
-        });
+        let expression = parse_test_expression("[2, 3, 5]");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 2);
     }
@@ -1635,23 +1218,7 @@ mod test {
     #[test]
     fn for_list_input_each_element_in_input_list_has_corresponding_element_in_translated_list() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::List(ListNode {
-            source: ParserInput::new(""),
-            value: vec![
-                Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 2,
-                }),
-                Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 3,
-                }),
-                Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 5,
-                }),
-            ],
-        });
+        let expression = parse_test_expression("[2, 3, 5]");
         let result =
             translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         if let GenericExpression::List(list_node) = result {
@@ -1664,23 +1231,7 @@ mod test {
     #[test]
     fn list_input_with_primitive_elements_has_only_two_canonical_ids() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::List(ListNode {
-            source: ParserInput::new(""),
-            value: vec![
-                Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 2,
-                }),
-                Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 3,
-                }),
-                Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 5,
-                }),
-            ],
-        });
+        let expression = parse_test_expression("[2, 3, 5]");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 2);
     }
@@ -1688,19 +1239,7 @@ mod test {
     #[test]
     fn lists_of_mixed_types_errors() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::List(ListNode {
-            source: ParserInput::new(""),
-            value: vec![
-                Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 2,
-                }),
-                Expression::StringLiteral(StringLiteralNode {
-                    source: ParserInput::new(""),
-                    value: "hello".to_string(),
-                }),
-            ],
-        });
+        let expression = parse_test_expression("[1, \"hello\"]");
         let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
         assert!(result.is_err());
     }
@@ -1708,37 +1247,7 @@ mod test {
     #[test]
     fn record_input_increments_id_counter_by_two_for_each_field_plus_one_for_the_record() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::Record(RecordNode {
-            source: ParserInput::new(""),
-            value: vec![
-                RecordValue {
-                    identifier: IdentifierNode {
-                        source: ParserInput::new(""),
-                        value: IdentifierValue {
-                            name: "a".to_string(),
-                            is_disregarded: false,
-                        },
-                    },
-                    value: Expression::Integer(IntegerNode {
-                        source: ParserInput::new(""),
-                        value: 3,
-                    }),
-                },
-                RecordValue {
-                    identifier: IdentifierNode {
-                        source: ParserInput::new(""),
-                        value: IdentifierValue {
-                            name: "b".to_string(),
-                            is_disregarded: false,
-                        },
-                    },
-                    value: Expression::Integer(IntegerNode {
-                        source: ParserInput::new(""),
-                        value: 4,
-                    }),
-                },
-            ],
-        });
+        let expression = parse_test_expression("{ a: 3, b: 4 }");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.count_ids(), 5);
     }
@@ -1748,37 +1257,7 @@ mod test {
         let mut schema = TypeSchema::new();
         schema.make_identifier_for_test("a");
         schema.make_identifier_for_test("b");
-        let expression = Expression::Record(RecordNode {
-            source: ParserInput::new(""),
-            value: vec![
-                RecordValue {
-                    identifier: IdentifierNode {
-                        source: ParserInput::new(""),
-                        value: IdentifierValue {
-                            name: "a".to_string(),
-                            is_disregarded: false,
-                        },
-                    },
-                    value: Expression::Integer(IntegerNode {
-                        source: ParserInput::new(""),
-                        value: 3,
-                    }),
-                },
-                RecordValue {
-                    identifier: IdentifierNode {
-                        source: ParserInput::new(""),
-                        value: IdentifierValue {
-                            name: "b".to_string(),
-                            is_disregarded: false,
-                        },
-                    },
-                    value: Expression::Integer(IntegerNode {
-                        source: ParserInput::new(""),
-                        value: 4,
-                    }),
-                },
-            ],
-        });
+        let expression = parse_test_expression("{ a: 3, b: 4 }");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 5);
     }
@@ -1788,37 +1267,7 @@ mod test {
         let mut schema = TypeSchema::new();
         schema.make_identifier_for_test("a");
         schema.make_identifier_for_test("b");
-        let expression = Expression::Record(RecordNode {
-            source: ParserInput::new(""),
-            value: vec![
-                RecordValue {
-                    identifier: IdentifierNode {
-                        source: ParserInput::new(""),
-                        value: IdentifierValue {
-                            name: "a".to_string(),
-                            is_disregarded: false,
-                        },
-                    },
-                    value: Expression::Integer(IntegerNode {
-                        source: ParserInput::new(""),
-                        value: 3,
-                    }),
-                },
-                RecordValue {
-                    identifier: IdentifierNode {
-                        source: ParserInput::new(""),
-                        value: IdentifierValue {
-                            name: "b".to_string(),
-                            is_disregarded: false,
-                        },
-                    },
-                    value: Expression::Integer(IntegerNode {
-                        source: ParserInput::new(""),
-                        value: 4,
-                    }),
-                },
-            ],
-        });
+        let expression = parse_test_expression("{ a: 3, b: 4 }");
         let result =
             translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         if let GenericExpression::Record(record_node) = result {
@@ -1831,37 +1280,7 @@ mod test {
     #[test]
     fn record_input_has_one_canonical_id_plus_one_more_for_each_primitive_field() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::Record(RecordNode {
-            source: ParserInput::new(""),
-            value: vec![
-                RecordValue {
-                    identifier: IdentifierNode {
-                        source: ParserInput::new(""),
-                        value: IdentifierValue {
-                            name: "a".to_string(),
-                            is_disregarded: false,
-                        },
-                    },
-                    value: Expression::Integer(IntegerNode {
-                        source: ParserInput::new(""),
-                        value: 3,
-                    }),
-                },
-                RecordValue {
-                    identifier: IdentifierNode {
-                        source: ParserInput::new(""),
-                        value: IdentifierValue {
-                            name: "b".to_string(),
-                            is_disregarded: false,
-                        },
-                    },
-                    value: Expression::Integer(IntegerNode {
-                        source: ParserInput::new(""),
-                        value: 4,
-                    }),
-                },
-            ],
-        });
+        let expression = parse_test_expression("{ a: 3, b: 4 }");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 3);
     }
@@ -1869,61 +1288,9 @@ mod test {
     #[test]
     fn record_assignment_type_checks() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::Declaration(DeclarationNode {
-            source: ParserInput::new(""),
-            value: DeclarationValue {
-                identifier: IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "a".to_string(),
-                        is_disregarded: false,
-                    },
-                },
-                type_expression: None,
-                expression: Box::new(Expression::Record(RecordNode {
-                    source: ParserInput::new(""),
-                    value: vec![RecordValue {
-                        identifier: IdentifierNode {
-                            source: ParserInput::new(""),
-                            value: IdentifierValue {
-                                name: "a".to_string(),
-                                is_disregarded: false,
-                            },
-                        },
-                        value: Expression::Integer(IntegerNode {
-                            source: ParserInput::new(""),
-                            value: 3,
-                        }),
-                    }],
-                })),
-            },
-        });
+        let expression = parse_test_expression("a = { a: 3 }");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
-        let expression = Expression::RecordAssignment(RecordAssignmentNode {
-            source: ParserInput::new(""),
-            value: RecordAssignmentValue {
-                identifier: IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "a".to_string(),
-                        is_disregarded: false,
-                    },
-                },
-                new_values: vec![RecordValue {
-                    identifier: IdentifierNode {
-                        source: ParserInput::new(""),
-                        value: IdentifierValue {
-                            name: "a".to_string(),
-                            is_disregarded: false,
-                        },
-                    },
-                    value: Expression::Integer(IntegerNode {
-                        source: ParserInput::new(""),
-                        value: 2,
-                    }),
-                }],
-            },
-        });
+        let expression = parse_test_expression("{ a | a: 2 }");
         let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
         assert!(result.is_ok());
     }
@@ -1931,76 +1298,9 @@ mod test {
     #[test]
     fn record_assignment_only_needs_to_update_a_subset_of_fields() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::Declaration(DeclarationNode {
-            source: ParserInput::new(""),
-            value: DeclarationValue {
-                identifier: IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "a".to_string(),
-                        is_disregarded: false,
-                    },
-                },
-                type_expression: None,
-                expression: Box::new(Expression::Record(RecordNode {
-                    source: ParserInput::new(""),
-                    value: vec![
-                        RecordValue {
-                            identifier: IdentifierNode {
-                                source: ParserInput::new(""),
-                                value: IdentifierValue {
-                                    name: "a".to_string(),
-                                    is_disregarded: false,
-                                },
-                            },
-                            value: Expression::Integer(IntegerNode {
-                                source: ParserInput::new(""),
-                                value: 3,
-                            }),
-                        },
-                        RecordValue {
-                            identifier: IdentifierNode {
-                                source: ParserInput::new(""),
-                                value: IdentifierValue {
-                                    name: "extraField".to_string(),
-                                    is_disregarded: false,
-                                },
-                            },
-                            value: Expression::Integer(IntegerNode {
-                                source: ParserInput::new(""),
-                                value: 3,
-                            }),
-                        },
-                    ],
-                })),
-            },
-        });
+        let expression = parse_test_expression("a = { a: 3, b: 2 }");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
-        let expression = Expression::RecordAssignment(RecordAssignmentNode {
-            source: ParserInput::new(""),
-            value: RecordAssignmentValue {
-                identifier: IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "a".to_string(),
-                        is_disregarded: false,
-                    },
-                },
-                new_values: vec![RecordValue {
-                    identifier: IdentifierNode {
-                        source: ParserInput::new(""),
-                        value: IdentifierValue {
-                            name: "a".to_string(),
-                            is_disregarded: false,
-                        },
-                    },
-                    value: Expression::Integer(IntegerNode {
-                        source: ParserInput::new(""),
-                        value: 2,
-                    }),
-                }],
-            },
-        });
+        let expression = parse_test_expression("{ a | a: 2 }");
         let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
         assert!(result.is_ok());
     }
@@ -2008,61 +1308,9 @@ mod test {
     #[test]
     fn record_assignment_cannot_add_new_fields() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::Declaration(DeclarationNode {
-            source: ParserInput::new(""),
-            value: DeclarationValue {
-                identifier: IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "a".to_string(),
-                        is_disregarded: false,
-                    },
-                },
-                type_expression: None,
-                expression: Box::new(Expression::Record(RecordNode {
-                    source: ParserInput::new(""),
-                    value: vec![RecordValue {
-                        identifier: IdentifierNode {
-                            source: ParserInput::new(""),
-                            value: IdentifierValue {
-                                name: "a".to_string(),
-                                is_disregarded: false,
-                            },
-                        },
-                        value: Expression::Integer(IntegerNode {
-                            source: ParserInput::new(""),
-                            value: 3,
-                        }),
-                    }],
-                })),
-            },
-        });
+        let expression = parse_test_expression("a = { a: 3 }");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
-        let expression = Expression::RecordAssignment(RecordAssignmentNode {
-            source: ParserInput::new(""),
-            value: RecordAssignmentValue {
-                identifier: IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "a".to_string(),
-                        is_disregarded: false,
-                    },
-                },
-                new_values: vec![RecordValue {
-                    identifier: IdentifierNode {
-                        source: ParserInput::new(""),
-                        value: IdentifierValue {
-                            name: "b".to_string(),
-                            is_disregarded: false,
-                        },
-                    },
-                    value: Expression::Integer(IntegerNode {
-                        source: ParserInput::new(""),
-                        value: 2,
-                    }),
-                }],
-            },
-        });
+        let expression = parse_test_expression("{ a | b: 2 }");
         let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
         assert!(result.is_err());
     }
@@ -2070,10 +1318,7 @@ mod test {
     #[test]
     fn string_input_increments_id_counter_by_one() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::StringLiteral(StringLiteralNode {
-            source: ParserInput::new(""),
-            value: "hello".to_owned(),
-        });
+        let expression = parse_test_expression("\"hello\"");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.count_ids(), 1);
     }
@@ -2081,10 +1326,7 @@ mod test {
     #[test]
     fn string_input_adds_one_constraint() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::StringLiteral(StringLiteralNode {
-            source: ParserInput::new(""),
-            value: "hello".to_owned(),
-        });
+        let expression = parse_test_expression("\"hello\"");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 1);
     }
@@ -2092,10 +1334,7 @@ mod test {
     #[test]
     fn string_input_returns_string_with_preserved_value() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::StringLiteral(StringLiteralNode {
-            source: ParserInput::new(""),
-            value: "hello".to_owned(),
-        });
+        let expression = parse_test_expression("\"hello\"");
         let result =
             translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         if let GenericExpression::StringLiteral(string_literal_expression) = result {
@@ -2108,16 +1347,7 @@ mod test {
     #[test]
     fn tag_increments_id_counter_by_one() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::Tag(TagNode {
-            source: ParserInput::new(""),
-            value: TagValue {
-                name: TagIdentifierNode {
-                    source: ParserInput::new(""),
-                    value: "a".to_owned(),
-                },
-                contents: vec![],
-            },
-        });
+        let expression = parse_test_expression("#a");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.count_ids(), 1);
     }
@@ -2125,16 +1355,7 @@ mod test {
     #[test]
     fn tag_with_no_contents_adds_one_constraint() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::Tag(TagNode {
-            source: ParserInput::new(""),
-            value: TagValue {
-                name: TagIdentifierNode {
-                    source: ParserInput::new(""),
-                    value: "a".to_owned(),
-                },
-                contents: vec![],
-            },
-        });
+        let expression = parse_test_expression("#a");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 1);
     }
@@ -2142,16 +1363,7 @@ mod test {
     #[test]
     fn tag_preserves_name() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::Tag(TagNode {
-            source: ParserInput::new(""),
-            value: TagValue {
-                name: TagIdentifierNode {
-                    source: ParserInput::new(""),
-                    value: "a".to_owned(),
-                },
-                contents: vec![],
-            },
-        });
+        let expression = parse_test_expression("#a");
         let result =
             translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         if let GenericExpression::Tag(tag_expression) = result {
@@ -2164,16 +1376,7 @@ mod test {
     #[test]
     fn unary_operator_input_increments_id_counter_by_one_more_than_added_by_its_child() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::UnaryOperator(UnaryOperatorNode {
-            source: ParserInput::new(""),
-            value: UnaryOperatorValue {
-                symbol: UnaryOperatorSymbol::Negative,
-                child: Box::new(Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 314,
-                })),
-            },
-        });
+        let expression = parse_test_expression("-314");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.count_ids(), 2);
     }
@@ -2181,16 +1384,7 @@ mod test {
     #[test]
     fn unary_operator_negative_input_adds_two_constraints_beyond_those_added_by_the_child() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::UnaryOperator(UnaryOperatorNode {
-            source: ParserInput::new(""),
-            value: UnaryOperatorValue {
-                symbol: UnaryOperatorSymbol::Negative,
-                child: Box::new(Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 314,
-                })),
-            },
-        });
+        let expression = parse_test_expression("-314");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 2);
     }
@@ -2199,19 +1393,7 @@ mod test {
     fn unary_operator_not_input_adds_three_constraints_beyond_those_added_by_the_child() {
         let mut schema = TypeSchema::new();
         schema.make_identifier_for_test("hello");
-        let expression = Expression::UnaryOperator(UnaryOperatorNode {
-            source: ParserInput::new(""),
-            value: UnaryOperatorValue {
-                symbol: UnaryOperatorSymbol::Not,
-                child: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "hello".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-            },
-        });
+        let expression = parse_test_expression("not hello");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 2);
     }
@@ -2219,16 +1401,7 @@ mod test {
     #[test]
     fn unary_operator_negative_input_preserves_symbol() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::UnaryOperator(UnaryOperatorNode {
-            source: ParserInput::new(""),
-            value: UnaryOperatorValue {
-                symbol: UnaryOperatorSymbol::Negative,
-                child: Box::new(Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 314,
-                })),
-            },
-        });
+        let expression = parse_test_expression("-314");
         let result =
             translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         if let GenericExpression::UnaryOperator(unary_operator_expression) = result {
@@ -2245,19 +1418,7 @@ mod test {
     fn unary_operator_not_input_preserves_symbol() {
         let mut schema = TypeSchema::new();
         schema.make_identifier_for_test("hello");
-        let expression = Expression::UnaryOperator(UnaryOperatorNode {
-            source: ParserInput::new(""),
-            value: UnaryOperatorValue {
-                symbol: UnaryOperatorSymbol::Not,
-                child: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "hello".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-            },
-        });
+        let expression = parse_test_expression("not hello");
         let result =
             translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         if let GenericExpression::UnaryOperator(unary_operator_expression) = result {
@@ -2270,17 +1431,7 @@ mod test {
     #[test]
     fn functions_can_accept_no_arguments_and_return_a_number() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::Function(FunctionNode {
-            source: ParserInput::new(""),
-            value: FunctionValue {
-                body: Box::new(Expression::Integer(IntegerNode {
-                    source: ParserInput::new(""),
-                    value: 314,
-                })),
-                return_type: None,
-                arguments: vec![],
-            },
-        });
+        let expression = parse_test_expression("(a) => 1");
         let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
         assert!(result.is_ok());
     }
@@ -2288,32 +1439,7 @@ mod test {
     #[test]
     fn function_can_accept_an_argument_and_return_it() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::Function(FunctionNode {
-            source: ParserInput::new(""),
-            value: FunctionValue {
-                body: Box::new(Expression::Identifier(IdentifierNode {
-                    source: ParserInput::new(""),
-                    value: IdentifierValue {
-                        name: "a".to_owned(),
-                        is_disregarded: false,
-                    },
-                })),
-                return_type: None,
-                arguments: vec![FunctionArgumentNode {
-                    source: ParserInput::new(""),
-                    value: FunctionArgumentValue {
-                        argument_name: IdentifierNode {
-                            source: ParserInput::new(""),
-                            value: IdentifierValue {
-                                name: "a".to_owned(),
-                                is_disregarded: false,
-                            },
-                        },
-                        argument_type: None,
-                    },
-                }],
-            },
-        });
+        let expression = parse_test_expression("(a) => a");
         let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
         assert!(result.is_ok());
     }
@@ -2321,45 +1447,7 @@ mod test {
     #[test]
     fn function_can_return_an_arguments_field() {
         let mut schema = TypeSchema::new();
-        let expression = Expression::Function(FunctionNode {
-            source: ParserInput::new(""),
-            value: FunctionValue {
-                body: Box::new(Expression::BinaryOperator(BinaryOperatorNode {
-                    source: ParserInput::new(""),
-                    value: BinaryOperatorValue {
-                        symbol: BinaryOperatorSymbol::FieldLookup,
-                        left_child: Box::new(Expression::Identifier(IdentifierNode {
-                            source: ParserInput::new(""),
-                            value: IdentifierValue {
-                                name: "a".to_owned(),
-                                is_disregarded: false,
-                            },
-                        })),
-                        right_child: Box::new(Expression::Identifier(IdentifierNode {
-                            source: ParserInput::new(""),
-                            value: IdentifierValue {
-                                name: "b".to_owned(),
-                                is_disregarded: false,
-                            },
-                        })),
-                    },
-                })),
-                return_type: None,
-                arguments: vec![FunctionArgumentNode {
-                    source: ParserInput::new(""),
-                    value: FunctionArgumentValue {
-                        argument_name: IdentifierNode {
-                            source: ParserInput::new(""),
-                            value: IdentifierValue {
-                                name: "a".to_owned(),
-                                is_disregarded: false,
-                            },
-                        },
-                        argument_type: None,
-                    },
-                }],
-            },
-        });
+        let expression = parse_test_expression("(a) => a.b");
         let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
         assert!(result.is_ok());
     }

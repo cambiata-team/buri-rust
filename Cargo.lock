@@ -98,6 +98,7 @@ name = "type_checker"
 version = "0.1.0"
 dependencies = [
  "ast",
+ "parser",
  "typed_ast",
 ]
 
