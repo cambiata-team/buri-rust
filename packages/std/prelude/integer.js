@@ -20,6 +20,7 @@ Object.assign(Number.prototype, {
     divide(num) {
         const result = this.valueOf() / num.valueOf()
         const truncated = Math.trunc(result)
+        if (truncated === -0) return new this.constructor(0)
         return new this.constructor(truncated)
     },
 

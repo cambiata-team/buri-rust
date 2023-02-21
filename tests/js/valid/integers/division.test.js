@@ -7,6 +7,8 @@ import {
     negativeEightDivideNegativeTwo,
     negativeEightDivideThree,
     negativeEightDivideTwo,
+    zeroDivideNegativeTwo,
+    zeroDivideTwo,
 } from "@tests/js/valid/integers/division.mjs"
 import { describe, expect, it } from "bun:test"
 
@@ -43,5 +45,15 @@ describe("dividing by non-divisors round towards zero", () => {
 
     it("-8 / -3 == 2", () => {
         expect(negativeEightDivideNegativeThree.valueOf()).toBe(2)
+    })
+})
+
+describe("zero divide anything is zero", () => {
+    it("0 / 2 == 0", () => {
+        expect(zeroDivideTwo.valueOf()).toBe(0)
+    })
+
+    it("0 / -2 == 0", () => {
+        expect(zeroDivideNegativeTwo.valueOf()).toBe(0)
     })
 })
