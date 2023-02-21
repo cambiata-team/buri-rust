@@ -1,4 +1,6 @@
 import {
+    fourTimesZero,
+    negativeFourTimesZero,
     negativeOneTimesNegativeTwo,
     negativeOneTimesTwo,
     negativeThreeTimesFour,
@@ -43,5 +45,15 @@ describe("3 and 4", () => {
 
     it("-3 * -4 == 12", () => {
         expect(negativeThreeTimesNegativeFour.valueOf()).toBe(12)
+    })
+})
+
+describe("multiplying anything by 0 should return 0", () => {
+    it("4 * 0 == 0", () => {
+        expect(fourTimesZero.valueOf()).toBe(0)
+    })
+
+    it("-4 * 0 == 0", () => {
+        expect(negativeFourTimesZero.valueOf()).toBe(0)
     })
 })
