@@ -1,0 +1,55 @@
+-- addition
+
+@export
+fivePlusNegativeFive = 5 + -5
+
+@export
+negativeFivePlusFive = -5 + 5
+
+@export
+fourPlusNegativeFour = 4 + -4
+
+@export
+negativeFourPlusFour = -4 + 4
+
+-- subtraction
+
+@export
+fiveMinusFive = 5 - 5
+
+@export
+negativeFiveMinusNegativeFive = -5 - -5
+
+@export
+fourMinusFour = 4 - 4
+
+@export
+negativeFourMinusNegativeFour = -4 - -4
+
+-- division
+
+@export
+fiveDivideFive = 5 / 5
+
+@export
+negativeFiveDivideNegativeFive = -5 / -5
+
+@export
+fourDivideFour = 4 / 4
+
+@export
+negativeFourDivideNegativeFour = -4 / -4
+
+-- modulo
+
+@export
+fiveModuloFive = 5 % 5
+
+@export
+negativeFiveModuloNegativeFive = -5 % -5
+
+@export
+fourModuloFour = 4 % 4
+
+@export
+negativeFourModuloNegativeFour = -4 % -4
