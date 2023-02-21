@@ -1,0 +1,71 @@
+-- addition
+
+@export
+fivePlusZero = 5 + 0
+
+@export
+negativeFivePlusZero = -5 + 0
+
+@export
+fourPlusZero = 4 + 0
+
+@export
+negativeFourPlusZero = -4 + 0
+
+-- subtraction
+
+@export
+fiveMinusZero = 5 - 0
+
+@export
+negativeFiveMinusZero = -5 - 0
+
+@export
+fourMinusZero = 4 - 0
+
+@export
+negativeFourMinusZero = -4 - 0
+
+-- multiplication
+
+@export
+fiveTimesOne = 5 * 1
+
+@export
+negativeFiveTimesOne = -5 * 1
+
+@export
+fourTimesOne = 4 * 1
+
+@export
+negativeFourTimesOne = -4 * 1
+
+-- division
+
+@export
+fiveDivideOne = 5 / 1
+
+@export
+negativeFiveDivideOne = -5 / 1
+
+@export
+fourDivideOne = 4 / 1
+
+@export
+negativeFourDivideOne = -4 / 1
+
+-- modulo does not have an identity
+
+-- exponentiation
+
+@export
+fivePowerOne = 5 ** 1
+
+@export
+negativeFivePowerOne = -5 ** 1
+
+@export
+fourPowerOne = 4 ** 1
+
+@export
+negativeFourPowerOne = -4 ** 1
