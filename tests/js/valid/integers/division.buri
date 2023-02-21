@@ -21,3 +21,9 @@ negativeEightDivideNegativeTwo = -8 / -2
 
 @export
 negativeEightDivideNegativeThree = -8 / -3
+
+@export
+zeroDivideTwo = 0 / 2
+
+@export
+zeroDivideNegativeTwo = 0 / -2
