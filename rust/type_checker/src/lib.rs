@@ -9,5 +9,5 @@ mod type_schema;
 
 type TypeId = usize;
 
-pub use apply_constraints::{apply_constraints, TypeCheckingError};
+pub use apply_constraints::apply_constraints;
 pub use resolve_concrete_types::resolve_concrete_types;
