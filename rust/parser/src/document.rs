@@ -10,7 +10,7 @@ use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::space0,
-    combinator::{consumed, eof, map, opt},
+    combinator::{consumed, eof, map, opt, value},
     multi::many0,
     sequence::{terminated, tuple},
 };
@@ -23,31 +23,43 @@ enum DocumentElement<'a> {
     Expression(Expression<'a>),
 }
 
+fn declaration(input: ParserInput) -> IResult<DocumentElement> {
+    alt((
+        map(
+            terminated(type_declaration, alt((newline, eof))),
+            DocumentElement::TypeDeclaration,
+        ),
+        // Newlines are required by variable_declarations, so we don't
+        // need to add them here.
+        map(variable_declaration, DocumentElement::VariableDeclaration),
+    ))(input)
+}
+
 pub fn document<'a>() -> impl FnMut(ParserInput<'a>) -> IResult<'a, DocumentNode<'a>> {
     map(
-        consumed(many0(tuple((
-            map(
-                opt(terminated(tag("@export"), tuple((space0, newline)))),
-                |maybe_export| maybe_export.is_some(),
-            ),
-            alt((
-                map(newline, |_| DocumentElement::None),
+        consumed(many0(alt((
+            tuple((
                 map(
-                    terminated(import, alt((newline, eof))),
-                    DocumentElement::Import,
+                    opt(terminated(tag("@export"), tuple((space0, newline)))),
+                    |maybe_export| maybe_export.is_some(),
                 ),
-                map(
-                    terminated(type_declaration, alt((newline, eof))),
-                    DocumentElement::TypeDeclaration,
-                ),
-                // Newlines are required by variable_declarations, so we don't
-                // need to add them here.
-                map(variable_declaration, DocumentElement::VariableDeclaration),
-                map(line(ExpressionContext::new()), |maybe_expression| {
-                    maybe_expression.map_or(DocumentElement::None, |expression| {
-                        DocumentElement::Expression(expression)
-                    })
-                }),
+                declaration,
+            )),
+            tuple((
+                value(false, tag("")),
+                alt((
+                    map(newline, |_| DocumentElement::None),
+                    map(
+                        terminated(import, alt((newline, eof))),
+                        DocumentElement::Import,
+                    ),
+                    declaration,
+                    map(line(ExpressionContext::new()), |maybe_expression| {
+                        maybe_expression.map_or(DocumentElement::None, |expression| {
+                            DocumentElement::Expression(expression)
+                        })
+                    }),
+                )),
             )),
         )))),
         |(source, document_elements)| {
@@ -315,5 +327,29 @@ mod test {
         let (remainder, parsed) = result.unwrap();
         assert_eq!(remainder.value(), "");
         assert_eq!(parsed.value.variable_declarations.len(), 1);
+    }
+
+    #[test]
+    fn cannot_export_newline() {
+        let input = ParserInput::new("@export\n\n");
+        let (_, parsed) = document()(input).unwrap();
+        // The input was not parsed
+        assert_eq!(parsed.source, "");
+    }
+
+    #[test]
+    fn cannot_export_an_import() {
+        let input = ParserInput::new("@export\nimport a from \"file.buri\"");
+        let (_, parsed) = document()(input).unwrap();
+        // The input was not parsed
+        assert_eq!(parsed.source, "");
+    }
+
+    #[test]
+    fn cannot_export_an_expression() {
+        let input = ParserInput::new("@export\n5");
+        let (_, parsed) = document()(input).unwrap();
+        // The input was not parsed
+        assert_eq!(parsed.source, "");
     }
 }
