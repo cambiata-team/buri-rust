@@ -1,0 +1,6 @@
+a = 1
+
+myFunc = () =>
+    -- cannot shadow the variable name "a"
+    a = 2
+    a
