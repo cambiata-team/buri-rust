@@ -3,3 +3,9 @@ booleanTrue = #true
 
 @export
 booleanFalse = #false
+
+@export
+hello = #hello
+
+@export
+localHost = #ip(127, 0, 0, 1)
