@@ -1,5 +1,4 @@
 use crate::{
-    apply_constraints::TypeCheckingError,
     constraints::{
         Constraint, FieldAtMostConstraint, HasFieldConstraint, HasFunctionShape,
         HasMethodConstraint, HasTagConstraint, TagAtMostConstraint,
@@ -69,7 +68,7 @@ struct TranslateBinaryOperatorIdCollection {
 fn translate_binary_operator_add_arithmetic_constraints(
     schema: &mut TypeSchema,
     id_collection: &TranslateBinaryOperatorIdCollection,
-) -> Result<(), TypeCheckingError> {
+) -> Result<(), String> {
     schema.add_constraint(id_collection.type_id, constrain_equal_to_num())?;
     schema.add_constraint(id_collection.left_child_id, constrain_equal_to_num())?;
     schema.add_constraint(id_collection.right_child_id, constrain_equal_to_num())?;
@@ -79,7 +78,7 @@ fn translate_binary_operator_add_arithmetic_constraints(
 fn translate_binary_operator_add_concatenate_constraints(
     schema: &mut TypeSchema,
     id_collection: &TranslateBinaryOperatorIdCollection,
-) -> Result<(), TypeCheckingError> {
+) -> Result<(), String> {
     schema.add_constraint(id_collection.type_id, constrain_equal_to_str())?;
     schema.add_constraint(id_collection.left_child_id, constrain_equal_to_str())?;
     schema.add_constraint(id_collection.right_child_id, constrain_equal_to_str())?;
@@ -89,7 +88,7 @@ fn translate_binary_operator_add_concatenate_constraints(
 fn translate_binary_operator_add_logic_constraints(
     schema: &mut TypeSchema,
     id_collection: &TranslateBinaryOperatorIdCollection,
-) -> Result<(), TypeCheckingError> {
+) -> Result<(), String> {
     schema.add_constraint(id_collection.type_id, constrain_at_most_boolean_tag())?;
     schema.add_constraint(id_collection.left_child_id, constrain_at_most_boolean_tag())?;
     schema.add_constraint(
@@ -102,7 +101,7 @@ fn translate_binary_operator_add_logic_constraints(
 fn translate_binary_operator_add_equality_constraints(
     schema: &mut TypeSchema,
     id_collection: &TranslateBinaryOperatorIdCollection,
-) -> Result<(), TypeCheckingError> {
+) -> Result<(), String> {
     schema.add_constraint(id_collection.type_id, constrain_at_most_boolean_tag())?;
     schema
         .set_equal_to_canonical_type(id_collection.left_child_id, id_collection.right_child_id)?;
@@ -112,7 +111,7 @@ fn translate_binary_operator_add_equality_constraints(
 fn translate_binary_operator_add_comparison_constraints(
     schema: &mut TypeSchema,
     id_collection: &TranslateBinaryOperatorIdCollection,
-) -> Result<(), TypeCheckingError> {
+) -> Result<(), String> {
     schema.add_constraint(id_collection.type_id, constrain_at_least_true())?;
     schema.add_constraint(id_collection.type_id, constrain_at_least_false())?;
     schema.add_constraint(id_collection.left_child_id, constrain_equal_to_num())?;
@@ -124,12 +123,12 @@ fn translate_binary_operator_add_function_application_constraints(
     schema: &mut TypeSchema,
     id_collection: &TranslateBinaryOperatorIdCollection,
     right_child: &GenericExpression,
-) -> Result<(), TypeCheckingError> {
+) -> Result<(), String> {
     let argument_types: Vec<TypeId> = match &right_child {
         GenericExpression::FunctionArguments(arguments) => {
             arguments.iter().map(get_generic_type_id).collect()
         }
-        _ => return Err(TypeCheckingError::FunctionApplicationDoesNotUseFunctionArguments),
+        _ => return Err("FunctionApplicationDoesNotUseFunctionArguments".to_owned()),
     };
     schema.add_constraint(
         id_collection.left_child_id,
@@ -145,10 +144,10 @@ fn translate_binary_operator_add_method_lookup_constraints(
     schema: &mut TypeSchema,
     id_collection: &TranslateBinaryOperatorIdCollection,
     right_child: &GenericExpression,
-) -> Result<(), TypeCheckingError> {
+) -> Result<(), String> {
     let method_name = match right_child {
         GenericExpression::Identifier(identifier_expression) => identifier_expression.name.clone(),
-        _ => return Err(TypeCheckingError::MethodLookupDoesNotUseIdentifier),
+        _ => return Err("MethodLookupDoesNotUseIdentifier".to_owned()),
     };
     schema.add_constraint(
         id_collection.left_child_id,
@@ -165,10 +164,10 @@ fn translate_binary_operator_add_field_lookup_constraints(
     schema: &mut TypeSchema,
     id_collection: &TranslateBinaryOperatorIdCollection,
     right_child: &GenericExpression,
-) -> Result<(), TypeCheckingError> {
+) -> Result<(), String> {
     let field_name = match right_child {
         GenericExpression::Identifier(identifier_expression) => identifier_expression.name.clone(),
-        _ => return Err(TypeCheckingError::FieldLookupDoesNotUseIdentifier),
+        _ => return Err("FieldLookupDoesNotUseIdentifier".to_owned()),
     };
     schema.set_equal_to_canonical_type(id_collection.right_child_id, id_collection.type_id)?;
     schema.add_constraint(
@@ -184,14 +183,14 @@ fn translate_binary_operator_add_field_lookup_constraints(
 fn translate_binary_operator<'a>(
     schema: &mut TypeSchema,
     node: BinaryOperatorNode<'a>,
-) -> Result<GenericBinaryOperatorExpression<'a>, TypeCheckingError> {
+) -> Result<GenericBinaryOperatorExpression<'a>, String> {
     let type_id = schema.make_id();
     let translated_left_child =
         translate_parsed_expression_to_generic_expression(schema, *node.value.left_child)?;
     let should_declare_unknown_identifier = node.value.symbol == BinaryOperatorSymbol::FieldLookup;
     let translated_right_child = match *node.value.right_child {
         Expression::FunctionApplicationArguments(arguments) => {
-            let function_arguments: Result<Vec<GenericExpression>, TypeCheckingError> = arguments
+            let function_arguments: Result<Vec<GenericExpression>, String> = arguments
                 .value
                 .arguments
                 .into_iter()
@@ -281,7 +280,7 @@ fn translate_binary_operator<'a>(
 fn translate_block<'a>(
     schema: &mut TypeSchema,
     node: BlockNode<'a>,
-) -> Result<GenericBlockExpression<'a>, TypeCheckingError> {
+) -> Result<GenericBlockExpression<'a>, String> {
     let type_id = schema.make_id();
     schema.scope.start_sub_scope();
     let mut element_translations = Vec::new();
@@ -292,7 +291,7 @@ fn translate_block<'a>(
         element_translations.push(element_translation);
     }
     match element_translations.last_mut() {
-        None => return Err(TypeCheckingError::UnreachableBlockFinalExpression),
+        None => return Err("UnreachableBlockFinalExpression".to_owned()),
         Some(last_element) => {
             schema.set_equal_to_canonical_type(get_generic_type_id(last_element), type_id)?;
         }
@@ -310,7 +309,7 @@ fn translate_block<'a>(
 pub fn translate_declaration<'a>(
     schema: &mut TypeSchema,
     node: DeclarationNode<'a>,
-) -> Result<GenericDeclarationExpression<'a>, TypeCheckingError> {
+) -> Result<GenericDeclarationExpression<'a>, String> {
     let declaration_type_id = schema.make_id();
     let name_type_id = schema.make_id();
     let expression_type = constrain_at_most_none_tag();
@@ -340,7 +339,7 @@ pub fn translate_declaration<'a>(
 fn translate_function<'a>(
     schema: &mut TypeSchema,
     node: FunctionNode<'a>,
-) -> Result<GenericFunctionExpression<'a>, TypeCheckingError> {
+) -> Result<GenericFunctionExpression<'a>, String> {
     let function_type = schema.make_id();
     schema.scope.start_sub_scope();
     let mut argument_names = Vec::new();
@@ -355,7 +354,7 @@ fn translate_function<'a>(
         );
         if let Some(argument_type_expression) = argument.value.argument_type {
             let Some(argument_type_id) = schema.scope.get_variable_declaration_type(&argument_type_expression.value) else {
-                return Err(TypeCheckingError::IdentifierNotFound)
+                return Err("IdentifierNotFound".to_owned())
             };
             schema.set_equal_to_canonical_type(argument_type_id, identifier_type)?;
         }
@@ -387,9 +386,9 @@ fn translate_function<'a>(
 fn translate_identifier<'a>(
     schema: &mut TypeSchema,
     node: IdentifierNode<'a>,
-) -> Result<GenericIdentifierExpression<'a>, TypeCheckingError> {
+) -> Result<GenericIdentifierExpression<'a>, String> {
     let Some(type_id) = schema.scope.get_variable_declaration_type(&node.value.name) else {
-        return Err(TypeCheckingError::IdentifierNotFound)
+        return Err("IdentifierNotFound".to_owned())
     };
     Ok(GenericIdentifierExpression {
         expression_type: GenericSourcedType {
@@ -404,7 +403,7 @@ fn translate_identifier<'a>(
 fn translate_if<'a>(
     schema: &mut TypeSchema,
     node: IfNode<'a>,
-) -> Result<GenericIfExpression<'a>, TypeCheckingError> {
+) -> Result<GenericIfExpression<'a>, String> {
     let type_id = schema.make_id();
     let translated_condition =
         translate_parsed_expression_to_generic_expression(schema, *node.value.condition)?;
@@ -455,7 +454,7 @@ fn translate_if<'a>(
 fn translate_integer<'a>(
     schema: &mut TypeSchema,
     node: IntegerNode<'a>,
-) -> Result<GenericIntegerLiteralExpression<'a>, TypeCheckingError> {
+) -> Result<GenericIntegerLiteralExpression<'a>, String> {
     let type_id = schema.make_id();
     schema.add_constraint(type_id, constrain_equal_to_num())?;
     Ok(GenericIntegerLiteralExpression {
@@ -470,7 +469,7 @@ fn translate_integer<'a>(
 fn translate_list<'a>(
     schema: &mut TypeSchema,
     node: ListNode<'a>,
-) -> Result<GenericListExpression<'a>, TypeCheckingError> {
+) -> Result<GenericListExpression<'a>, String> {
     let list_type_id = schema.make_id();
     let element_type_id = schema.make_id();
     schema.add_constraint(list_type_id, Constraint::ListOfType(element_type_id))?;
@@ -497,7 +496,7 @@ fn translate_list<'a>(
 fn translate_record<'a>(
     schema: &mut TypeSchema,
     node: RecordNode<'a>,
-) -> Result<GenericRecordExpression<'a>, TypeCheckingError> {
+) -> Result<GenericRecordExpression<'a>, String> {
     let record_type_id = schema.make_id();
     let mut element_translations = HashMap::new();
     element_translations.reserve(node.value.len());
@@ -530,7 +529,7 @@ fn translate_record<'a>(
 fn translate_string<'a>(
     schema: &mut TypeSchema,
     node: StringLiteralNode<'a>,
-) -> Result<GenericStringLiteralExpression<'a>, TypeCheckingError> {
+) -> Result<GenericStringLiteralExpression<'a>, String> {
     let type_id = schema.make_id();
     schema.add_constraint(type_id, constrain_equal_to_str())?;
     Ok(GenericStringLiteralExpression {
@@ -545,7 +544,7 @@ fn translate_string<'a>(
 fn translate_tag<'a>(
     schema: &mut TypeSchema,
     node: TagNode<'a>,
-) -> Result<GenericTagExpression<'a>, TypeCheckingError> {
+) -> Result<GenericTagExpression<'a>, String> {
     let type_id = schema.make_id();
     let translated_content_expressions: Vec<GenericExpression> = match node
         .value
@@ -583,7 +582,7 @@ fn translate_tag<'a>(
 fn translate_unary_operator<'a>(
     schema: &mut TypeSchema,
     node: UnaryOperatorNode<'a>,
-) -> Result<GenericUnaryOperatorExpression<'a>, TypeCheckingError> {
+) -> Result<GenericUnaryOperatorExpression<'a>, String> {
     let type_id = schema.make_id();
     let new_child = match node.value.symbol {
         UnaryOperatorSymbol::Not => {
@@ -621,7 +620,7 @@ fn translate_unary_operator<'a>(
 fn translate_record_assignment<'a>(
     schema: &mut TypeSchema,
     node: RecordAssignmentNode<'a>,
-) -> Result<GenericRecordAssignmentExpression<'a>, TypeCheckingError> {
+) -> Result<GenericRecordAssignmentExpression<'a>, String> {
     let assignment_type_id = schema.make_id();
     let raw_translated_name = translate_identifier(schema, node.value.identifier)?;
     let translated_name = GenericExpression::Identifier(Box::new(raw_translated_name.clone()));
@@ -665,7 +664,7 @@ fn translate_record_assignment<'a>(
 pub fn translate_type_declaration<'a>(
     schema: &mut TypeSchema,
     node: TypeDeclarationNode<'a>,
-) -> Result<GenericTypeDeclarationExpression<'a>, TypeCheckingError> {
+) -> Result<GenericTypeDeclarationExpression<'a>, String> {
     let type_id = schema.make_id();
     let expression_type = constrain_at_most_none_tag();
     schema.add_constraint(type_id, expression_type)?;
@@ -694,9 +693,9 @@ pub fn translate_type_declaration<'a>(
 fn translate_type_identifier<'a>(
     schema: &mut TypeSchema,
     node: TypeIdentifierNode<'a>,
-) -> Result<GenericTypeIdentifierExpression<'a>, TypeCheckingError> {
+) -> Result<GenericTypeIdentifierExpression<'a>, String> {
     let Some(type_id) = schema.scope.get_variable_declaration_type(&node.value) else {
-        return Err(TypeCheckingError::TypeIdentifierNotFound)
+        return Err("TypeIdentifierNotFound".to_owned())
     };
     Ok(GenericTypeIdentifierExpression {
         expression_type: GenericSourcedType {
@@ -710,7 +709,7 @@ fn translate_type_identifier<'a>(
 fn translate_function_type(
     schema: &mut TypeSchema,
     node: &FunctionTypeNode,
-) -> Result<TypeId, TypeCheckingError> {
+) -> Result<TypeId, String> {
     let type_id = schema.make_id();
     let mut argument_types = Vec::new();
     for argument in &node.value.arguments {
@@ -731,17 +730,17 @@ fn translate_function_type(
 fn translate_type_identifier_type(
     schema: &mut TypeSchema,
     node: &TypeIdentifierNode,
-) -> Result<TypeId, TypeCheckingError> {
+) -> Result<TypeId, String> {
     schema
         .scope
         .get_variable_declaration_type(&node.value)
-        .ok_or(TypeCheckingError::TypeIdentifierTypeNotFound)
+        .ok_or_else(|| "TypeIdentifierTypeNotFound".to_owned())
 }
 
 fn translate_list_type(
     schema: &mut TypeSchema,
     expression: &ListTypeNode,
-) -> Result<TypeId, TypeCheckingError> {
+) -> Result<TypeId, String> {
     let type_id = schema.make_id();
     let contents_type_id = translate_parsed_type_expression(schema, &expression.value)?;
     schema.add_constraint(type_id, Constraint::ListOfType(contents_type_id))?;
@@ -751,7 +750,7 @@ fn translate_list_type(
 fn translate_record_type(
     schema: &mut TypeSchema,
     expression: &RecordTypeNode,
-) -> Result<TypeId, TypeCheckingError> {
+) -> Result<TypeId, String> {
     let type_id = schema.make_id();
 
     for field in &expression.value {
@@ -771,14 +770,14 @@ fn translate_record_type(
 fn translate_tag_group_type(
     schema: &mut TypeSchema,
     expression: &TagGroupTypeNode,
-) -> Result<TypeId, TypeCheckingError> {
+) -> Result<TypeId, String> {
     let type_id = schema.make_id();
 
     let mut tags: HashMap<String, Vec<TypeId>> = HashMap::new();
     for tag in &expression.value {
         let tag_name = tag.value.name.value.clone();
         if tags.contains_key(&tag_name) {
-            return Err(TypeCheckingError::DuplicateTagNamesInTagGroup);
+            return Err("DuplicateTagNamesInTagGroup".to_owned());
         }
         let mut content_item_ids = vec![];
         for content_item in &tag.value.contents {
@@ -794,7 +793,7 @@ fn translate_tag_group_type(
 fn translate_parsed_type_expression(
     schema: &mut TypeSchema,
     expression: &TypeExpression,
-) -> Result<TypeId, TypeCheckingError> {
+) -> Result<TypeId, String> {
     match expression {
         TypeExpression::Function(function) => translate_function_type(schema, function),
         TypeExpression::Identifier(identifier) => {
@@ -809,7 +808,7 @@ fn translate_parsed_type_expression(
 pub fn translate_parsed_expression_to_generic_expression<'a>(
     schema: &mut TypeSchema,
     expression: Expression<'a>,
-) -> Result<GenericExpression<'a>, TypeCheckingError> {
+) -> Result<GenericExpression<'a>, String> {
     match expression {
         Expression::BinaryOperator(node) => translate_binary_operator(schema, node)
             .map(Box::new)
@@ -824,7 +823,7 @@ pub fn translate_parsed_expression_to_generic_expression<'a>(
             .map(Box::new)
             .map(GenericExpression::Function),
         Expression::FunctionApplicationArguments(_) => {
-            Err(TypeCheckingError::UnreachableFunctionApplicationArgumentExpression)
+            Err("UnreachableFunctionApplicationArgumentExpression".to_owned())
         }
         Expression::Identifier(node) => Ok(GenericExpression::Identifier(Box::new(
             translate_identifier(schema, node)?,
