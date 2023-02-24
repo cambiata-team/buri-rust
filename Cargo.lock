@@ -65,7 +65,8 @@ dependencies = [
  "ast",
  "js_backend",
  "parser",
- "type_checker",
+ "type_checker_resolver",
+ "type_checker_translator",
 ]
 
 [[package]]
@@ -172,12 +173,38 @@ dependencies = [
 ]
 
 [[package]]
-name = "type_checker"
+name = "type_checker_errors"
+version = "0.1.0"
+dependencies = [
+ "backtrace",
+]
+
+[[package]]
+name = "type_checker_resolver"
 version = "0.1.0"
 dependencies = [
  "ast",
- "backtrace",
+ "type_checker_types",
+ "typed_ast",
+]
+
+[[package]]
+name = "type_checker_translator"
+version = "0.1.0"
+dependencies = [
+ "ast",
  "parser",
+ "type_checker_errors",
+ "type_checker_types",
+ "typed_ast",
+]
+
+[[package]]
+name = "type_checker_types"
+version = "0.1.0"
+dependencies = [
+ "ast",
+ "type_checker_errors",
  "typed_ast",
 ]
 

@@ -1,9 +1,17 @@
-use crate::{
+use ast::{
+    BinaryOperatorNode, BinaryOperatorSymbol, BlockNode, DeclarationNode, Expression, FunctionNode,
+    FunctionTypeNode, IdentifierNode, IfNode, IntegerNode, ListNode, ListTypeNode,
+    RecordAssignmentNode, RecordNode, RecordTypeNode, StringLiteralNode, TagGroupTypeNode, TagNode,
+    TypeDeclarationNode, TypeExpression, TypeIdentifierNode, UnaryOperatorNode,
+    UnaryOperatorSymbol,
+};
+use std::collections::HashMap;
+use type_checker_errors::generate_backtrace_error;
+use type_checker_types::{
     constraints::{
         Constraint, FieldAtMostConstraint, HasFieldConstraint, HasFunctionShape,
         HasMethodConstraint, HasTagConstraint, TagAtMostConstraint,
     },
-    generate_backtrace_error::generate_backtrace_error,
     generic_nodes::{
         get_generic_type_id, GenericBinaryOperatorExpression, GenericBlockExpression,
         GenericDeclarationExpression, GenericExpression, GenericFunctionExpression,
@@ -16,14 +24,6 @@ use crate::{
     type_schema::TypeSchema,
     TypeId,
 };
-use ast::{
-    BinaryOperatorNode, BinaryOperatorSymbol, BlockNode, DeclarationNode, Expression, FunctionNode,
-    FunctionTypeNode, IdentifierNode, IfNode, IntegerNode, ListNode, ListTypeNode,
-    RecordAssignmentNode, RecordNode, RecordTypeNode, StringLiteralNode, TagGroupTypeNode, TagNode,
-    TypeDeclarationNode, TypeExpression, TypeIdentifierNode, UnaryOperatorNode,
-    UnaryOperatorSymbol,
-};
-use std::collections::HashMap;
 use typed_ast::PrimitiveType;
 
 const fn constrain_equal_to_num() -> Constraint {

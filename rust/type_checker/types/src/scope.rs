@@ -17,6 +17,7 @@ pub struct Scope {
 }
 
 impl Scope {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             stack: Vec::new(),
@@ -31,6 +32,7 @@ impl Scope {
             self.identifiers.remove(&identifier);
         }
     }
+    #[must_use]
     pub fn get_variable_declaration_type(&self, identifier_name: &str) -> Option<TypeId> {
         let answer = self.identifiers.get(identifier_name).copied();
         answer

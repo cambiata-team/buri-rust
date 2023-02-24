@@ -9,4 +9,5 @@ edition = "2021"
 ast = { path = "../ast" }
 parser = { path = "../parser" }
 js_backend = { path = "../js_backend" }
-type_checker = { path = "../type_checker" }
+type_checker_translator = { path = "../type_checker/translator" }
+type_checker_resolver = { path = "../type_checker/resolver" }

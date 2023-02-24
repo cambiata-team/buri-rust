@@ -1,6 +1,7 @@
 use js_backend::print_js_document;
 use parser::parse_buri_file;
-use type_checker::{apply_constraints, resolve_concrete_types};
+use type_checker_resolver::resolve_concrete_types;
+use type_checker_translator::apply_constraints;
 
 /// Compiles a single Buri file. Do not use to compile Buri programs with
 /// multiple files.

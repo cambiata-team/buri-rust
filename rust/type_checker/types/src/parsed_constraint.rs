@@ -208,6 +208,7 @@ impl CategoryConstraints {
 pub struct ParsedNameConstraint(Option<String>);
 
 impl ParsedNameConstraint {
+    #[must_use]
     pub const fn new() -> Self {
         Self(None)
     }
@@ -222,6 +223,7 @@ impl ParsedNameConstraint {
         }
     }
 
+    #[must_use]
     pub fn is_compatible_with(&self, other: &Self) -> bool {
         match (&self.0, &other.0) {
             (Some(self_name), Some(other_name)) => self_name == other_name,
@@ -234,6 +236,7 @@ impl ParsedNameConstraint {
 pub struct ParsedMethodsConstraint(HashMap<String, TypeId>);
 
 impl ParsedMethodsConstraint {
+    #[must_use]
     pub fn new() -> Self {
         Self(HashMap::new())
     }
@@ -249,6 +252,7 @@ impl ParsedMethodsConstraint {
         }
     }
 
+    #[must_use]
     pub fn is_compatible_with_method(
         &self,
         method: &HasMethodConstraint,
@@ -259,6 +263,7 @@ impl ParsedMethodsConstraint {
         })
     }
 
+    #[must_use]
     pub fn is_compatible_with(&self, other: &Self, schema: &TypeSchema) -> bool {
         other.0.iter().all(|(name, type_id)| {
             self.is_compatible_with_method(
@@ -280,6 +285,7 @@ pub struct ParsedConstraint {
 }
 
 impl ParsedConstraint {
+    #[must_use]
     pub fn new(constraint: Constraint, schema: &TypeSchema) -> Self {
         let mut name = ParsedNameConstraint::new();
         let mut methods = ParsedMethodsConstraint::new();
@@ -331,6 +337,7 @@ impl ParsedConstraint {
         }
     }
 
+    #[must_use]
     pub fn is_compatible_with(&self, other: &Self, schema: &TypeSchema) -> bool {
         self.name.is_compatible_with(&other.name)
             && self.methods.is_compatible_with(&other.methods, schema)
