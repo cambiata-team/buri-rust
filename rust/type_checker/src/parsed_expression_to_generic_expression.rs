@@ -3,6 +3,7 @@ use crate::{
         Constraint, FieldAtMostConstraint, HasFieldConstraint, HasFunctionShape,
         HasMethodConstraint, HasTagConstraint, TagAtMostConstraint,
     },
+    generate_backtrace_error::generate_backtrace_error,
     generic_nodes::{
         get_generic_type_id, GenericBinaryOperatorExpression, GenericBlockExpression,
         GenericDeclarationExpression, GenericExpression, GenericFunctionExpression,
@@ -128,7 +129,11 @@ fn translate_binary_operator_add_function_application_constraints(
         GenericExpression::FunctionArguments(arguments) => {
             arguments.iter().map(get_generic_type_id).collect()
         }
-        _ => return Err("FunctionApplicationDoesNotUseFunctionArguments".to_owned()),
+        _ => {
+            return Err(generate_backtrace_error(
+                "FunctionApplicationDoesNotUseFunctionArguments".to_owned(),
+            ))
+        }
     };
     schema.add_constraint(
         id_collection.left_child_id,
@@ -147,7 +152,11 @@ fn translate_binary_operator_add_method_lookup_constraints(
 ) -> Result<(), String> {
     let method_name = match right_child {
         GenericExpression::Identifier(identifier_expression) => identifier_expression.name.clone(),
-        _ => return Err("MethodLookupDoesNotUseIdentifier".to_owned()),
+        _ => {
+            return Err(generate_backtrace_error(
+                "MethodLookupDoesNotUseIdentifier".to_owned(),
+            ))
+        }
     };
     schema.add_constraint(
         id_collection.left_child_id,
@@ -167,7 +176,11 @@ fn translate_binary_operator_add_field_lookup_constraints(
 ) -> Result<(), String> {
     let field_name = match right_child {
         GenericExpression::Identifier(identifier_expression) => identifier_expression.name.clone(),
-        _ => return Err("FieldLookupDoesNotUseIdentifier".to_owned()),
+        _ => {
+            return Err(generate_backtrace_error(
+                "FieldLookupDoesNotUseIdentifier".to_owned(),
+            ))
+        }
     };
     schema.set_equal_to_canonical_type(id_collection.right_child_id, id_collection.type_id)?;
     schema.add_constraint(
@@ -291,7 +304,11 @@ fn translate_block<'a>(
         element_translations.push(element_translation);
     }
     match element_translations.last_mut() {
-        None => return Err("UnreachableBlockFinalExpression".to_owned()),
+        None => {
+            return Err(generate_backtrace_error(
+                "UnreachableBlockFinalExpression".to_owned(),
+            ))
+        }
         Some(last_element) => {
             schema.set_equal_to_canonical_type(get_generic_type_id(last_element), type_id)?;
         }
@@ -354,7 +371,7 @@ fn translate_function<'a>(
         );
         if let Some(argument_type_expression) = argument.value.argument_type {
             let Some(argument_type_id) = schema.scope.get_variable_declaration_type(&argument_type_expression.value) else {
-                return Err("IdentifierNotFound".to_owned())
+                return Err(generate_backtrace_error("IdentifierNotFound".to_owned()))
             };
             schema.set_equal_to_canonical_type(argument_type_id, identifier_type)?;
         }
@@ -388,7 +405,7 @@ fn translate_identifier<'a>(
     node: IdentifierNode<'a>,
 ) -> Result<GenericIdentifierExpression<'a>, String> {
     let Some(type_id) = schema.scope.get_variable_declaration_type(&node.value.name) else {
-        return Err("IdentifierNotFound".to_owned())
+        return Err(generate_backtrace_error("IdentifierNotFound".to_owned()))
     };
     Ok(GenericIdentifierExpression {
         expression_type: GenericSourcedType {
@@ -695,7 +712,7 @@ fn translate_type_identifier<'a>(
     node: TypeIdentifierNode<'a>,
 ) -> Result<GenericTypeIdentifierExpression<'a>, String> {
     let Some(type_id) = schema.scope.get_variable_declaration_type(&node.value) else {
-        return Err("TypeIdentifierNotFound".to_owned())
+        return Err(generate_backtrace_error("TypeIdentifierNotFound".to_owned()))
     };
     Ok(GenericTypeIdentifierExpression {
         expression_type: GenericSourcedType {
@@ -777,7 +794,9 @@ fn translate_tag_group_type(
     for tag in &expression.value {
         let tag_name = tag.value.name.value.clone();
         if tags.contains_key(&tag_name) {
-            return Err("DuplicateTagNamesInTagGroup".to_owned());
+            return Err(generate_backtrace_error(
+                "DuplicateTagNamesInTagGroup".to_owned(),
+            ));
         }
         let mut content_item_ids = vec![];
         for content_item in &tag.value.contents {
@@ -822,9 +841,9 @@ pub fn translate_parsed_expression_to_generic_expression<'a>(
         Expression::Function(node) => translate_function(schema, node)
             .map(Box::new)
             .map(GenericExpression::Function),
-        Expression::FunctionApplicationArguments(_) => {
-            Err("UnreachableFunctionApplicationArgumentExpression".to_owned())
-        }
+        Expression::FunctionApplicationArguments(_) => Err(generate_backtrace_error(
+            "UnreachableFunctionApplicationArgumentExpression".to_owned(),
+        )),
         Expression::Identifier(node) => Ok(GenericExpression::Identifier(Box::new(
             translate_identifier(schema, node)?,
         ))),

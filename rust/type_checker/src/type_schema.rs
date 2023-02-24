@@ -1,4 +1,7 @@
-use crate::{constraints::Constraint, parsed_constraint::ParsedConstraint, scope::Scope, TypeId};
+use crate::{
+    constraints::Constraint, generate_backtrace_error::generate_backtrace_error,
+    parsed_constraint::ParsedConstraint, scope::Scope, TypeId,
+};
 use std::collections::HashMap;
 use typed_ast::{ConcreteType, PrimitiveType};
 
@@ -83,7 +86,9 @@ impl TypeSchema {
                     parsed_constraint.add_constraints(new_constraint, &self.types);
                 }
             } else {
-                return Err("ConstraintsNotCompatible".to_owned());
+                return Err(generate_backtrace_error(
+                    "ConstraintsNotCompatible".to_owned(),
+                ));
             }
         } else {
             self.constraints
@@ -113,7 +118,7 @@ impl TypeSchema {
         other_type_id: TypeId,
     ) -> Result<(), String> {
         if !self.types_are_compatible(canonical_type_id, other_type_id) {
-            return Err("TypesAreNotCompatible".to_owned());
+            return Err(generate_backtrace_error("TypesAreNotCompatible".to_owned()));
         }
         self.types.set_types_equal(canonical_type_id, other_type_id);
         Ok(())
