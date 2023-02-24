@@ -1,8 +1,6 @@
-use crate::{
-    constraints::Constraint, generate_backtrace_error::generate_backtrace_error,
-    parsed_constraint::ParsedConstraint, scope::Scope, TypeId,
-};
+use crate::{constraints::Constraint, parsed_constraint::ParsedConstraint, scope::Scope, TypeId};
 use std::collections::HashMap;
+use type_checker_errors::generate_backtrace_error;
 use typed_ast::{ConcreteType, PrimitiveType};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -20,6 +18,7 @@ impl CanonicalIds {
         id
     }
 
+    #[must_use]
     pub fn get_canonical_id(&self, mut type_id: TypeId) -> TypeId {
         loop {
             let parent_id = self.0[type_id];
@@ -59,6 +58,7 @@ pub struct TypeSchema {
 }
 
 impl TypeSchema {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             types: CanonicalIds::new(),
@@ -96,6 +96,7 @@ impl TypeSchema {
         };
         Ok(())
     }
+    #[must_use]
     pub fn get_concrete_type_from_id(&self, type_id: TypeId) -> ConcreteType {
         let canonical_id = self.get_canonical_id(type_id);
         self.constraints.get(&canonical_id).map_or_else(
@@ -103,9 +104,11 @@ impl TypeSchema {
             |parsed_constraint| parsed_constraint.to_concrete_type(self),
         )
     }
+    #[must_use]
     pub fn get_canonical_id(&self, type_id: TypeId) -> TypeId {
         self.types.get_canonical_id(type_id)
     }
+    #[must_use]
     pub fn count_ids(&self) -> usize {
         self.types.count_ids()
     }
@@ -123,6 +126,7 @@ impl TypeSchema {
         self.types.set_types_equal(canonical_type_id, other_type_id);
         Ok(())
     }
+    #[must_use]
     pub fn types_are_compatible(&self, base_type: TypeId, other_type: TypeId) -> bool {
         let base_canonical_id = self.get_canonical_id(base_type);
         let other_canonical_id = self.get_canonical_id(other_type);
@@ -140,7 +144,8 @@ impl TypeSchema {
         }
     }
 
-    #[cfg(test)]
+    // TODO(aaron) B-279
+    // #[cfg(test)]
     pub fn make_identifier_for_test<S: Into<String>>(&mut self, identifier_name: S) -> TypeId {
         let id = self.make_id();
         self.scope.declare_identifier(identifier_name.into(), id);

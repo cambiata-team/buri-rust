@@ -6,7 +6,10 @@ members = [
     "rust/e2e",
     "rust/parser",
     "rust/js_backend",
-    "rust/type_checker",
+    "rust/type_checker/errors",
+    "rust/type_checker/resolver",
+    "rust/type_checker/translator",
+    "rust/type_checker/types",
     "rust/typed_ast",
 ]
 

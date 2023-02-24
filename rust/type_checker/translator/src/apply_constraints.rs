@@ -1,11 +1,13 @@
-use crate::{
+use crate::parsed_expression_to_generic_expression::{
+    translate_declaration, translate_type_declaration,
+};
+use ast::{DeclarationValue, DocumentNode, ParsedNode, TopLevelDeclaration, TypeDeclarationNode};
+use type_checker_types::{
     generic_nodes::{
         GenericDeclarationExpression, GenericDocument, GenericTypeDeclarationExpression,
     },
-    parsed_expression_to_generic_expression::{translate_declaration, translate_type_declaration},
     type_schema::TypeSchema,
 };
-use ast::{DeclarationValue, DocumentNode, ParsedNode, TopLevelDeclaration, TypeDeclarationNode};
 
 fn translate_top_level_variable_declaration<'a>(
     schema: &mut TypeSchema,

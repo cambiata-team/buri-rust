@@ -50,6 +50,7 @@ pub struct GenericDocument<'a> {
     pub expressions: Vec<TypedExpression<GenericSourcedType<'a>>>,
 }
 
+#[must_use]
 pub const fn get_generic_type_id(input: &GenericExpression) -> TypeId {
     match input {
         GenericExpression::BinaryOperator(node) => node.expression_type.type_id,

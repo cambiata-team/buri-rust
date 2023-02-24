@@ -1,4 +1,5 @@
-use crate::{
+use ast::TopLevelDeclaration;
+use type_checker_types::{
     generic_nodes::{
         GenericBinaryOperatorExpression, GenericBlockExpression, GenericBooleanExpression,
         GenericDeclarationExpression, GenericDocument, GenericExpression,
@@ -10,7 +11,6 @@ use crate::{
     type_schema::TypeSchema,
     TypeId,
 };
-use ast::TopLevelDeclaration;
 use typed_ast::{
     ConcreteBinaryOperatorExpression, ConcreteBlockExpression, ConcreteBooleanExpression,
     ConcreteDeclarationExpression, ConcreteDocument, ConcreteExpression,
