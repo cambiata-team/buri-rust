@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 ast = { path = "../ast" }
+backtrace = "0.3"
 parser = { path = "../parser" }
 typed_ast = { path = "../typed_ast" }

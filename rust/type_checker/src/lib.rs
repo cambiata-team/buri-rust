@@ -1,5 +1,6 @@
 mod apply_constraints;
 mod constraints;
+mod generate_backtrace_error;
 mod generic_nodes;
 mod parsed_constraint;
 mod parsed_expression_to_generic_expression;
