@@ -1,0 +1,3 @@
+func = (b) =>
+    import a from "hello.buri"
+    b
