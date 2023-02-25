@@ -1,0 +1,2 @@
+-- both branches must have the same type
+hello = if #true do 1 else "2"
