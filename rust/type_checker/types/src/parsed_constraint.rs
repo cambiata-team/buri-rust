@@ -232,7 +232,7 @@ impl ParsedNameConstraint {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ParsedMethodsConstraint(HashMap<String, TypeId>);
 
 impl ParsedMethodsConstraint {
