@@ -1190,6 +1190,15 @@ mod test {
     }
 
     #[test]
+    fn errors_if_conditional_is_not_a_boolean() {
+        let mut schema = TypeSchema::new();
+        schema.make_identifier_for_test("a").unwrap();
+        let expression = parse_test_expression("if #green do a");
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_err());
+    }
+
+    #[test]
     fn errors_with_the_branches_have_different_types() {
         let mut schema = TypeSchema::new();
         let expression = parse_test_expression("if #true do 1 else \"2\"");
