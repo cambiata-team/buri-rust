@@ -1,0 +1,8 @@
+@export
+add = (a, b) => a + b
+
+@export
+three = add(1, 2)
+
+@export
+four = add(3, 1)
