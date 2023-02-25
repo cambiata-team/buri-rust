@@ -28,11 +28,11 @@ fn print_operator(operator: &BinaryOperatorSymbol) -> String {
         BinaryOperatorSymbol::Or => "||".to_string(),
         BinaryOperatorSymbol::Concatenate => "+".to_string(),
         BinaryOperatorSymbol::MethodLookup | BinaryOperatorSymbol::FieldLookup => ".".to_string(),
-        BinaryOperatorSymbol::FunctionApplication => unreachable!(),
+        BinaryOperatorSymbol::FunctionApplication => String::new(),
     }
 }
 
-fn get_format(operator: &BinaryOperatorSymbol) -> OperatorFormat {
+const fn get_format(operator: &BinaryOperatorSymbol) -> OperatorFormat {
     match operator {
         BinaryOperatorSymbol::Add
         | BinaryOperatorSymbol::Subtract
@@ -48,11 +48,11 @@ fn get_format(operator: &BinaryOperatorSymbol) -> OperatorFormat {
         | BinaryOperatorSymbol::GreaterThanOrEqualTo => OperatorFormat::Method,
         BinaryOperatorSymbol::Concatenate
         | BinaryOperatorSymbol::And
-        | BinaryOperatorSymbol::Or => OperatorFormat::Parenthesized,
+        | BinaryOperatorSymbol::Or
+        | BinaryOperatorSymbol::FunctionApplication => OperatorFormat::Parenthesized,
         BinaryOperatorSymbol::MethodLookup | BinaryOperatorSymbol::FieldLookup => {
             OperatorFormat::Naked
         }
-        BinaryOperatorSymbol::FunctionApplication => unreachable!(),
     }
 }
 

@@ -333,7 +333,7 @@ pub fn translate_declaration<'a>(
     schema.add_constraint(declaration_type_id, expression_type)?;
     schema
         .scope
-        .declare_identifier(node.value.identifier.value.name.clone(), name_type_id);
+        .declare_identifier(node.value.identifier.value.name.clone(), name_type_id)?;
     let identifier = translate_identifier(schema, node.value.identifier.clone())?;
     let expression =
         translate_parsed_expression_to_generic_expression(schema, *node.value.expression)?;
@@ -368,7 +368,7 @@ fn translate_function<'a>(
         schema.scope.declare_identifier(
             argument.value.argument_name.value.name.clone(),
             identifier_type,
-        );
+        )?;
         if let Some(argument_type_expression) = argument.value.argument_type {
             let Some(argument_type_id) = schema.scope.get_variable_declaration_type(&argument_type_expression.value) else {
                 return Err(generate_backtrace_error("IdentifierNotFound".to_owned()))
@@ -688,7 +688,7 @@ pub fn translate_type_declaration<'a>(
 
     schema
         .scope
-        .declare_identifier(node.value.identifier.value.clone(), type_id);
+        .declare_identifier(node.value.identifier.value.clone(), type_id)?;
     let identifier_name = translate_type_identifier(schema, node.value.identifier.clone())?;
     let translated_name = GenericExpression::TypeIdentifier(Box::new(identifier_name.clone()));
     let name_type_id = get_generic_type_id(&translated_name);
@@ -881,6 +881,7 @@ pub fn translate_parsed_expression_to_generic_expression<'a>(
 mod test {
     use super::*;
     use ast::{FunctionApplicationArgumentsNode, FunctionApplicationArgumentsValue, ParserInput};
+    use indoc::indoc;
     use parser::parse_test_expression;
 
     #[test]
@@ -910,8 +911,8 @@ mod test {
     #[test]
     fn logic_binary_operator_adds_three_constraints_beyond_those_added_by_its_children() {
         let mut schema = TypeSchema::new();
-        schema.make_identifier_for_test("a");
-        schema.make_identifier_for_test("b");
+        schema.make_identifier_for_test("a").unwrap();
+        schema.make_identifier_for_test("b").unwrap();
         let expression = parse_test_expression("a and b");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 3);
@@ -946,7 +947,7 @@ mod test {
     fn function_arguments_binary_operator_has_one_more_canonical_id_than_sum_of_canonical_ids_in_children(
     ) {
         let mut schema = TypeSchema::new();
-        schema.make_identifier_for_test("a");
+        schema.make_identifier_for_test("a").unwrap();
         let expression = parse_test_expression("a(\"hello\", 314, 271)");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 5);
@@ -956,7 +957,7 @@ mod test {
     fn function_arguments_binary_operator_adds_two_constraints_beyond_those_added_by_its_children()
     {
         let mut schema = TypeSchema::new();
-        schema.make_identifier_for_test("a");
+        schema.make_identifier_for_test("a").unwrap();
         let expression = parse_test_expression("a(\"hello\", 314, 271)");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 5);
@@ -966,8 +967,8 @@ mod test {
     fn method_lookup_binary_operator_only_has_two_canonical_ids_when_both_left_and_right_are_identifiers(
     ) {
         let mut schema = TypeSchema::new();
-        schema.make_identifier_for_test("a");
-        schema.make_identifier_for_test("b");
+        schema.make_identifier_for_test("a").unwrap();
+        schema.make_identifier_for_test("b").unwrap();
         let expression = parse_test_expression("a:b");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 2);
@@ -977,8 +978,8 @@ mod test {
     fn method_lookup_binary_operator_only_adds_one_constraint_when_both_left_and_right_are_identifiers(
     ) {
         let mut schema = TypeSchema::new();
-        schema.make_identifier_for_test("a");
-        schema.make_identifier_for_test("b");
+        schema.make_identifier_for_test("a").unwrap();
+        schema.make_identifier_for_test("b").unwrap();
         let expression = parse_test_expression("a:b");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 2);
@@ -988,8 +989,8 @@ mod test {
     fn field_lookup_binary_operator_only_has_two_canonical_ids_when_both_left_and_right_are_identifiers(
     ) {
         let mut schema = TypeSchema::new();
-        schema.make_identifier_for_test("a");
-        schema.make_identifier_for_test("b");
+        schema.make_identifier_for_test("a").unwrap();
+        schema.make_identifier_for_test("b").unwrap();
         let expression = parse_test_expression("a.b");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 3);
@@ -999,8 +1000,8 @@ mod test {
     fn field_lookup_binary_operator_only_adds_one_constraint_when_both_left_and_right_are_identifiers(
     ) {
         let mut schema = TypeSchema::new();
-        schema.make_identifier_for_test("a");
-        schema.make_identifier_for_test("b");
+        schema.make_identifier_for_test("a").unwrap();
+        schema.make_identifier_for_test("b").unwrap();
         let expression = parse_test_expression("a.b");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 3);
@@ -1123,7 +1124,7 @@ mod test {
     #[test]
     fn identifier_input_preserves_name() {
         let mut schema = TypeSchema::new();
-        schema.make_identifier_for_test("hello");
+        schema.make_identifier_for_test("hello").unwrap();
         let expression = parse_test_expression("hello");
         let result =
             translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
@@ -1137,8 +1138,8 @@ mod test {
     #[test]
     fn when_false_branch_is_absent_if_increments_id_counter_by_one_beyond_children() {
         let mut schema = TypeSchema::new();
-        schema.make_identifier_for_test("a");
-        schema.make_identifier_for_test("b");
+        schema.make_identifier_for_test("a").unwrap();
+        schema.make_identifier_for_test("b").unwrap();
         let expression = parse_test_expression("if a do b");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.count_ids(), 3);
@@ -1147,9 +1148,9 @@ mod test {
     #[test]
     fn when_false_branch_is_present_if_increments_id_counter_by_one_beyond_children() {
         let mut schema = TypeSchema::new();
-        schema.make_identifier_for_test("a");
-        schema.make_identifier_for_test("b");
-        schema.make_identifier_for_test("c");
+        schema.make_identifier_for_test("a").unwrap();
+        schema.make_identifier_for_test("b").unwrap();
+        schema.make_identifier_for_test("c").unwrap();
         let expression = parse_test_expression("if a do b else c");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.count_ids(), 4);
@@ -1159,9 +1160,9 @@ mod test {
     fn when_false_branch_is_present_if_only_has_two_canonical_ids_when_condition_and_paths_are_all_identifiers(
     ) {
         let mut schema = TypeSchema::new();
-        schema.make_identifier_for_test("a");
-        schema.make_identifier_for_test("b");
-        schema.make_identifier_for_test("c");
+        schema.make_identifier_for_test("a").unwrap();
+        schema.make_identifier_for_test("b").unwrap();
+        schema.make_identifier_for_test("c").unwrap();
         let expression = parse_test_expression("if a do b else c");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 2);
@@ -1170,8 +1171,8 @@ mod test {
     #[test]
     fn when_false_branch_is_absent_if_adds_three_constraints() {
         let mut schema = TypeSchema::new();
-        schema.make_identifier_for_test("a");
-        schema.make_identifier_for_test("b");
+        schema.make_identifier_for_test("a").unwrap();
+        schema.make_identifier_for_test("b").unwrap();
         let expression = parse_test_expression("if a do b");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 3);
@@ -1180,9 +1181,9 @@ mod test {
     #[test]
     fn when_false_branch_is_present_if_adds_one_constraint() {
         let mut schema = TypeSchema::new();
-        schema.make_identifier_for_test("a");
-        schema.make_identifier_for_test("b");
-        schema.make_identifier_for_test("c");
+        schema.make_identifier_for_test("a").unwrap();
+        schema.make_identifier_for_test("b").unwrap();
+        schema.make_identifier_for_test("c").unwrap();
         let expression = parse_test_expression("if a do b else c");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 2);
@@ -1281,8 +1282,8 @@ mod test {
     #[test]
     fn record_adds_one_constraint_plus_two_more_for_each_field() {
         let mut schema = TypeSchema::new();
-        schema.make_identifier_for_test("a");
-        schema.make_identifier_for_test("b");
+        schema.make_identifier_for_test("a").unwrap();
+        schema.make_identifier_for_test("b").unwrap();
         let expression = parse_test_expression("{ a: 3, b: 4 }");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 5);
@@ -1291,8 +1292,8 @@ mod test {
     #[test]
     fn for_record_input_each_field_in_input_list_has_corresponding_field_in_translated_list() {
         let mut schema = TypeSchema::new();
-        schema.make_identifier_for_test("a");
-        schema.make_identifier_for_test("b");
+        schema.make_identifier_for_test("a").unwrap();
+        schema.make_identifier_for_test("b").unwrap();
         let expression = parse_test_expression("{ a: 3, b: 4 }");
         let result =
             translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
@@ -1418,7 +1419,7 @@ mod test {
     #[test]
     fn unary_operator_not_input_adds_three_constraints_beyond_those_added_by_the_child() {
         let mut schema = TypeSchema::new();
-        schema.make_identifier_for_test("hello");
+        schema.make_identifier_for_test("hello").unwrap();
         let expression = parse_test_expression("not hello");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 2);
@@ -1443,7 +1444,7 @@ mod test {
     #[test]
     fn unary_operator_not_input_preserves_symbol() {
         let mut schema = TypeSchema::new();
-        schema.make_identifier_for_test("hello");
+        schema.make_identifier_for_test("hello").unwrap();
         let expression = parse_test_expression("not hello");
         let result =
             translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
@@ -1476,5 +1477,18 @@ mod test {
         let expression = parse_test_expression("(a) => a.b");
         let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn cannot_shadow_variables() {
+        let mut schema = TypeSchema::new();
+        schema.make_identifier_for_test("a").unwrap();
+        let expression = parse_test_expression(indoc! {"
+            () =>
+                a = 1
+                a
+        "});
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_err());
     }
 }

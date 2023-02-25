@@ -146,10 +146,13 @@ impl TypeSchema {
 
     // TODO(aaron) B-279
     // #[cfg(test)]
-    pub fn make_identifier_for_test<S: Into<String>>(&mut self, identifier_name: S) -> TypeId {
+    pub fn make_identifier_for_test<S: Into<String>>(
+        &mut self,
+        identifier_name: S,
+    ) -> Result<TypeId, String> {
         let id = self.make_id();
-        self.scope.declare_identifier(identifier_name.into(), id);
-        id
+        self.scope.declare_identifier(identifier_name.into(), id)?;
+        Ok(id)
     }
 }
 

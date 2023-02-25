@@ -15,7 +15,10 @@ pub fn basic_expression<'a>(
         map(move |input| function(context, input), Expression::Function),
         parentheses,
         map(type_declaration, Expression::TypeDeclaration),
-        map(variable_declaration, Expression::Declaration),
+        map(
+            move |input| variable_declaration(context, input),
+            Expression::Declaration,
+        ),
         map(
             move |input| unary_operator_expression(context, input),
             Expression::UnaryOperator,

@@ -1,3 +1,5 @@
+use type_checker_errors::generate_backtrace_error;
+
 use crate::TypeId;
 use std::collections::HashMap;
 
@@ -37,10 +39,20 @@ impl Scope {
         let answer = self.identifiers.get(identifier_name).copied();
         answer
     }
-    pub fn declare_identifier(&mut self, identifier_name: String, identifier_type: TypeId) {
+    pub fn declare_identifier(
+        &mut self,
+        identifier_name: String,
+        identifier_type: TypeId,
+    ) -> Result<(), String> {
+        if self.identifiers.get(&identifier_name).is_some() {
+            return Err(generate_backtrace_error(format!(
+                "Identifier {identifier_name} already declared in this scope"
+            )));
+        }
         self.identifiers
             .insert(identifier_name.clone(), identifier_type);
         self.stack.push(ScopeItem::Identifier(identifier_name));
+        Ok(())
     }
 }
 
@@ -72,9 +84,9 @@ mod test {
     #[test]
     fn adding_identifiers_to_scope_updates_the_stack() {
         let mut scope = Scope::new();
-        scope.declare_identifier("foo".to_string(), 0);
-        scope.declare_identifier("bar".to_string(), 1);
-        scope.declare_identifier("baz".to_string(), 2);
+        scope.declare_identifier("foo".to_string(), 0).unwrap();
+        scope.declare_identifier("bar".to_string(), 1).unwrap();
+        scope.declare_identifier("baz".to_string(), 2).unwrap();
         assert_eq!(
             scope.stack,
             vec![
@@ -88,9 +100,9 @@ mod test {
     #[test]
     fn adding_identifiers_to_scope_updates_the_identifiers() {
         let mut scope = Scope::new();
-        scope.declare_identifier("foo".to_string(), 0);
-        scope.declare_identifier("bar".to_string(), 1);
-        scope.declare_identifier("baz".to_string(), 2);
+        scope.declare_identifier("foo".to_string(), 0).unwrap();
+        scope.declare_identifier("bar".to_string(), 1).unwrap();
+        scope.declare_identifier("baz".to_string(), 2).unwrap();
         assert_eq!(
             scope.identifiers,
             vec![
@@ -106,9 +118,9 @@ mod test {
     #[test]
     fn ending_sub_scope_pops_all_identifiers_from_stack() {
         let mut scope = Scope::new();
-        scope.declare_identifier("foo".to_string(), 0);
-        scope.declare_identifier("bar".to_string(), 1);
-        scope.declare_identifier("baz".to_string(), 2);
+        scope.declare_identifier("foo".to_string(), 0).unwrap();
+        scope.declare_identifier("bar".to_string(), 1).unwrap();
+        scope.declare_identifier("baz".to_string(), 2).unwrap();
         scope.end_sub_scope();
         assert_eq!(scope.stack, Vec::new());
     }
@@ -116,13 +128,13 @@ mod test {
     #[test]
     fn ending_sub_scope_only_pops_identifiers_from_current_scope_in_the_stack() {
         let mut scope = Scope::new();
-        scope.declare_identifier("foo".to_string(), 0);
-        scope.declare_identifier("bar".to_string(), 1);
-        scope.declare_identifier("baz".to_string(), 2);
+        scope.declare_identifier("foo".to_string(), 0).unwrap();
+        scope.declare_identifier("bar".to_string(), 1).unwrap();
+        scope.declare_identifier("baz".to_string(), 2).unwrap();
         scope.start_sub_scope();
-        scope.declare_identifier("qux".to_string(), 3);
-        scope.declare_identifier("quux".to_string(), 4);
-        scope.declare_identifier("quuz".to_string(), 5);
+        scope.declare_identifier("qux".to_string(), 3).unwrap();
+        scope.declare_identifier("quux".to_string(), 4).unwrap();
+        scope.declare_identifier("quuz".to_string(), 5).unwrap();
         scope.end_sub_scope();
         assert_eq!(
             scope.stack,
@@ -137,9 +149,9 @@ mod test {
     #[test]
     fn ending_sub_scope_removes_identifiers_from_hash_map() {
         let mut scope = Scope::new();
-        scope.declare_identifier("foo".to_string(), 0);
-        scope.declare_identifier("bar".to_string(), 1);
-        scope.declare_identifier("baz".to_string(), 2);
+        scope.declare_identifier("foo".to_string(), 0).unwrap();
+        scope.declare_identifier("bar".to_string(), 1).unwrap();
+        scope.declare_identifier("baz".to_string(), 2).unwrap();
         scope.end_sub_scope();
         assert_eq!(scope.identifiers, HashMap::new());
     }
@@ -147,13 +159,13 @@ mod test {
     #[test]
     fn ending_sub_scope_removes_identifiers_from_current_scope_in_hash_map() {
         let mut scope = Scope::new();
-        scope.declare_identifier("foo".to_string(), 0);
-        scope.declare_identifier("bar".to_string(), 1);
-        scope.declare_identifier("baz".to_string(), 2);
+        scope.declare_identifier("foo".to_string(), 0).unwrap();
+        scope.declare_identifier("bar".to_string(), 1).unwrap();
+        scope.declare_identifier("baz".to_string(), 2).unwrap();
         scope.start_sub_scope();
-        scope.declare_identifier("qux".to_string(), 3);
-        scope.declare_identifier("quux".to_string(), 4);
-        scope.declare_identifier("quuz".to_string(), 5);
+        scope.declare_identifier("qux".to_string(), 3).unwrap();
+        scope.declare_identifier("quux".to_string(), 4).unwrap();
+        scope.declare_identifier("quuz".to_string(), 5).unwrap();
         scope.end_sub_scope();
         assert_eq!(
             scope.identifiers,

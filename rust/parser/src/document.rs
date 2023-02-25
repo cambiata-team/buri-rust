@@ -31,7 +31,10 @@ fn declaration(input: ParserInput) -> IResult<DocumentElement> {
         ),
         // Newlines are required by variable_declarations, so we don't
         // need to add them here.
-        map(variable_declaration, DocumentElement::VariableDeclaration),
+        map(
+            move |input| variable_declaration(ExpressionContext::new(), input),
+            DocumentElement::VariableDeclaration,
+        ),
     ))(input)
 }
 
