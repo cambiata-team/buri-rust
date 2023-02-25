@@ -1,0 +1,107 @@
+-- and or
+
+@export
+trueAndTrueOrTrue = #true and #true or #true
+
+@export
+trueAndTrueOrFalse = #true and #true or #false
+
+@export
+trueAndFalseOrTrue = #true and #false or #true
+
+@export
+falseAndTrueOrTrue = #false and #true or #true
+
+@export
+falseAndFalseOrTrue = #false and #false or #true
+
+@export
+trueAndFalseOrFalse = #true and #false or #false
+
+@export
+falseAndTrueOrFalse = #false and #true or #false
+
+@export
+falseAndFalseOrFalse = #false and #false or #false
+
+-- or and
+
+@export
+trueOrTrueAndTrue = #true or #true and #true
+
+@export
+trueOrTrueAndFalse = #true or #true and #false
+
+@export
+trueOrFalseAndTrue = #true or #false and #true
+
+@export
+falseOrTrueAndTrue = #false or #true and #true
+
+@export
+falseOrFalseAndTrue = #false or #false and #true
+
+@export
+trueOrFalseAndFalse = #true or #false and #false
+
+@export
+falseOrTrueAndFalse = #false or #true and #false
+
+@export
+falseOrFalseAndFalse = #false or #false and #false
+
+-- not and
+
+@export
+notTrueAndTrue = not #true and #true
+
+@export
+notFalseAndTrue = not #false and #true
+
+@export
+notTrueAndFalse = not #true and #false
+
+@export
+notFalseAndFalse = not #false and #false
+
+-- not or
+
+@export
+notTrueOrTrue = not #true or #true
+
+@export
+notFalseOrTrue = not #false or #true
+
+@export
+notTrueOrFalse = not #true or #false
+
+@export
+notFalseOrFalse = not #false or #false
+
+-- or not
+
+@export
+trueOrNotTrue = #true or not #true
+
+@export
+trueOrNotFalse = #true or not #false
+
+@export
+falseOrNotTrue = #false or not #true
+
+@export
+falseOrNotFalse = #false or not #false
+
+-- and not
+
+@export
+trueAndNotTrue = #true and not #true
+
+@export
+trueAndNotFalse = #true and not #false
+
+@export
+falseAndNotTrue = #false and not #true
+
+@export
+falseAndNotFalse = #false and not #false
