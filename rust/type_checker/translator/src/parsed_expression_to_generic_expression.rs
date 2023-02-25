@@ -434,10 +434,10 @@ fn translate_if<'a>(
     schema.scope.end_sub_scope();
     schema.scope.start_sub_scope();
     let translated_false_path = if let Some(false_path) = node.value.path_if_false {
-        schema.set_equal_to_canonical_type(type_id, get_generic_type_id(&translated_true_path))?;
+        schema.set_equal_to_canonical_type(get_generic_type_id(&translated_true_path), type_id)?;
         let translated_false_path =
             translate_parsed_expression_to_generic_expression(schema, *false_path)?;
-        schema.set_equal_to_canonical_type(type_id, get_generic_type_id(&translated_false_path))?;
+        schema.set_equal_to_canonical_type(get_generic_type_id(&translated_false_path), type_id)?;
         Some(translated_false_path)
     } else {
         schema.add_constraint(
@@ -1186,6 +1186,14 @@ mod test {
         let expression = parse_test_expression("if a do b else c");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(schema.get_total_canonical_ids(), 2);
+    }
+
+    #[test]
+    fn errors_with_the_branches_have_different_types() {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression("if #true do 1 else \"2\"");
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_err());
     }
 
     #[test]
