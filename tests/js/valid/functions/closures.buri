@@ -1,0 +1,2 @@
+@export
+addN = (n) => (a) => a + n
