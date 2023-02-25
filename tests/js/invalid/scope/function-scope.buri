@@ -1,0 +1,6 @@
+item = () =>
+    a = 3
+    2
+
+-- cannot use a variable after it has gone out of scope
+b = a
