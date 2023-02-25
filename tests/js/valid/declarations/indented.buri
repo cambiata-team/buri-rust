@@ -1,0 +1,9 @@
+-- test declarations nested two levels
+@export
+threeElseFive = (arg) =>
+    if arg do
+        one = 1
+        two = 2
+        one + two
+    else
+        5
