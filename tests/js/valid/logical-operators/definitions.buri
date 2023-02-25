@@ -1,0 +1,167 @@
+-- and
+
+@export
+trueAndTrue = #true and #true
+
+@export
+trueAndFalse = #true and #false
+
+@export
+falseAndTrue = #false and #true
+
+@export
+falseAndFalse = #false and #false
+
+-- or
+
+@export
+trueOrTrue = #true or #true
+
+@export
+trueOrFalse = #true or #false
+
+@export
+falseOrTrue = #false or #true
+
+@export
+falseOrFalse = #false or #false
+
+-- not
+
+@export
+notTrue = not #true
+
+@export
+notFalse = not #false
+
+-- ==
+
+@export
+oneEqualsOne = 1 == 1
+
+@export
+oneEqualsTwo = 1 == 2
+
+@export
+negativeOneEqualsNegativeOne = -1 == -1
+
+@export
+negativeOneEqualsOne = -1 == 1
+
+@export
+negativeOneEqualsNegativeTwo = -1 == -2
+
+@export
+negativeOneEqualsTwo = -1 == 2
+
+-- !=
+
+@export
+oneNotEqualsOne = 1 != 1
+
+@export
+oneNotEqualsTwo = 1 != 2
+
+@export
+negativeOneNotEqualsNegativeOne = -1 != -1
+
+@export
+negativeOneNotEqualsOne = -1 != 1
+
+@export
+negativeOneNotEqualsNegativeTwo = -1 != -2
+
+@export
+negativeOneNotEqualsTwo = -1 != 2
+
+-- <
+
+@export
+oneLessThanOne = 1 < 1
+
+@export
+oneLessThanTwo = 1 < 2
+
+@export
+twoLessThanOne = 2 < 1
+
+@export
+negativeOneLessThanNegativeOne = -1 < -1
+
+@export
+negativeOneLessThanOne = -1 < 1
+
+@export
+negativeOneLessThanNegativeTwo = -1 < -2
+
+@export
+negativeOneLessThanTwo = -1 < 2
+
+-- <=
+
+@export
+oneLessThanEqualsOne = 1 <= 1
+
+@export
+oneLessThanEqualsTwo = 1 <= 2
+
+@export
+twoLessThanEqualsOne = 2 <= 1
+
+@export
+negativeOneLessThanEqualsNegativeOne = -1 <= -1
+
+@export
+negativeOneLessThanEqualsOne = -1 <= 1
+
+@export
+negativeOneLessThanEqualsNegativeTwo = -1 <= -2
+
+@export
+negativeOneLessThanEqualsTwo = -1 <= 2
+
+-- >
+
+@export
+oneGreaterThanOne = 1 > 1
+
+@export
+oneGreaterThanTwo = 1 > 2
+
+@export
+twoGreaterThanOne = 2 > 1
+
+@export
+negativeOneGreaterThanNegativeOne = -1 > -1
+
+@export
+negativeOneGreaterThanOne = -1 > 1
+
+@export
+negativeOneGreaterThanNegativeTwo = -1 > -2
+
+@export
+negativeOneGreaterThanTwo = -1 > 2
+
+-- >=
+
+@export
+oneGreaterThanEqualsOne = 1 >= 1
+
+@export
+oneGreaterThanEqualsTwo = 1 >= 2
+
+@export
+twoGreaterThanEqualsOne = 2 >= 1
+
+@export
+negativeOneGreaterThanEqualsNegativeOne = -1 >= -1
+
+@export
+negativeOneGreaterThanEqualsOne = -1 >= 1
+
+@export
+negativeOneGreaterThanEqualsNegativeTwo = -1 >= -2
+
+@export
+negativeOneGreaterThanEqualsTwo = -1 >= 2
