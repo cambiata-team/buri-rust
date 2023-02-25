@@ -1,0 +1,1 @@
+result = if #some(1) do "hello"

@@ -69,13 +69,14 @@ impl CategoryConstraints {
             (
                 Self::TagGroup(TagGroupConstraints::OpenTags(self_tags)),
                 Self::TagGroup(TagGroupConstraints::ClosedTags(other_tags)),
-            ) => other_tags.iter().all(|(name, types)| {
-                self_tags.get(name).map_or(true, |self_types| {
-                    types.iter().all(|type_id| {
-                        self_types.iter().any(|self_type_id| {
-                            schema.types_are_compatible(*self_type_id, *type_id)
+            ) => self_tags.iter().all(|(name, types)| {
+                other_tags.get(name).map_or(false, |other_types| {
+                    types.len() == other_types.len()
+                        && types.iter().all(|self_type_id| {
+                            other_types.iter().any(|other_type_id| {
+                                schema.types_are_compatible(*self_type_id, *other_type_id)
+                            })
                         })
-                    })
                 })
             }),
             (
@@ -1409,7 +1410,7 @@ mod test {
     }
 
     #[test]
-    fn is_compatible_with_tag_at_most_constraint_that_is_a_subset_of_current_open_tags() {
+    fn is_not_compatible_with_tag_at_most_constraint_that_is_a_subset_of_current_open_tags() {
         let schema = TypeSchema::new();
         let mut parsed_constraint = ParsedConstraint::new(
             Constraint::HasTag(HasTagConstraint {
@@ -1432,11 +1433,12 @@ mod test {
             }),
             &schema,
         );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
     }
 
     #[test]
-    fn is_compatible_with_tag_at_most_constraint_that_does_not_overlap_with_current_open_tags() {
+    fn is_not_compatible_with_tag_at_most_constraint_that_does_not_overlap_with_current_open_tags()
+    {
         let schema = TypeSchema::new();
         let parsed_constraint = ParsedConstraint::new(
             Constraint::HasTag(HasTagConstraint {
@@ -1451,7 +1453,7 @@ mod test {
             }),
             &schema,
         );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
     }
 
     #[test]

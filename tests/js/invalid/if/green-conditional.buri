@@ -1,0 +1,1 @@
+result = if #green do "hello"
