@@ -1,0 +1,11 @@
+@export
+greenEqualsGreen = #green == #green
+
+@export
+greenEqualsBlue = #green == #blue
+
+@export
+greenNotEqualsGreen = #green != #green
+
+@export
+greenNotEqualsBlue = #green != #blue
