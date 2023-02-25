@@ -177,7 +177,8 @@ const fn order_of_operations(symbol: &BinaryOperatorSymbol) -> u8 {
         | BinaryOperatorSymbol::LessThanOrEqualTo
         | BinaryOperatorSymbol::GreaterThan
         | BinaryOperatorSymbol::GreaterThanOrEqualTo => 6,
-        BinaryOperatorSymbol::And | BinaryOperatorSymbol::Or => 7,
+        BinaryOperatorSymbol::And => 7,
+        BinaryOperatorSymbol::Or => 8,
     }
 }
 
