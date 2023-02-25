@@ -1,4 +1,4 @@
-import { addN } from "@tests/js/valid/functions/closures.mjs"
+import { addN, three } from "@tests/js/valid/functions/closures.mjs"
 import { describe, expect, it } from "bun:test"
 
 describe("addN", () => {
@@ -12,5 +12,11 @@ describe("addN", () => {
         const add2 = addN(2)
         expect(add2(1).valueOf()).toEqual(3)
         expect(add2(2).valueOf()).toEqual(4)
+    })
+})
+
+describe("three", () => {
+    it("should return 3", () => {
+        expect(three().valueOf()).toEqual(3)
     })
 })

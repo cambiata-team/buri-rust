@@ -13,3 +13,4 @@ type_checker_types = { path = "../types" }
 
 [dev-dependencies]
 parser = { path = "../../parser" }
+indoc.workspace = true

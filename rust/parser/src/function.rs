@@ -73,12 +73,12 @@ fn function_body<'a>(
 ) -> impl FnMut(ParserInput<'a>) -> IResult<'a, Expression<'a>> {
     alt((
         preceded(
-            opt(intra_expression_whitespace(context)),
-            expression(context),
-        ),
-        preceded(
             tuple((space0, newline)),
             map(block(context.increment_indentation()), Expression::Block),
+        ),
+        preceded(
+            opt(intra_expression_whitespace(context)),
+            expression(context),
         ),
     ))
 }
@@ -105,8 +105,8 @@ pub fn function(context: ExpressionContext, input: ParserInput) -> IResult<Funct
 #[cfg(test)]
 mod test {
     use super::*;
-
     use ast::IntegerNode;
+    use indoc::indoc;
 
     #[test]
     fn empty_string_is_not_function() {
@@ -217,6 +217,35 @@ mod test {
     #[test]
     fn spaces_can_be_used_around_arguments_and_arrow() {
         let input = ParserInput::new("(  hello  :  A  ,  world  :  B  )  =>  0");
+        let result = function(ExpressionContext::new(), input);
+        let (remainder, _) = result.unwrap();
+        assert_eq!(remainder, "");
+    }
+
+    #[test]
+    fn can_define_nested_functions() {
+        let input = ParserInput::new("(x)=>(y)=>x+y");
+        let result = function(ExpressionContext::new(), input);
+        let (remainder, _) = result.unwrap();
+        assert_eq!(remainder, "");
+    }
+
+    #[test]
+    fn can_define_nested_functions_on_newlines() {
+        let input = ParserInput::new("(x)=>\n    (y)=>\n        x+y");
+        let result = function(ExpressionContext::new(), input);
+        let (remainder, _) = result.unwrap();
+        assert_eq!(remainder, "");
+    }
+
+    #[test]
+    fn can_define_a_nested_function_and_assign_it() {
+        let input = ParserInput::new(indoc! {"
+            () =>
+                one = () => 1
+                two = () => 2
+                one() + two()
+        "});
         let result = function(ExpressionContext::new(), input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");

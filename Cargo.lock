@@ -84,6 +84,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ad0a93d233ebf96623465aad4046a8d3aa4da22d4f4beba5388838c8a434bbb4"
 
 [[package]]
+name = "indoc"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6fe2b9d82064e8a0226fddb3547f37f28eaa46d0fc210e275d835f08cf3b76a7"
+
+[[package]]
 name = "js_backend"
 version = "0.1.0"
 dependencies = [
@@ -154,6 +160,7 @@ name = "parser"
 version = "0.1.0"
 dependencies = [
  "ast",
+ "indoc",
  "nom",
 ]
 
@@ -193,6 +200,7 @@ name = "type_checker_translator"
 version = "0.1.0"
 dependencies = [
  "ast",
+ "indoc",
  "parser",
  "type_checker_errors",
  "type_checker_types",
