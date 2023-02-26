@@ -1,24 +1,24 @@
 import {
-    greenEqualsBlue,
-    greenEqualsGreen,
-    greenNotEqualsBlue,
-    greenNotEqualsGreen,
+    BgreenEqualsBlue,
+    BgreenEqualsGreen,
+    BgreenNotEqualsBlue,
+    BgreenNotEqualsGreen,
 } from "@tests/js/valid/tags/equality.mjs"
 import { expect, it } from "bun:test"
 import { tag } from "../helpers"
 
 it("#green == #green -- #true", () => {
-    expect(greenEqualsGreen).toEqual(tag("true"))
+    expect(BgreenEqualsGreen).toEqual(tag("true"))
 })
 
 it("#green == #blue -- #false", () => {
-    expect(greenEqualsBlue).toEqual(tag("false"))
+    expect(BgreenEqualsBlue).toEqual(tag("false"))
 })
 
 it("#green != #green -- #false", () => {
-    expect(greenNotEqualsGreen).toEqual(tag("false"))
+    expect(BgreenNotEqualsGreen).toEqual(tag("false"))
 })
 
 it("#green != #blue -- #true", () => {
-    expect(greenNotEqualsBlue).toEqual(tag("true"))
+    expect(BgreenNotEqualsBlue).toEqual(tag("true"))
 })

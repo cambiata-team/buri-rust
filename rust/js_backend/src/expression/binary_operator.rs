@@ -68,7 +68,15 @@ fn maybe_parenthesize_left(string: &str, expression: &ConcreteExpression) -> Str
 pub fn print_binary_operator(expression: &ConcreteBinaryOperatorExpression) -> String {
     let operator = print_operator(&expression.symbol);
     let left = super::print_expression(&expression.left_child);
-    let right = super::print_expression(&expression.right_child);
+    let right = {
+        let right_child_text = super::print_expression(&expression.right_child);
+        match &expression.symbol {
+            BinaryOperatorSymbol::MethodLookup | BinaryOperatorSymbol::FieldLookup => {
+                right_child_text[1..].to_owned()
+            }
+            _ => right_child_text,
+        }
+    };
     match get_format(&expression.symbol) {
         OperatorFormat::Naked => format!(
             "{}{operator}{right}",
@@ -123,7 +131,7 @@ mod test {
             left_child: ConcreteExpression::identifier_for_test("foo"),
             right_child: ConcreteExpression::identifier_for_test("bar"),
         };
-        assert_eq!(print_binary_operator(&expression), "foo.add(bar)");
+        assert_eq!(print_binary_operator(&expression), "Bfoo.add(Bbar)");
     }
 
     #[test]
@@ -169,7 +177,7 @@ mod test {
             left_child: ConcreteExpression::identifier_for_test("foo"),
             right_child: ConcreteExpression::identifier_for_test("bar"),
         };
-        assert_eq!(print_binary_operator(&expression), "foo.subtract(bar)");
+        assert_eq!(print_binary_operator(&expression), "Bfoo.subtract(Bbar)");
     }
 
     #[test]
@@ -204,7 +212,7 @@ mod test {
             left_child: ConcreteExpression::identifier_for_test("foo"),
             right_child: ConcreteExpression::identifier_for_test("bar"),
         };
-        assert_eq!(print_binary_operator(&expression), "foo.multiply(bar)");
+        assert_eq!(print_binary_operator(&expression), "Bfoo.multiply(Bbar)");
     }
 
     #[test]
@@ -239,7 +247,7 @@ mod test {
             left_child: ConcreteExpression::identifier_for_test("foo"),
             right_child: ConcreteExpression::identifier_for_test("bar"),
         };
-        assert_eq!(print_binary_operator(&expression), "foo.divide(bar)");
+        assert_eq!(print_binary_operator(&expression), "Bfoo.divide(Bbar)");
     }
 
     #[test]
@@ -274,7 +282,7 @@ mod test {
             left_child: ConcreteExpression::identifier_for_test("foo"),
             right_child: ConcreteExpression::identifier_for_test("bar"),
         };
-        assert_eq!(print_binary_operator(&expression), "foo.power(bar)");
+        assert_eq!(print_binary_operator(&expression), "Bfoo.power(Bbar)");
     }
 
     #[test]
@@ -309,7 +317,7 @@ mod test {
             left_child: ConcreteExpression::identifier_for_test("foo"),
             right_child: ConcreteExpression::identifier_for_test("bar"),
         };
-        assert_eq!(print_binary_operator(&expression), "foo.modulo(bar)");
+        assert_eq!(print_binary_operator(&expression), "Bfoo.modulo(Bbar)");
     }
 
     #[test]
@@ -331,7 +339,7 @@ mod test {
             left_child: ConcreteExpression::identifier_for_test("foo"),
             right_child: ConcreteExpression::identifier_for_test("bar"),
         };
-        assert_eq!(print_binary_operator(&expression), "foo.equals(bar)");
+        assert_eq!(print_binary_operator(&expression), "Bfoo.equals(Bbar)");
     }
 
     #[test]
@@ -353,7 +361,7 @@ mod test {
             left_child: ConcreteExpression::identifier_for_test("foo"),
             right_child: ConcreteExpression::identifier_for_test("bar"),
         };
-        assert_eq!(print_binary_operator(&expression), "foo.notEquals(bar)");
+        assert_eq!(print_binary_operator(&expression), "Bfoo.notEquals(Bbar)");
     }
 
     #[test]
@@ -375,7 +383,7 @@ mod test {
             left_child: ConcreteExpression::identifier_for_test("foo"),
             right_child: ConcreteExpression::identifier_for_test("bar"),
         };
-        assert_eq!(print_binary_operator(&expression), "foo.lessThan(bar)");
+        assert_eq!(print_binary_operator(&expression), "Bfoo.lessThan(Bbar)");
     }
 
     #[test]
@@ -402,7 +410,7 @@ mod test {
         };
         assert_eq!(
             print_binary_operator(&expression),
-            "foo.lessThanOrEquals(bar)"
+            "Bfoo.lessThanOrEquals(Bbar)"
         );
     }
 
@@ -425,7 +433,7 @@ mod test {
             left_child: ConcreteExpression::identifier_for_test("foo"),
             right_child: ConcreteExpression::identifier_for_test("bar"),
         };
-        assert_eq!(print_binary_operator(&expression), "foo.greaterThan(bar)");
+        assert_eq!(print_binary_operator(&expression), "Bfoo.greaterThan(Bbar)");
     }
 
     #[test]
@@ -452,7 +460,7 @@ mod test {
         };
         assert_eq!(
             print_binary_operator(&expression),
-            "foo.greaterThanOrEquals(bar)"
+            "Bfoo.greaterThanOrEquals(Bbar)"
         );
     }
 
@@ -464,7 +472,7 @@ mod test {
             left_child: ConcreteExpression::identifier_for_test("foo"),
             right_child: ConcreteExpression::identifier_for_test("bar"),
         };
-        assert_eq!(print_binary_operator(&expression), "(foo&&bar)");
+        assert_eq!(print_binary_operator(&expression), "(Bfoo&&Bbar)");
     }
 
     #[test]
@@ -475,7 +483,7 @@ mod test {
             left_child: ConcreteExpression::identifier_for_test("foo"),
             right_child: ConcreteExpression::identifier_for_test("bar"),
         };
-        assert_eq!(print_binary_operator(&expression), "(foo||bar)");
+        assert_eq!(print_binary_operator(&expression), "(Bfoo||Bbar)");
     }
 
     #[test]
@@ -486,7 +494,7 @@ mod test {
             left_child: ConcreteExpression::identifier_for_test("foo"),
             right_child: ConcreteExpression::identifier_for_test("bar"),
         };
-        assert_eq!(print_binary_operator(&expression), "foo.bar");
+        assert_eq!(print_binary_operator(&expression), "Bfoo.bar");
     }
 
     #[test]
@@ -508,7 +516,7 @@ mod test {
             left_child: ConcreteExpression::identifier_for_test("foo"),
             right_child: ConcreteExpression::identifier_for_test("bar"),
         };
-        assert_eq!(print_binary_operator(&expression), "foo.bar");
+        assert_eq!(print_binary_operator(&expression), "Bfoo.bar");
     }
 
     #[test]

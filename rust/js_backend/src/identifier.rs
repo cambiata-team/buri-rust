@@ -1,7 +1,8 @@
+use crate::mangle_variable_name;
 use typed_ast::ConcreteIdentifierExpression;
 
 pub fn print_identifier(node: &ConcreteIdentifierExpression) -> String {
-    node.name.clone()
+    mangle_variable_name(&node.name)
 }
 
 #[cfg(test)]
@@ -16,6 +17,6 @@ mod test {
             name: "foo".to_string(),
             is_disregarded: false,
         };
-        assert_eq!(print_identifier(&node), "foo");
+        assert_eq!(print_identifier(&node), "Bfoo");
     }
 }

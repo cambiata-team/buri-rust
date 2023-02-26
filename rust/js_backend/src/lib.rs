@@ -1,4 +1,4 @@
-use expression::print_declaration;
+use expression::{mangle_variable_name, print_declaration};
 use imports::print_imports;
 use typed_ast::{ConcreteType, TypedDocument};
 

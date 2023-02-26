@@ -21,7 +21,7 @@ mod test {
             identifier: ConcreteExpression::raw_identifier_for_test("foo"),
             value: ConcreteExpression::integer_for_test(42),
         };
-        assert_eq!(print_declaration(&declaration), "const foo=42");
+        assert_eq!(print_declaration(&declaration), "const Bfoo=42");
     }
 
     #[test]
@@ -32,6 +32,6 @@ mod test {
             identifier: ConcreteExpression::raw_identifier_for_test("hello"),
             value: ConcreteExpression::string_for_test("world"),
         };
-        assert_eq!(print_declaration(&declaration), "const hello=\"world\"");
+        assert_eq!(print_declaration(&declaration), "const Bhello=\"world\"");
     }
 }
