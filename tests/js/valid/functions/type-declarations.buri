@@ -1,0 +1,21 @@
+myFunc = (arg: Str): Str => arg
+
+Identity = (Str) => Str
+identity: Identity = (arg) => arg
+
+identity2: Identity = (arg: Str): Str => arg
+
+multiline = (a: Int, b: Int): Int =>
+    c = a + 1
+    a + b + c
+
+onlyArguments = (a: Str, b: Int) => a
+
+onlyReturnValue = (a, b): Str => a
+
+functionAsArgument = (ident: Identity, a) => ident(a)
+
+functionAsReturnValue = (a): Identity =>
+    (b) => b
+
+inlineTypeDef: (Int) => Int = (a) => a
