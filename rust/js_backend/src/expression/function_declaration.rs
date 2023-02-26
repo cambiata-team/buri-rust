@@ -1,3 +1,4 @@
+use crate::mangle_variable_name;
 use typed_ast::ConcreteFunctionExpression;
 
 pub fn print_function_declaration(function: &ConcreteFunctionExpression) -> String {
@@ -7,7 +8,7 @@ pub fn print_function_declaration(function: &ConcreteFunctionExpression) -> Stri
         if index > 0 {
             result.push(',');
         }
-        result.push_str(parameter.as_str());
+        result.push_str(&mangle_variable_name(parameter.as_str()));
     }
     result.push_str(")=>(");
     result.push_str(super::print_expression(&function.body).as_str());
@@ -37,7 +38,7 @@ mod test {
             argument_names: vec!["x".to_string()],
             body: ConcreteExpression::integer_for_test(42),
         };
-        assert_eq!(print_function_declaration(&function), "(x)=>(42)");
+        assert_eq!(print_function_declaration(&function), "(Bx)=>(42)");
     }
 
     #[test]
@@ -47,7 +48,7 @@ mod test {
             argument_names: vec!["x".to_string(), "y".to_string()],
             body: ConcreteExpression::integer_for_test(42),
         };
-        assert_eq!(print_function_declaration(&function), "(x,y)=>(42)");
+        assert_eq!(print_function_declaration(&function), "(Bx,By)=>(42)");
     }
 
     #[test]
@@ -57,6 +58,6 @@ mod test {
             argument_names: vec!["x".to_string(), "y".to_string(), "z".to_string()],
             body: ConcreteExpression::integer_for_test(42),
         };
-        assert_eq!(print_function_declaration(&function), "(x,y,z)=>(42)");
+        assert_eq!(print_function_declaration(&function), "(Bx,By,Bz)=>(42)");
     }
 }

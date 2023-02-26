@@ -46,7 +46,7 @@ mod test {
             path_if_true: ConcreteExpression::identifier_for_test("bar"),
             path_if_false: Some(ConcreteExpression::identifier_for_test("baz")),
         };
-        assert_eq!(print_if_expression(&expression), "(foo?bar:baz)");
+        assert_eq!(print_if_expression(&expression), "(Bfoo?Bbar:Bbaz)");
     }
 
     #[test]
@@ -59,7 +59,7 @@ mod test {
         };
         assert_eq!(
             print_if_expression(&expression),
-            "(foo?[\"some\",bar]:[\"none\"])"
+            "(Bfoo?[\"some\",Bbar]:[\"none\"])"
         );
     }
 }

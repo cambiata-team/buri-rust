@@ -1,50 +1,50 @@
 import {
-    eightDivideLParenThreeDivideTwoRParen,
-    eightDivideThreeDivideTwo,
-    eightModFiveModTwo,
-    eightModLParenFiveModTwoRParen,
-    lParenEightDivideThreeRParenDivideTwo,
-    lParenEightModFiveRParenModTwo,
-    lParenOnePlusTwoRParenPlusThree,
-    lParenOneTimesTwoRParenTimesThree,
-    lParenTenMinusFiveRParenMinusTwo,
-    lParenTwoPowerThreeRParenPowerTwo,
-    onePlusLParenTwoPlusThreeRParen,
-    onePlusTwoPlusThree,
-    oneTimesLParenTwoTimesThreeRParen,
-    oneTimesTwoTimesThree,
-    tenMinusFiveMinusTwo,
-    tenMinusLParenFiveMinusTwoRParen,
-    twoPowerLParenThreePowerTwoRParen,
-    twoPowerThreePowerTwo,
+    BeightDivideLParenThreeDivideTwoRParen,
+    BeightDivideThreeDivideTwo,
+    BeightModFiveModTwo,
+    BeightModLParenFiveModTwoRParen,
+    BlParenEightDivideThreeRParenDivideTwo,
+    BlParenEightModFiveRParenModTwo,
+    BlParenOnePlusTwoRParenPlusThree,
+    BlParenOneTimesTwoRParenTimesThree,
+    BlParenTenMinusFiveRParenMinusTwo,
+    BlParenTwoPowerThreeRParenPowerTwo,
+    BonePlusLParenTwoPlusThreeRParen,
+    BonePlusTwoPlusThree,
+    BoneTimesLParenTwoTimesThreeRParen,
+    BoneTimesTwoTimesThree,
+    BtenMinusFiveMinusTwo,
+    BtenMinusLParenFiveMinusTwoRParen,
+    BtwoPowerLParenThreePowerTwoRParen,
+    BtwoPowerThreePowerTwo,
 } from "@tests/js/valid/integers/associativity.mjs"
 import { describe, expect, it } from "bun:test"
 
 describe("associative operators", () => {
     describe("addition", () => {
         it("1 + (2 + 3) == (1 + 2) + 3", () => {
-            expect(onePlusLParenTwoPlusThreeRParen.valueOf()).toBe(
-                lParenOnePlusTwoRParenPlusThree.valueOf()
+            expect(BonePlusLParenTwoPlusThreeRParen.valueOf()).toBe(
+                BlParenOnePlusTwoRParenPlusThree.valueOf()
             )
         })
 
         it("addition is left associative by default: 1 + 2 + 3 == (1 + 2) + 3", () => {
-            expect(onePlusTwoPlusThree.valueOf()).toBe(
-                lParenOnePlusTwoRParenPlusThree.valueOf()
+            expect(BonePlusTwoPlusThree.valueOf()).toBe(
+                BlParenOnePlusTwoRParenPlusThree.valueOf()
             )
         })
     })
 
     describe("multiplication", () => {
         it("1 * (2 * 3) == (1 * 2) * 3", () => {
-            expect(oneTimesLParenTwoTimesThreeRParen.valueOf()).toBe(
-                lParenOneTimesTwoRParenTimesThree.valueOf()
+            expect(BoneTimesLParenTwoTimesThreeRParen.valueOf()).toBe(
+                BlParenOneTimesTwoRParenTimesThree.valueOf()
             )
         })
 
         it("multiplication is left associative by default: 1 * 2 * 3 == (1 * 2) * 3", () => {
-            expect(oneTimesTwoTimesThree.valueOf()).toBe(
-                lParenOneTimesTwoRParenTimesThree.valueOf()
+            expect(BoneTimesTwoTimesThree.valueOf()).toBe(
+                BlParenOneTimesTwoRParenTimesThree.valueOf()
             )
         })
     })
@@ -53,56 +53,56 @@ describe("associative operators", () => {
 describe("non-associative operators", () => {
     describe("subtraction", () => {
         it("10 - (5 - 2) != (10 - 5) - 2", () => {
-            expect(tenMinusLParenFiveMinusTwoRParen.valueOf()).not.toBe(
-                lParenTenMinusFiveRParenMinusTwo.valueOf()
+            expect(BtenMinusLParenFiveMinusTwoRParen.valueOf()).not.toBe(
+                BlParenTenMinusFiveRParenMinusTwo.valueOf()
             )
         })
 
         it("subtraction is left associative by default: 10 - 5 - 2 == (10 - 5) - 2", () => {
-            expect(tenMinusFiveMinusTwo.valueOf()).toBe(
-                lParenTenMinusFiveRParenMinusTwo.valueOf()
+            expect(BtenMinusFiveMinusTwo.valueOf()).toBe(
+                BlParenTenMinusFiveRParenMinusTwo.valueOf()
             )
         })
     })
 
     describe("division", () => {
         it("8 / (3 / 2) != (8 / 3) / 2", () => {
-            expect(eightDivideLParenThreeDivideTwoRParen.valueOf()).not.toBe(
-                lParenEightDivideThreeRParenDivideTwo.valueOf()
+            expect(BeightDivideLParenThreeDivideTwoRParen.valueOf()).not.toBe(
+                BlParenEightDivideThreeRParenDivideTwo.valueOf()
             )
         })
 
         it("division is left associative by default: 8 / 3 / 2 == (8 / 3) / 2", () => {
-            expect(eightDivideThreeDivideTwo.valueOf()).toBe(
-                lParenEightDivideThreeRParenDivideTwo.valueOf()
+            expect(BeightDivideThreeDivideTwo.valueOf()).toBe(
+                BlParenEightDivideThreeRParenDivideTwo.valueOf()
             )
         })
     })
 
     describe("modulo", () => {
         it("8 % (5 % 2) != (8 % 5) % 2", () => {
-            expect(eightModLParenFiveModTwoRParen.valueOf()).not.toBe(
-                lParenEightModFiveRParenModTwo.valueOf()
+            expect(BeightModLParenFiveModTwoRParen.valueOf()).not.toBe(
+                BlParenEightModFiveRParenModTwo.valueOf()
             )
         })
 
         it("modulo is left associative by default: 8 % 5 % 2 == (8 % 5) % 2", () => {
-            expect(eightModFiveModTwo.valueOf()).toBe(
-                lParenEightModFiveRParenModTwo.valueOf()
+            expect(BeightModFiveModTwo.valueOf()).toBe(
+                BlParenEightModFiveRParenModTwo.valueOf()
             )
         })
     })
 
     describe("power", () => {
         it("2 ** (3 ** 2) != (2 ** 3) ** 2", () => {
-            expect(twoPowerLParenThreePowerTwoRParen.valueOf()).not.toBe(
-                lParenTwoPowerThreeRParenPowerTwo.valueOf()
+            expect(BtwoPowerLParenThreePowerTwoRParen.valueOf()).not.toBe(
+                BlParenTwoPowerThreeRParenPowerTwo.valueOf()
             )
         })
 
         it("power is right associative by default: 2 ** 3 ** 2 == 2 ** (3 ** 2)", () => {
-            expect(twoPowerThreePowerTwo.valueOf()).toBe(
-                twoPowerLParenThreePowerTwoRParen.valueOf()
+            expect(BtwoPowerThreePowerTwo.valueOf()).toBe(
+                BtwoPowerLParenThreePowerTwoRParen.valueOf()
             )
         })
     })

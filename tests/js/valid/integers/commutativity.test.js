@@ -1,29 +1,29 @@
 import {
-    fourModSix,
-    oneMinusTwo,
-    onePlusTwo,
-    oneTimesTwo,
-    sixDivideThree,
-    sixModFour,
-    threeDivideSix,
-    threePowerTwo,
-    twoMinusOne,
-    twoPlusOne,
-    twoPowerThree,
-    twoTimesOne,
+    BfourModSix,
+    BoneMinusTwo,
+    BonePlusTwo,
+    BoneTimesTwo,
+    BsixDivideThree,
+    BsixModFour,
+    BthreeDivideSix,
+    BthreePowerTwo,
+    BtwoMinusOne,
+    BtwoPlusOne,
+    BtwoPowerThree,
+    BtwoTimesOne,
 } from "@tests/js/valid/integers/commutativity.mjs"
 import { describe, expect, it } from "bun:test"
 
 describe("commutative operators", () => {
     describe("addition", () => {
         it("1 + 2 == 2 + 1", () => {
-            expect(onePlusTwo.valueOf()).toBe(twoPlusOne.valueOf())
+            expect(BonePlusTwo.valueOf()).toBe(BtwoPlusOne.valueOf())
         })
     })
 
     describe("multiplication", () => {
         it("1 * 2 == 2 * 1", () => {
-            expect(oneTimesTwo.valueOf()).toBe(twoTimesOne.valueOf())
+            expect(BoneTimesTwo.valueOf()).toBe(BtwoTimesOne.valueOf())
         })
     })
 })
@@ -31,25 +31,25 @@ describe("commutative operators", () => {
 describe("non-commutative operators", () => {
     describe("subtraction", () => {
         it("1 - 2 != 2 - 1", () => {
-            expect(oneMinusTwo.valueOf()).not.toBe(twoMinusOne.valueOf())
+            expect(BoneMinusTwo.valueOf()).not.toBe(BtwoMinusOne.valueOf())
         })
     })
 
     describe("division", () => {
         it("6 / 3 != 3 / 6", () => {
-            expect(sixDivideThree.valueOf()).not.toBe(threeDivideSix.valueOf())
+            expect(BsixDivideThree.valueOf()).not.toBe(BthreeDivideSix.valueOf())
         })
     })
 
     describe("modulo", () => {
         it("4 % 6 != 6 % 4", () => {
-            expect(fourModSix.valueOf()).not.toBe(sixModFour.valueOf())
+            expect(BfourModSix.valueOf()).not.toBe(BsixModFour.valueOf())
         })
     })
 
     describe("power", () => {
         it("2 ** 3 != 3 ** 2", () => {
-            expect(twoPowerThree.valueOf()).not.toBe(threePowerTwo.valueOf())
+            expect(BtwoPowerThree.valueOf()).not.toBe(BthreePowerTwo.valueOf())
         })
     })
 })

@@ -1,181 +1,181 @@
 import {
-    eightyFiveModEightMinusTwo,
-    eightyFiveModEightPlusTwo,
-    eightyFiveModLParenEightMinusTwoRParen,
-    eightyFiveModLParenEightPlusTwoRParen,
-    lParenEightyFiveModEightRParenMinusTwo,
-    lParenEightyFiveModEightRParenPlusTwo,
-    lParenTwelveDividedThreeRParenMinusOne,
-    lParenTwelveDividedThreeRParenPlusOne,
-    lParenTwoPowerThreeRParenMinusOne,
-    lParenTwoPowerThreeRParenPlusOne,
-    lParenTwoTimesThreeRParenMinusOne,
-    lParenTwoTimesThreeRParenPlusOne,
-    oneMinusTwelveDividedThree,
-    oneMinusTwoPowerThree,
-    oneMinusTwoTimesThree,
-    onePlusLParenTwoTimesThreeRParenPowerLParenSevenMinusFiveRParen,
-    onePlusTwelveDividedThree,
-    onePlusTwoPowerThree,
-    onePlusTwoTimesThree,
-    onePlusTwoTimesThreePowerSevenMinusFive,
-    twelveDividedLParenThreeMinusOneRParen,
-    twelveDividedLParenThreePlusOneRParen,
-    twelveDividedThreeMinusOne,
-    twelveDividedThreePlusOne,
-    twoMinusEightyFiveModEight,
-    twoPlusEightyFiveModEight,
-    twoPowerLParenThreeMinusOneRParen,
-    twoPowerLParenThreePlusOneRParen,
-    twoPowerThreeMinusOne,
-    twoPowerThreePlusOne,
-    twoTimesLParenThreeMinusOneRParen,
-    twoTimesLParenThreePlusOneRParen,
-    twoTimesThreeMinusOne,
-    twoTimesThreePlusOne,
+    BeightyFiveModEightMinusTwo,
+    BeightyFiveModEightPlusTwo,
+    BeightyFiveModLParenEightMinusTwoRParen,
+    BeightyFiveModLParenEightPlusTwoRParen,
+    BlParenEightyFiveModEightRParenMinusTwo,
+    BlParenEightyFiveModEightRParenPlusTwo,
+    BlParenTwelveDividedThreeRParenMinusOne,
+    BlParenTwelveDividedThreeRParenPlusOne,
+    BlParenTwoPowerThreeRParenMinusOne,
+    BlParenTwoPowerThreeRParenPlusOne,
+    BlParenTwoTimesThreeRParenMinusOne,
+    BlParenTwoTimesThreeRParenPlusOne,
+    BoneMinusTwelveDividedThree,
+    BoneMinusTwoPowerThree,
+    BoneMinusTwoTimesThree,
+    BonePlusLParenTwoTimesThreeRParenPowerLParenSevenMinusFiveRParen,
+    BonePlusTwelveDividedThree,
+    BonePlusTwoPowerThree,
+    BonePlusTwoTimesThree,
+    BonePlusTwoTimesThreePowerSevenMinusFive,
+    BtwelveDividedLParenThreeMinusOneRParen,
+    BtwelveDividedLParenThreePlusOneRParen,
+    BtwelveDividedThreeMinusOne,
+    BtwelveDividedThreePlusOne,
+    BtwoMinusEightyFiveModEight,
+    BtwoPlusEightyFiveModEight,
+    BtwoPowerLParenThreeMinusOneRParen,
+    BtwoPowerLParenThreePlusOneRParen,
+    BtwoPowerThreeMinusOne,
+    BtwoPowerThreePlusOne,
+    BtwoTimesLParenThreeMinusOneRParen,
+    BtwoTimesLParenThreePlusOneRParen,
+    BtwoTimesThreeMinusOne,
+    BtwoTimesThreePlusOne,
 } from "@tests/js/valid/integers/order-of-operations.mjs"
 import { describe, expect, it } from "bun:test"
 
 describe("raw expressions", () => {
     it("2 * 3 + 1", () => {
-        expect(twoTimesThreePlusOne.valueOf()).toBe(7)
+        expect(BtwoTimesThreePlusOne.valueOf()).toBe(7)
     })
 
     it("1 + 2 * 3", () => {
-        expect(onePlusTwoTimesThree.valueOf()).toBe(7)
+        expect(BonePlusTwoTimesThree.valueOf()).toBe(7)
     })
 
     it("12 / 3 + 1", () => {
-        expect(twelveDividedThreePlusOne.valueOf()).toBe(5)
+        expect(BtwelveDividedThreePlusOne.valueOf()).toBe(5)
     })
 
     it("1 + 12 / 3", () => {
-        expect(onePlusTwelveDividedThree.valueOf()).toBe(5)
+        expect(BonePlusTwelveDividedThree.valueOf()).toBe(5)
     })
 
     it("85 % 8 + 2", () => {
-        expect(eightyFiveModEightPlusTwo.valueOf()).toBe(7)
+        expect(BeightyFiveModEightPlusTwo.valueOf()).toBe(7)
     })
 
     it("2 + 85 % 8", () => {
-        expect(twoPlusEightyFiveModEight.valueOf()).toBe(7)
+        expect(BtwoPlusEightyFiveModEight.valueOf()).toBe(7)
     })
 
     it("2 ** 3 + 1", () => {
-        expect(twoPowerThreePlusOne.valueOf()).toBe(9)
+        expect(BtwoPowerThreePlusOne.valueOf()).toBe(9)
     })
 
     it("1 + 2 ** 3", () => {
-        expect(onePlusTwoPowerThree.valueOf()).toBe(9)
+        expect(BonePlusTwoPowerThree.valueOf()).toBe(9)
     })
 
     it("2 * 3 - 1", () => {
-        expect(twoTimesThreeMinusOne.valueOf()).toBe(5)
+        expect(BtwoTimesThreeMinusOne.valueOf()).toBe(5)
     })
 
     it("1 - 2 * 3", () => {
-        expect(oneMinusTwoTimesThree.valueOf()).toBe(-5)
+        expect(BoneMinusTwoTimesThree.valueOf()).toBe(-5)
     })
 
     it("12 / 3 - 1", () => {
-        expect(twelveDividedThreeMinusOne.valueOf()).toBe(3)
+        expect(BtwelveDividedThreeMinusOne.valueOf()).toBe(3)
     })
 
     it("1 - 12 / 3", () => {
-        expect(oneMinusTwelveDividedThree.valueOf()).toBe(-3)
+        expect(BoneMinusTwelveDividedThree.valueOf()).toBe(-3)
     })
 
     it("85 % 8 - 2", () => {
-        expect(eightyFiveModEightMinusTwo.valueOf()).toBe(3)
+        expect(BeightyFiveModEightMinusTwo.valueOf()).toBe(3)
     })
 
     it("2 - 85 % 8", () => {
-        expect(twoMinusEightyFiveModEight.valueOf()).toBe(-3)
+        expect(BtwoMinusEightyFiveModEight.valueOf()).toBe(-3)
     })
 
     it("2 ** 3 - 1", () => {
-        expect(twoPowerThreeMinusOne.valueOf()).toBe(7)
+        expect(BtwoPowerThreeMinusOne.valueOf()).toBe(7)
     })
 
     it("1 - 2 ** 3", () => {
-        expect(oneMinusTwoPowerThree.valueOf()).toBe(-7)
+        expect(BoneMinusTwoPowerThree.valueOf()).toBe(-7)
     })
 })
 
 describe("with parenthesis", () => {
     it("(2 * 3) + 1", () => {
-        expect(lParenTwoTimesThreeRParenPlusOne.valueOf()).toBe(7)
+        expect(BlParenTwoTimesThreeRParenPlusOne.valueOf()).toBe(7)
     })
 
     it("2 * (3 + 1)", () => {
-        expect(twoTimesLParenThreePlusOneRParen.valueOf()).toBe(8)
+        expect(BtwoTimesLParenThreePlusOneRParen.valueOf()).toBe(8)
     })
 
     it("(12 / 3) + 1", () => {
-        expect(lParenTwelveDividedThreeRParenPlusOne.valueOf()).toBe(5)
+        expect(BlParenTwelveDividedThreeRParenPlusOne.valueOf()).toBe(5)
     })
 
     it("12 / (3 + 1)", () => {
-        expect(twelveDividedLParenThreePlusOneRParen.valueOf()).toBe(3)
+        expect(BtwelveDividedLParenThreePlusOneRParen.valueOf()).toBe(3)
     })
 
     it("(85 % 8) + 2", () => {
-        expect(lParenEightyFiveModEightRParenPlusTwo.valueOf()).toBe(7)
+        expect(BlParenEightyFiveModEightRParenPlusTwo.valueOf()).toBe(7)
     })
 
     it("85 % (8 + 2)", () => {
-        expect(eightyFiveModLParenEightPlusTwoRParen.valueOf()).toBe(5)
+        expect(BeightyFiveModLParenEightPlusTwoRParen.valueOf()).toBe(5)
     })
 
     it("(2 ** 3) + 1", () => {
-        expect(lParenTwoPowerThreeRParenPlusOne.valueOf()).toBe(9)
+        expect(BlParenTwoPowerThreeRParenPlusOne.valueOf()).toBe(9)
     })
 
     it("2 ** (3 + 1)", () => {
-        expect(twoPowerLParenThreePlusOneRParen.valueOf()).toBe(16)
+        expect(BtwoPowerLParenThreePlusOneRParen.valueOf()).toBe(16)
     })
 
     it("(2 * 3) - 1", () => {
-        expect(lParenTwoTimesThreeRParenMinusOne.valueOf()).toBe(5)
+        expect(BlParenTwoTimesThreeRParenMinusOne.valueOf()).toBe(5)
     })
 
     it("2 * (3 - 1)", () => {
-        expect(twoTimesLParenThreeMinusOneRParen.valueOf()).toBe(4)
+        expect(BtwoTimesLParenThreeMinusOneRParen.valueOf()).toBe(4)
     })
 
     it("(12 / 3) - 1", () => {
-        expect(lParenTwelveDividedThreeRParenMinusOne.valueOf()).toBe(3)
+        expect(BlParenTwelveDividedThreeRParenMinusOne.valueOf()).toBe(3)
     })
 
     it("12 / (3 - 1)", () => {
-        expect(twelveDividedLParenThreeMinusOneRParen.valueOf()).toBe(6)
+        expect(BtwelveDividedLParenThreeMinusOneRParen.valueOf()).toBe(6)
     })
 
     it("(85 % 8) - 2", () => {
-        expect(lParenEightyFiveModEightRParenMinusTwo.valueOf()).toBe(3)
+        expect(BlParenEightyFiveModEightRParenMinusTwo.valueOf()).toBe(3)
     })
 
     it("85 % (8 - 2)", () => {
-        expect(eightyFiveModLParenEightMinusTwoRParen.valueOf()).toBe(1)
+        expect(BeightyFiveModLParenEightMinusTwoRParen.valueOf()).toBe(1)
     })
 
     it("(2 ** 3) - 1", () => {
-        expect(lParenTwoPowerThreeRParenMinusOne.valueOf()).toBe(7)
+        expect(BlParenTwoPowerThreeRParenMinusOne.valueOf()).toBe(7)
     })
 
     it("2 ** (3 - 1)", () => {
-        expect(twoPowerLParenThreeMinusOneRParen.valueOf()).toBe(4)
+        expect(BtwoPowerLParenThreeMinusOneRParen.valueOf()).toBe(4)
     })
 })
 
 describe("complex expressions", () => {
     it("1 + 2 * 3 ** 7 - 5", () => {
-        expect(onePlusTwoTimesThreePowerSevenMinusFive.valueOf()).toBe(4370)
+        expect(BonePlusTwoTimesThreePowerSevenMinusFive.valueOf()).toBe(4370)
     })
 
     it("1 + (2 * 3) ** (7 - 5)", () => {
         expect(
-            onePlusLParenTwoTimesThreeRParenPowerLParenSevenMinusFiveRParen.valueOf()
+            BonePlusLParenTwoTimesThreeRParenPowerLParenSevenMinusFiveRParen.valueOf()
         ).toBe(37)
     })
 })

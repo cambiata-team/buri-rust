@@ -30,7 +30,7 @@ mod test {
             identifier,
         };
         let result = print_record_assignment(&assignment);
-        assert_eq!(result, "hello.$set({meaningOfLife: 42})");
+        assert_eq!(result, "Bhello.$set({meaningOfLife: 42})");
     }
 
     #[test]
@@ -55,8 +55,8 @@ mod test {
         // Because of the HashMap, the order of the keys is not guaranteed.
         // However, the order doesn't matter so we can accept either one.
         assert!(
-            result == "hello.$set({meaningOfLife: 42, foo: 0})"
-                || result == "hello.$set({foo: 0, meaningOfLife: 42})"
+            result == "Bhello.$set({meaningOfLife: 42, foo: 0})"
+                || result == "Bhello.$set({foo: 0, meaningOfLife: 42})"
         );
     }
 }

@@ -1,272 +1,272 @@
 import {
-    falseAndFalse,
-    falseAndTrue,
-    falseOrFalse,
-    falseOrTrue,
-    negativeOneEqualsNegativeOne,
-    negativeOneEqualsNegativeTwo,
-    negativeOneEqualsOne,
-    negativeOneEqualsTwo,
-    negativeOneGreaterThanEqualsNegativeOne,
-    negativeOneGreaterThanEqualsNegativeTwo,
-    negativeOneGreaterThanEqualsOne,
-    negativeOneGreaterThanEqualsTwo,
-    negativeOneGreaterThanNegativeOne,
-    negativeOneGreaterThanNegativeTwo,
-    negativeOneGreaterThanOne,
-    negativeOneGreaterThanTwo,
-    negativeOneLessThanEqualsNegativeOne,
-    negativeOneLessThanEqualsNegativeTwo,
-    negativeOneLessThanEqualsOne,
-    negativeOneLessThanEqualsTwo,
-    negativeOneLessThanNegativeOne,
-    negativeOneLessThanNegativeTwo,
-    negativeOneLessThanOne,
-    negativeOneLessThanTwo,
-    negativeOneNotEqualsNegativeOne,
-    negativeOneNotEqualsNegativeTwo,
-    negativeOneNotEqualsOne,
-    negativeOneNotEqualsTwo,
-    notFalse,
-    notTrue,
-    oneEqualsOne,
-    oneEqualsTwo,
-    oneGreaterThanEqualsOne,
-    oneGreaterThanEqualsTwo,
-    oneGreaterThanOne,
-    oneGreaterThanTwo,
-    oneLessThanEqualsOne,
-    oneLessThanEqualsTwo,
-    oneLessThanOne,
-    oneLessThanTwo,
-    oneNotEqualsOne,
-    oneNotEqualsTwo,
-    trueAndFalse,
-    trueAndTrue,
-    trueOrFalse,
-    trueOrTrue,
-    twoGreaterThanEqualsOne,
-    twoGreaterThanOne,
-    twoLessThanEqualsOne,
-    twoLessThanOne,
+    BfalseAndFalse,
+    BfalseAndTrue,
+    BfalseOrFalse,
+    BfalseOrTrue,
+    BnegativeOneEqualsNegativeOne,
+    BnegativeOneEqualsNegativeTwo,
+    BnegativeOneEqualsOne,
+    BnegativeOneEqualsTwo,
+    BnegativeOneGreaterThanEqualsNegativeOne,
+    BnegativeOneGreaterThanEqualsNegativeTwo,
+    BnegativeOneGreaterThanEqualsOne,
+    BnegativeOneGreaterThanEqualsTwo,
+    BnegativeOneGreaterThanNegativeOne,
+    BnegativeOneGreaterThanNegativeTwo,
+    BnegativeOneGreaterThanOne,
+    BnegativeOneGreaterThanTwo,
+    BnegativeOneLessThanEqualsNegativeOne,
+    BnegativeOneLessThanEqualsNegativeTwo,
+    BnegativeOneLessThanEqualsOne,
+    BnegativeOneLessThanEqualsTwo,
+    BnegativeOneLessThanNegativeOne,
+    BnegativeOneLessThanNegativeTwo,
+    BnegativeOneLessThanOne,
+    BnegativeOneLessThanTwo,
+    BnegativeOneNotEqualsNegativeOne,
+    BnegativeOneNotEqualsNegativeTwo,
+    BnegativeOneNotEqualsOne,
+    BnegativeOneNotEqualsTwo,
+    BnotFalse,
+    BnotTrue,
+    BoneEqualsOne,
+    BoneEqualsTwo,
+    BoneGreaterThanEqualsOne,
+    BoneGreaterThanEqualsTwo,
+    BoneGreaterThanOne,
+    BoneGreaterThanTwo,
+    BoneLessThanEqualsOne,
+    BoneLessThanEqualsTwo,
+    BoneLessThanOne,
+    BoneLessThanTwo,
+    BoneNotEqualsOne,
+    BoneNotEqualsTwo,
+    BtrueAndFalse,
+    BtrueAndTrue,
+    BtrueOrFalse,
+    BtrueOrTrue,
+    BtwoGreaterThanEqualsOne,
+    BtwoGreaterThanOne,
+    BtwoLessThanEqualsOne,
+    BtwoLessThanOne,
 } from "@tests/js/valid/logical-operators/definitions.mjs"
 import { describe, expect, it } from "bun:test"
 import { tag } from "../helpers"
 
 describe("and", () => {
     it("#true and #true -- #true", () => {
-        expect(trueAndTrue).toEqual(tag("true"))
+        expect(BtrueAndTrue).toEqual(tag("true"))
     })
 
     it("#true and #false -- #false", () => {
-        expect(trueAndFalse).toEqual(tag("false"))
+        expect(BtrueAndFalse).toEqual(tag("false"))
     })
 
     it("#false and #true -- #false", () => {
-        expect(falseAndTrue).toEqual(tag("false"))
+        expect(BfalseAndTrue).toEqual(tag("false"))
     })
 
     it("#false and #false -- #false", () => {
-        expect(falseAndFalse).toEqual(tag("false"))
+        expect(BfalseAndFalse).toEqual(tag("false"))
     })
 })
 
 describe("or", () => {
     it("#true or #true -- #true", () => {
-        expect(trueOrTrue).toEqual(tag("true"))
+        expect(BtrueOrTrue).toEqual(tag("true"))
     })
 
     it("#true or #false -- #true", () => {
-        expect(trueOrFalse).toEqual(tag("true"))
+        expect(BtrueOrFalse).toEqual(tag("true"))
     })
 
     it("#false or #true -- #true", () => {
-        expect(falseOrTrue).toEqual(tag("true"))
+        expect(BfalseOrTrue).toEqual(tag("true"))
     })
 
     it("#false or #false -- #false", () => {
-        expect(falseOrFalse).toEqual(tag("false"))
+        expect(BfalseOrFalse).toEqual(tag("false"))
     })
 })
 
 describe("not", () => {
     it("not #true -- #false", () => {
-        expect(notTrue).toEqual(tag("false"))
+        expect(BnotTrue).toEqual(tag("false"))
     })
 
     it("not #false -- #true", () => {
-        expect(notFalse).toEqual(tag("true"))
+        expect(BnotFalse).toEqual(tag("true"))
     })
 })
 
 describe("==", () => {
     it("1 == 1 -- #true", () => {
-        expect(oneEqualsOne).toEqual(tag("true"))
+        expect(BoneEqualsOne).toEqual(tag("true"))
     })
 
     it("1 == 2 -- #false", () => {
-        expect(oneEqualsTwo).toEqual(tag("false"))
+        expect(BoneEqualsTwo).toEqual(tag("false"))
     })
 
     it("-1 == -1 -- #true", () => {
-        expect(negativeOneEqualsNegativeOne).toEqual(tag("true"))
+        expect(BnegativeOneEqualsNegativeOne).toEqual(tag("true"))
     })
 
     it("-1 == 1 -- #false", () => {
-        expect(negativeOneEqualsOne).toEqual(tag("false"))
+        expect(BnegativeOneEqualsOne).toEqual(tag("false"))
     })
 
     it("-1 == -2 -- #false", () => {
-        expect(negativeOneEqualsNegativeTwo).toEqual(tag("false"))
+        expect(BnegativeOneEqualsNegativeTwo).toEqual(tag("false"))
     })
 
     it("-1 == 2 -- #false", () => {
-        expect(negativeOneEqualsTwo).toEqual(tag("false"))
+        expect(BnegativeOneEqualsTwo).toEqual(tag("false"))
     })
 })
 
 describe("!=", () => {
     it("1 != 1 -- #false", () => {
-        expect(oneNotEqualsOne).toEqual(tag("false"))
+        expect(BoneNotEqualsOne).toEqual(tag("false"))
     })
 
     it("1 != 2 -- #true", () => {
-        expect(oneNotEqualsTwo).toEqual(tag("true"))
+        expect(BoneNotEqualsTwo).toEqual(tag("true"))
     })
 
     it("-1 != -1 -- #false", () => {
-        expect(negativeOneNotEqualsNegativeOne).toEqual(tag("false"))
+        expect(BnegativeOneNotEqualsNegativeOne).toEqual(tag("false"))
     })
 
     it("-1 != 1 -- #true", () => {
-        expect(negativeOneNotEqualsOne).toEqual(tag("true"))
+        expect(BnegativeOneNotEqualsOne).toEqual(tag("true"))
     })
 
     it("-1 != -2 -- #true", () => {
-        expect(negativeOneNotEqualsNegativeTwo).toEqual(tag("true"))
+        expect(BnegativeOneNotEqualsNegativeTwo).toEqual(tag("true"))
     })
 
     it("-1 != 2 -- #true", () => {
-        expect(negativeOneNotEqualsTwo).toEqual(tag("true"))
+        expect(BnegativeOneNotEqualsTwo).toEqual(tag("true"))
     })
 })
 
 describe("<", () => {
     it("1 < 1 -- #false", () => {
-        expect(oneLessThanOne).toEqual(tag("false"))
+        expect(BoneLessThanOne).toEqual(tag("false"))
     })
 
     it("1 < 2 -- #true", () => {
-        expect(oneLessThanTwo).toEqual(tag("true"))
+        expect(BoneLessThanTwo).toEqual(tag("true"))
     })
 
     it("2 < 1 -- #false", () => {
-        expect(twoLessThanOne).toEqual(tag("false"))
+        expect(BtwoLessThanOne).toEqual(tag("false"))
     })
 
     it("-1 < -1 -- #false", () => {
-        expect(negativeOneLessThanNegativeOne).toEqual(tag("false"))
+        expect(BnegativeOneLessThanNegativeOne).toEqual(tag("false"))
     })
 
     it("-1 < 1 -- #true", () => {
-        expect(negativeOneLessThanOne).toEqual(tag("true"))
+        expect(BnegativeOneLessThanOne).toEqual(tag("true"))
     })
 
     it("-1 < -2 -- #false", () => {
-        expect(negativeOneLessThanNegativeTwo).toEqual(tag("false"))
+        expect(BnegativeOneLessThanNegativeTwo).toEqual(tag("false"))
     })
 
     it("-1 < 2 -- #true", () => {
-        expect(negativeOneLessThanTwo).toEqual(tag("true"))
+        expect(BnegativeOneLessThanTwo).toEqual(tag("true"))
     })
 })
 
 describe("<=", () => {
     it("1 <= 1 -- #true", () => {
-        expect(oneLessThanEqualsOne).toEqual(tag("true"))
+        expect(BoneLessThanEqualsOne).toEqual(tag("true"))
     })
 
     it("1 <= 2 -- #true", () => {
-        expect(oneLessThanEqualsTwo).toEqual(tag("true"))
+        expect(BoneLessThanEqualsTwo).toEqual(tag("true"))
     })
 
     it("2 <= 1 -- #false", () => {
-        expect(twoLessThanEqualsOne).toEqual(tag("false"))
+        expect(BtwoLessThanEqualsOne).toEqual(tag("false"))
     })
 
     it("-1 <= -1 -- #true", () => {
-        expect(negativeOneLessThanEqualsNegativeOne).toEqual(tag("true"))
+        expect(BnegativeOneLessThanEqualsNegativeOne).toEqual(tag("true"))
     })
 
     it("-1 <= 1 -- #true", () => {
-        expect(negativeOneLessThanEqualsOne).toEqual(tag("true"))
+        expect(BnegativeOneLessThanEqualsOne).toEqual(tag("true"))
     })
 
     it("-1 <= -2 -- #false", () => {
-        expect(negativeOneLessThanEqualsNegativeTwo).toEqual(tag("false"))
+        expect(BnegativeOneLessThanEqualsNegativeTwo).toEqual(tag("false"))
     })
 
     it("-1 <= 2 -- #true", () => {
-        expect(negativeOneLessThanEqualsTwo).toEqual(tag("true"))
+        expect(BnegativeOneLessThanEqualsTwo).toEqual(tag("true"))
     })
 })
 
 describe(">", () => {
     it("1 > 1 -- #false", () => {
-        expect(oneGreaterThanOne).toEqual(tag("false"))
+        expect(BoneGreaterThanOne).toEqual(tag("false"))
     })
 
     it("1 > 2 -- #false", () => {
-        expect(oneGreaterThanTwo).toEqual(tag("false"))
+        expect(BoneGreaterThanTwo).toEqual(tag("false"))
     })
 
     it("2 > 1 -- #true", () => {
-        expect(twoGreaterThanOne).toEqual(tag("true"))
+        expect(BtwoGreaterThanOne).toEqual(tag("true"))
     })
 
     it("-1 > -1 -- #false", () => {
-        expect(negativeOneGreaterThanNegativeOne).toEqual(tag("false"))
+        expect(BnegativeOneGreaterThanNegativeOne).toEqual(tag("false"))
     })
 
     it("-1 > 1 -- #false", () => {
-        expect(negativeOneGreaterThanOne).toEqual(tag("false"))
+        expect(BnegativeOneGreaterThanOne).toEqual(tag("false"))
     })
 
     it("-1 > -2 -- #true", () => {
-        expect(negativeOneGreaterThanNegativeTwo).toEqual(tag("true"))
+        expect(BnegativeOneGreaterThanNegativeTwo).toEqual(tag("true"))
     })
 
     it("-1 > 2 -- #false", () => {
-        expect(negativeOneGreaterThanTwo).toEqual(tag("false"))
+        expect(BnegativeOneGreaterThanTwo).toEqual(tag("false"))
     })
 })
 
 describe(">=", () => {
     it("1 >= 1 -- #true", () => {
-        expect(oneGreaterThanEqualsOne).toEqual(tag("true"))
+        expect(BoneGreaterThanEqualsOne).toEqual(tag("true"))
     })
 
     it("1 >= 2 -- #false", () => {
-        expect(oneGreaterThanEqualsTwo).toEqual(tag("false"))
+        expect(BoneGreaterThanEqualsTwo).toEqual(tag("false"))
     })
 
     it("2 >= 1 -- #true", () => {
-        expect(twoGreaterThanEqualsOne).toEqual(tag("true"))
+        expect(BtwoGreaterThanEqualsOne).toEqual(tag("true"))
     })
 
     it("-1 >= -1 -- #true", () => {
-        expect(negativeOneGreaterThanEqualsNegativeOne).toEqual(tag("true"))
+        expect(BnegativeOneGreaterThanEqualsNegativeOne).toEqual(tag("true"))
     })
 
     it("-1 >= 1 -- #false", () => {
-        expect(negativeOneGreaterThanEqualsOne).toEqual(tag("false"))
+        expect(BnegativeOneGreaterThanEqualsOne).toEqual(tag("false"))
     })
 
     it("-1 >= -2 -- #true", () => {
-        expect(negativeOneGreaterThanEqualsNegativeTwo).toEqual(tag("true"))
+        expect(BnegativeOneGreaterThanEqualsNegativeTwo).toEqual(tag("true"))
     })
 
     it("-1 >= 2 -- #false", () => {
-        expect(negativeOneGreaterThanEqualsTwo).toEqual(tag("false"))
+        expect(BnegativeOneGreaterThanEqualsTwo).toEqual(tag("false"))
     })
 })

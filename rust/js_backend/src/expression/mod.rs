@@ -10,6 +10,7 @@ mod record;
 mod record_assignment;
 mod tag;
 mod unary_operator;
+mod variable_name_mangling;
 
 use crate::{
     identifier::print_identifier,
@@ -18,6 +19,7 @@ use crate::{
 use typed_ast::ConcreteExpression;
 
 pub use declaration::print_declaration;
+pub use variable_name_mangling::mangle_variable_name;
 
 fn print_expression(expression: &ConcreteExpression) -> String {
     match expression {
@@ -68,7 +70,7 @@ mod test {
     #[test]
     fn can_print_identifier() {
         let expression = ConcreteExpression::identifier_for_test("foo");
-        assert_eq!(print_expression(&expression), "foo");
+        assert_eq!(print_expression(&expression), "Bfoo");
     }
 
     #[test]
@@ -124,7 +126,7 @@ mod test {
                 left_child: ConcreteExpression::identifier_for_test("foo"),
                 right_child: ConcreteExpression::identifier_for_test("bar"),
             }));
-        assert_eq!(print_expression(&expression), "foo.bar");
+        assert_eq!(print_expression(&expression), "Bfoo.bar");
     }
 
     #[test]
@@ -156,7 +158,7 @@ mod test {
             path_if_true: ConcreteExpression::identifier_for_test("bar"),
             path_if_false: Some(ConcreteExpression::identifier_for_test("baz")),
         }));
-        assert_eq!(print_expression(&expression), "(foo?bar:baz)");
+        assert_eq!(print_expression(&expression), "(Bfoo?Bbar:Bbaz)");
     }
 
     #[test]
@@ -196,7 +198,7 @@ mod test {
                 identifier: ConcreteExpression::raw_identifier_for_test("foo"),
                 value: ConcreteExpression::integer_for_test(42),
             }));
-        assert_eq!(print_expression(&declaration), "const foo=42");
+        assert_eq!(print_expression(&declaration), "const Bfoo=42");
     }
 
     #[test]
@@ -217,7 +219,7 @@ mod test {
             }));
         assert_eq!(
             print_expression(&assignment),
-            "hello.$set({meaningOfLife: 42})"
+            "Bhello.$set({meaningOfLife: 42})"
         );
     }
 }

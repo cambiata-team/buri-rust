@@ -39,6 +39,6 @@ mod test {
             symbol: UnaryOperatorSymbol::Not,
             child: ConcreteExpression::identifier_for_test("foo"),
         };
-        assert_eq!(print_unary_operator(&expression), "!foo");
+        assert_eq!(print_unary_operator(&expression), "!Bfoo");
     }
 }

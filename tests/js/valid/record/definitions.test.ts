@@ -1,20 +1,20 @@
 import {
-    hasArray,
-    nested,
-    person,
+    BhasArray,
+    Bnested,
+    Bperson,
 } from "@tests/js/valid/record/definitions.mjs"
 
 import { expect, it } from "bun:test"
 
 it("records can contain fields of different types", () => {
-    expect(person).toEqual({
+    expect(Bperson).toEqual({
         name: "Jane Doe",
         age: 30,
     })
 })
 
 it("records can be nested", () => {
-    expect(nested).toEqual({
+    expect(Bnested).toEqual({
         name: "Mary Doe",
         mom: {
             name: "Jane Doe",
@@ -28,5 +28,5 @@ it("records can be nested", () => {
 })
 
 it("records can contain arrays", () => {
-    expect(hasArray).toEqual({ a: [1, 2, 3] })
+    expect(BhasArray).toEqual({ a: [1, 2, 3] })
 })
