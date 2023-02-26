@@ -1,0 +1,3 @@
+one: Int = 1
+MyNumber = Int
+two: MyNumber = 2

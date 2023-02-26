@@ -3,7 +3,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub enum PrimitiveType {
     CompilerBoolean,
-    Num,
+    Int,
     Str,
 }
 
@@ -58,7 +58,7 @@ impl ConcreteType {
 
     #[must_use]
     pub const fn default_integer_for_test() -> Self {
-        Self::Primitive(PrimitiveType::Num)
+        Self::Primitive(PrimitiveType::Int)
     }
 
     #[must_use]
