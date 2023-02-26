@@ -15,7 +15,7 @@ mod test {
     #[test]
     fn test_print_integer_literal() {
         let node = ConcreteIntegerLiteralExpression {
-            expression_type: ConcreteType::Primitive(PrimitiveType::Num),
+            expression_type: ConcreteType::Primitive(PrimitiveType::Int),
             value: 1,
         };
         assert_eq!(print_integer_literal(&node), "1");
@@ -24,7 +24,7 @@ mod test {
     #[test]
     fn test_print_integer_literal_2() {
         let node = ConcreteIntegerLiteralExpression {
-            expression_type: ConcreteType::Primitive(PrimitiveType::Num),
+            expression_type: ConcreteType::Primitive(PrimitiveType::Int),
             value: 2,
         };
         assert_eq!(print_integer_literal(&node), "2");

@@ -59,13 +59,42 @@ pub struct TypeSchema {
 
 impl TypeSchema {
     #[must_use]
+    #[allow(clippy::unwrap_used, clippy::missing_panics_doc)]
     pub fn new() -> Self {
-        Self {
+        let mut schema = Self {
             types: CanonicalIds::new(),
             constraints: HashMap::new(),
             scope: Scope::new(),
-        }
+        };
+        schema
+            .declare_identifier_with_constraint(
+                String::from("Int"),
+                Constraint::EqualToPrimitive(PrimitiveType::Int),
+            )
+            .unwrap();
+        schema
+            .declare_identifier_with_constraint(
+                String::from("Str"),
+                Constraint::EqualToPrimitive(PrimitiveType::Str),
+            )
+            .unwrap();
+        schema
     }
+
+    fn declare_identifier_with_constraint(
+        &mut self,
+        identifier_name: String,
+        constraint: Constraint,
+    ) -> Result<(), String> {
+        let type_id = self.types.make_id();
+        self.scope
+            .declare_identifier(identifier_name, type_id)
+            .map_err(generate_backtrace_error)?;
+        self.add_constraint(type_id, constraint)
+            .map_err(generate_backtrace_error)?;
+        Ok(())
+    }
+
     pub fn make_id(&mut self) -> TypeId {
         self.types.make_id()
     }
@@ -161,14 +190,12 @@ mod test {
     use super::*;
 
     #[test]
-    fn make_id_starts_with_zero_and_increments_by_one() {
+    fn make_id_increments_by_one() {
         let mut type_schema = TypeSchema::new();
-        assert_eq!(type_schema.make_id(), 0);
-        assert_eq!(type_schema.make_id(), 1);
-        assert_eq!(type_schema.make_id(), 2);
-        assert_eq!(type_schema.make_id(), 3);
-        assert_eq!(type_schema.make_id(), 4);
-        assert_eq!(type_schema.make_id(), 5);
+        let first_id = type_schema.make_id();
+        assert_eq!(type_schema.make_id(), first_id + 1);
+        assert_eq!(type_schema.make_id(), first_id + 2);
+        assert_eq!(type_schema.make_id(), first_id + 3);
     }
 
     #[test]
@@ -202,10 +229,10 @@ mod test {
     #[test]
     fn count_ids_counts_the_total_number_of_ids() {
         let mut type_schema = TypeSchema::new();
+        let initial_id = type_schema.make_id();
         type_schema.make_id();
         type_schema.make_id();
-        type_schema.make_id();
-        assert_eq!(type_schema.count_ids(), 3);
+        assert_eq!(type_schema.count_ids(), initial_id + 3);
     }
 
     #[test]
@@ -216,16 +243,16 @@ mod test {
         let id_c = type_schema.make_id();
         type_schema.set_equal_to_canonical_type(id_a, id_b).unwrap();
         type_schema.set_equal_to_canonical_type(id_b, id_c).unwrap();
-        assert_eq!(type_schema.count_ids(), 3);
+        assert_eq!(type_schema.count_ids(), id_a + 3);
     }
 
     #[test]
     fn count_canonical_ids_counts_the_total_number_of_canonical_ids() {
         let mut type_schema = TypeSchema::new();
+        let initial_id = type_schema.make_id();
         type_schema.make_id();
         type_schema.make_id();
-        type_schema.make_id();
-        assert_eq!(type_schema.get_total_canonical_ids(), 3);
+        assert_eq!(type_schema.get_total_canonical_ids(), initial_id + 3);
     }
 
     #[test]
@@ -236,6 +263,28 @@ mod test {
         let id_c = type_schema.make_id();
         type_schema.set_equal_to_canonical_type(id_a, id_b).unwrap();
         type_schema.set_equal_to_canonical_type(id_b, id_c).unwrap();
-        assert_eq!(type_schema.get_total_canonical_ids(), 1);
+        assert_eq!(type_schema.get_total_canonical_ids(), id_a + 1);
+    }
+
+    #[test]
+    fn int_is_a_default_type_that_resolves_to_primitive_int() {
+        let type_schema = TypeSchema::new();
+        let type_id = type_schema
+            .scope
+            .get_variable_declaration_type("Int")
+            .unwrap();
+        let concrete_type = type_schema.get_concrete_type_from_id(type_id);
+        assert_eq!(concrete_type, ConcreteType::Primitive(PrimitiveType::Int));
+    }
+
+    #[test]
+    fn str_is_a_default_type_that_resolves_to_primitive_str() {
+        let type_schema = TypeSchema::new();
+        let type_id = type_schema
+            .scope
+            .get_variable_declaration_type("Str")
+            .unwrap();
+        let concrete_type = type_schema.get_concrete_type_from_id(type_id);
+        assert_eq!(concrete_type, ConcreteType::Primitive(PrimitiveType::Str));
     }
 }

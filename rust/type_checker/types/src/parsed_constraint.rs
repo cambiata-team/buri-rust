@@ -433,7 +433,7 @@ mod test {
     #[test]
     fn new_parsed_constraint_with_non_name_constraint_sets_name_to_none() {
         let parsed_constraint = ParsedConstraint::new(
-            Constraint::EqualToPrimitive(PrimitiveType::Num),
+            Constraint::EqualToPrimitive(PrimitiveType::Int),
             &TypeSchema::new(),
         );
         assert_eq!(parsed_constraint.name.0, None);
@@ -473,12 +473,12 @@ mod test {
     #[test]
     fn new_parsed_constraint_with_primitive_constraint_sets_primitive() {
         let parsed_constraint = ParsedConstraint::new(
-            Constraint::EqualToPrimitive(PrimitiveType::Num),
+            Constraint::EqualToPrimitive(PrimitiveType::Int),
             &TypeSchema::new(),
         );
         assert_eq!(
             parsed_constraint.category,
-            CategoryConstraints::Primitive(PrimitiveType::Num)
+            CategoryConstraints::Primitive(PrimitiveType::Int)
         );
     }
 
@@ -638,7 +638,7 @@ mod test {
     fn add_name_constraint_sets_name() {
         let schema = TypeSchema::new();
         let mut parsed_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Num), &schema);
+            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
         let new_constraint = ParsedConstraint::new(Constraint::HasName("bar".to_string()), &schema);
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         assert_eq!(parsed_constraint.name.0, Some("bar".to_string()));
@@ -648,7 +648,7 @@ mod test {
     fn add_name_constraint_does_not_change_category() {
         let schema = TypeSchema::new();
         let mut parsed_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Num), &schema);
+            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
         let new_constraint = ParsedConstraint::new(Constraint::HasName("bar".to_string()), &schema);
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         assert!(matches!(
@@ -662,7 +662,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let mut parsed_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Num), &schema);
+            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
         let new_constraint = ParsedConstraint::new(
             Constraint::HasMethod(HasMethodConstraint {
                 method_name: "foo".to_string(),
@@ -686,7 +686,7 @@ mod test {
             .set_equal_to_canonical_type(canonical_id, type_id)
             .unwrap();
         let mut parsed_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Num), &schema);
+            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
         let new_constraint = ParsedConstraint::new(
             Constraint::HasMethod(HasMethodConstraint {
                 method_name: "foo".to_string(),
@@ -706,7 +706,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let mut parsed_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Num), &schema);
+            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
         let new_constraint = ParsedConstraint::new(
             Constraint::HasMethod(HasMethodConstraint {
                 method_name: "foo".to_string(),
@@ -727,11 +727,11 @@ mod test {
         let mut parsed_constraint =
             ParsedConstraint::new(Constraint::HasName("foo".to_string()), &schema);
         let new_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Num), &schema);
+            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         assert_eq!(
             parsed_constraint.category,
-            CategoryConstraints::Primitive(PrimitiveType::Num)
+            CategoryConstraints::Primitive(PrimitiveType::Int)
         );
     }
 
@@ -982,7 +982,7 @@ mod test {
     fn is_compatible_with_name_constraint_when_it_does_not_have_a_name() {
         let schema = TypeSchema::new();
         let parsed_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Num), &schema);
+            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
         let other_constraint =
             ParsedConstraint::new(Constraint::HasName("bar".to_string()), &schema);
         assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
@@ -1134,9 +1134,9 @@ mod test {
     fn is_compatible_with_primitive_constraint_if_it_matches_current_primitive() {
         let schema = TypeSchema::new();
         let parsed_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Num), &schema);
+            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
         let other_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Num), &schema);
+            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
         assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
     }
 
@@ -1144,7 +1144,7 @@ mod test {
     fn is_not_compatible_with_primitive_constraint_if_it_does_not_match_current_primitive() {
         let schema = TypeSchema::new();
         let parsed_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Num), &schema);
+            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
         let other_constraint =
             ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Str), &schema);
         assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
@@ -1156,7 +1156,7 @@ mod test {
         let parsed_constraint =
             ParsedConstraint::new(Constraint::HasName("foo".to_string()), &schema);
         let other_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Num), &schema);
+            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
         assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
     }
 
@@ -1166,7 +1166,7 @@ mod test {
         let list_type = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(Constraint::ListOfType(list_type), &schema);
         let other_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Num), &schema);
+            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
         assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
     }
 
@@ -2833,10 +2833,10 @@ mod test {
     fn number_to_concrete_type() {
         let schema = TypeSchema::new();
         let parsed_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Num), &schema);
+            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
         assert_eq!(
             parsed_constraint.to_concrete_type(&schema),
-            ConcreteType::Primitive(PrimitiveType::Num)
+            ConcreteType::Primitive(PrimitiveType::Int)
         );
     }
 
@@ -2858,7 +2858,7 @@ mod test {
         schema
             .add_constraint(
                 element_type,
-                Constraint::EqualToPrimitive(PrimitiveType::Num),
+                Constraint::EqualToPrimitive(PrimitiveType::Int),
             )
             .unwrap();
         let parsed_constraint =
@@ -2866,7 +2866,7 @@ mod test {
         assert_eq!(
             parsed_constraint.to_concrete_type(&schema),
             ConcreteType::List(Box::new(ConcreteListType {
-                element_type: ConcreteType::Primitive(PrimitiveType::Num)
+                element_type: ConcreteType::Primitive(PrimitiveType::Int)
             }))
         );
     }
@@ -2879,7 +2879,7 @@ mod test {
         schema
             .add_constraint(
                 return_type,
-                Constraint::EqualToPrimitive(PrimitiveType::Num),
+                Constraint::EqualToPrimitive(PrimitiveType::Int),
             )
             .unwrap();
         schema
@@ -2899,7 +2899,7 @@ mod test {
             parsed_constraint.to_concrete_type(&schema),
             ConcreteType::Function(Box::new(ConcreteFunctionType {
                 argument_types: vec![ConcreteType::Primitive(PrimitiveType::Str)],
-                return_type: ConcreteType::Primitive(PrimitiveType::Num)
+                return_type: ConcreteType::Primitive(PrimitiveType::Int)
             }))
         );
     }
@@ -2909,7 +2909,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let field_type = schema.make_id();
         schema
-            .add_constraint(field_type, Constraint::EqualToPrimitive(PrimitiveType::Num))
+            .add_constraint(field_type, Constraint::EqualToPrimitive(PrimitiveType::Int))
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
             Constraint::FieldAtMost(FieldAtMostConstraint {
@@ -2922,7 +2922,7 @@ mod test {
             ConcreteType::Record(Box::new(ConcreteRecordType {
                 field_types: HashMap::from([(
                     String::from("foo"),
-                    ConcreteType::Primitive(PrimitiveType::Num)
+                    ConcreteType::Primitive(PrimitiveType::Int)
                 )])
             }))
         );
@@ -2933,7 +2933,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let field_type = schema.make_id();
         schema
-            .add_constraint(field_type, Constraint::EqualToPrimitive(PrimitiveType::Num))
+            .add_constraint(field_type, Constraint::EqualToPrimitive(PrimitiveType::Int))
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
             Constraint::HasField(HasFieldConstraint {
@@ -2947,7 +2947,7 @@ mod test {
             ConcreteType::Record(Box::new(ConcreteRecordType {
                 field_types: HashMap::from([(
                     String::from("foo"),
-                    ConcreteType::Primitive(PrimitiveType::Num)
+                    ConcreteType::Primitive(PrimitiveType::Int)
                 )])
             }))
         );
@@ -2958,7 +2958,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let tag_type = schema.make_id();
         schema
-            .add_constraint(tag_type, Constraint::EqualToPrimitive(PrimitiveType::Num))
+            .add_constraint(tag_type, Constraint::EqualToPrimitive(PrimitiveType::Int))
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
             Constraint::TagAtMost(TagAtMostConstraint {
@@ -2971,7 +2971,7 @@ mod test {
             ConcreteType::TagUnion(Box::new(ConcreteTagUnionType {
                 tag_types: HashMap::from([(
                     String::from("foo"),
-                    vec![ConcreteType::Primitive(PrimitiveType::Num)]
+                    vec![ConcreteType::Primitive(PrimitiveType::Int)]
                 )])
             }))
         );
@@ -2982,7 +2982,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let tag_type = schema.make_id();
         schema
-            .add_constraint(tag_type, Constraint::EqualToPrimitive(PrimitiveType::Num))
+            .add_constraint(tag_type, Constraint::EqualToPrimitive(PrimitiveType::Int))
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
             Constraint::HasTag(HasTagConstraint {
@@ -2996,7 +2996,7 @@ mod test {
             ConcreteType::TagUnion(Box::new(ConcreteTagUnionType {
                 tag_types: HashMap::from([(
                     String::from("foo"),
-                    vec![ConcreteType::Primitive(PrimitiveType::Num)]
+                    vec![ConcreteType::Primitive(PrimitiveType::Int)]
                 )])
             }))
         );
@@ -3055,7 +3055,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let tag_type = schema.make_id();
         schema
-            .add_constraint(tag_type, Constraint::EqualToPrimitive(PrimitiveType::Num))
+            .add_constraint(tag_type, Constraint::EqualToPrimitive(PrimitiveType::Int))
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
             Constraint::TagAtMost(TagAtMostConstraint {
@@ -3068,7 +3068,7 @@ mod test {
             ConcreteType::TagUnion(Box::new(ConcreteTagUnionType {
                 tag_types: HashMap::from([(
                     String::from("true"),
-                    vec![ConcreteType::Primitive(PrimitiveType::Num)]
+                    vec![ConcreteType::Primitive(PrimitiveType::Int)]
                 )])
             }))
         );
@@ -3079,7 +3079,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let tag_type = schema.make_id();
         schema
-            .add_constraint(tag_type, Constraint::EqualToPrimitive(PrimitiveType::Num))
+            .add_constraint(tag_type, Constraint::EqualToPrimitive(PrimitiveType::Int))
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
             Constraint::TagAtMost(TagAtMostConstraint {
@@ -3092,7 +3092,7 @@ mod test {
             ConcreteType::TagUnion(Box::new(ConcreteTagUnionType {
                 tag_types: HashMap::from([(
                     String::from("false"),
-                    vec![ConcreteType::Primitive(PrimitiveType::Num)]
+                    vec![ConcreteType::Primitive(PrimitiveType::Int)]
                 )])
             }))
         );
