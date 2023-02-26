@@ -1,0 +1,3 @@
+hello: Str = "hello"
+World = Str
+world: World = "world"
