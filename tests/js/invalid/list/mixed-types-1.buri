@@ -1,0 +1,2 @@
+-- types are mixed
+mixed = [1, [1]]
