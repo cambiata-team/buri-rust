@@ -1,0 +1,1 @@
+words: [{ name: Str }] = [{ age: 21 }]

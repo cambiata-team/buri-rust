@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use type_checker_errors::generate_backtrace_error;
 use type_checker_types::{
     constraints::{
-        Constraint, FieldAtMostConstraint, HasFieldConstraint, HasFunctionShape,
+        Constraint, HasExactFieldsConstraint, HasFieldConstraint, HasFunctionShape,
         HasMethodConstraint, HasTagConstraint, TagAtMostConstraint,
     },
     generic_nodes::{
@@ -337,14 +337,15 @@ pub fn translate_declaration<'a>(
         .declare_identifier(node.value.identifier.value.name.clone(), name_type_id)?;
     let identifier = translate_identifier(schema, node.value.identifier.clone())?;
 
-    if let Some(type_expression) = node.value.type_expression {
-        let type_expression_id = translate_parsed_type_expression(schema, &type_expression)?;
-        schema.set_equal_to_canonical_type(type_expression_id, name_type_id)?;
-    }
-
     let expression =
         translate_parsed_expression_to_generic_expression(schema, *node.value.expression)?;
     let expression_id = get_generic_type_id(&expression);
+
+    if let Some(type_expression) = node.value.type_expression {
+        let type_expression_id = translate_parsed_type_expression(schema, &type_expression)?;
+        schema.set_equal_to_canonical_type(type_expression_id, expression_id)?;
+    }
+
     schema.set_equal_to_canonical_type(expression_id, name_type_id)?;
     Ok(GenericDeclarationExpression {
         declaration_type: GenericSourcedType {
@@ -539,7 +540,7 @@ fn translate_record<'a>(
     }
     schema.add_constraint(
         record_type_id,
-        Constraint::FieldAtMost(FieldAtMostConstraint { fields }),
+        Constraint::HasExactFields(HasExactFieldsConstraint { fields }),
     )?;
     Ok(GenericRecordExpression {
         expression_type: GenericSourcedType {
@@ -776,17 +777,18 @@ fn translate_record_type(
 ) -> Result<TypeId, String> {
     let type_id = schema.make_id();
 
+    let mut fields = HashMap::new();
+
     for field in &expression.value {
         let field_type_id = translate_parsed_type_expression(schema, &field.value)?;
-
-        schema.add_constraint(
-            type_id,
-            Constraint::HasField(HasFieldConstraint {
-                field_name: field.identifier.value.name.clone(),
-                field_type: field_type_id,
-            }),
-        )?;
+        fields.insert(field.identifier.value.name.clone(), field_type_id);
     }
+
+    schema.add_constraint(
+        type_id,
+        Constraint::HasExactFields(HasExactFieldsConstraint { fields }),
+    )?;
+
     Ok(type_id)
 }
 

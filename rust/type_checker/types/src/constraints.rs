@@ -28,7 +28,7 @@ pub struct HasFieldConstraint {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FieldAtMostConstraint {
+pub struct HasExactFieldsConstraint {
     pub fields: HashMap<String, TypeId>,
 }
 
@@ -57,7 +57,7 @@ pub enum Constraint {
     /// Constrain that a generic type is a tag union with at most a given set of tags.
     TagAtMost(TagAtMostConstraint),
     HasField(HasFieldConstraint),
-    FieldAtMost(FieldAtMostConstraint),
+    HasExactFields(HasExactFieldsConstraint),
     HasMethod(HasMethodConstraint),
     /// Constrain that a generic type is a function with a given return type.
     HasFunctionShape(HasFunctionShape),

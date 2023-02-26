@@ -1,0 +1,9 @@
+Person = {
+    name: Str,
+    age: Int,
+}
+
+jane: Person = {
+    name: "Jane",
+    age: "23",
+}

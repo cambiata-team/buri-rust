@@ -1,0 +1,2 @@
+-- types are mixed
+mixed = [{ item: 1 }, { item: "2" }]

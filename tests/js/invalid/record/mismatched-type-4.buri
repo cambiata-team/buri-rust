@@ -1,0 +1,8 @@
+Data = {
+    data: Str,
+}
+
+data: Data = {
+    data: "hello",
+    other: 2,
+}
