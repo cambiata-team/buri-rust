@@ -59,11 +59,12 @@ impl CategoryConstraints {
                 Self::TagGroup(TagGroupConstraints::ClosedTags(other_tags)),
             ) => other_tags.iter().all(|(name, types)| {
                 self_tags.get(name).map_or(false, |self_types| {
-                    types.iter().all(|type_id| {
-                        self_types.iter().any(|self_type_id| {
-                            schema.types_are_compatible(*self_type_id, *type_id)
+                    types.len() == self_types.len()
+                        && types.iter().all(|type_id| {
+                            self_types.iter().any(|self_type_id| {
+                                schema.types_are_compatible(*self_type_id, *type_id)
+                            })
                         })
-                    })
                 })
             }),
             (
@@ -84,11 +85,12 @@ impl CategoryConstraints {
                 Self::TagGroup(TagGroupConstraints::OpenTags(other_tags)),
             ) => other_tags.iter().all(|(name, types)| {
                 self_tags.get(name).map_or(true, |self_types| {
-                    types.iter().all(|type_id| {
-                        self_types.iter().any(|self_type_id| {
-                            schema.types_are_compatible(*self_type_id, *type_id)
+                    types.len() == self_types.len()
+                        && types.iter().all(|type_id| {
+                            self_types.iter().any(|self_type_id| {
+                                schema.types_are_compatible(*self_type_id, *type_id)
+                            })
                         })
-                    })
                 })
             }),
             (
@@ -96,11 +98,12 @@ impl CategoryConstraints {
                 Self::TagGroup(TagGroupConstraints::OpenTags(other_tags)),
             ) => other_tags.iter().all(|(name, other_types)| {
                 self_tags.get(name).map_or(false, |self_types| {
-                    other_types.iter().all(|other_type_id| {
-                        self_types
-                            .iter()
-                            .any(|type_id| schema.types_are_compatible(*type_id, *other_type_id))
-                    })
+                    self_types.len() == other_types.len()
+                        && other_types.iter().all(|other_type_id| {
+                            self_types.iter().any(|type_id| {
+                                schema.types_are_compatible(*type_id, *other_type_id)
+                            })
+                        })
                 })
             }),
             (

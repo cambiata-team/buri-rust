@@ -1,0 +1,11 @@
+Color = #red | #green | #blue
+
+red: Color = #red
+green: Color = #green
+blue: Color = #blue
+
+IpAddress = #ip4(Int, Int, Int, Int)
+
+localhost: IpAddress = #ip4(127, 0, 0, 1)
+
+secondaryColor: #yellow | #orange | #purple = #yellow
