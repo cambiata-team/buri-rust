@@ -328,13 +328,20 @@ pub fn translate_declaration<'a>(
     node: DeclarationNode<'a>,
 ) -> Result<GenericDeclarationExpression<'a>, String> {
     let declaration_type_id = schema.make_id();
+    let declaration_type = constrain_at_most_none_tag();
+    schema.add_constraint(declaration_type_id, declaration_type)?;
+
     let name_type_id = schema.make_id();
-    let expression_type = constrain_at_most_none_tag();
-    schema.add_constraint(declaration_type_id, expression_type)?;
     schema
         .scope
         .declare_identifier(node.value.identifier.value.name.clone(), name_type_id)?;
     let identifier = translate_identifier(schema, node.value.identifier.clone())?;
+
+    if let Some(type_expression) = node.value.type_expression {
+        let type_expression_id = translate_parsed_type_expression(schema, &type_expression)?;
+        schema.set_equal_to_canonical_type(type_expression_id, name_type_id)?;
+    }
+
     let expression =
         translate_parsed_expression_to_generic_expression(schema, *node.value.expression)?;
     let expression_id = get_generic_type_id(&expression);
@@ -683,22 +690,23 @@ pub fn translate_type_declaration<'a>(
     node: TypeDeclarationNode<'a>,
 ) -> Result<GenericTypeDeclarationExpression<'a>, String> {
     let declaration_type_id = schema.make_id();
-    let name_type_id = schema.make_id();
     schema.add_constraint(declaration_type_id, constrain_at_most_none_tag())?;
 
+    let name_type_id = schema.make_id();
     schema
         .scope
-        .declare_identifier(node.value.identifier.value.clone(), declaration_type_id)?;
+        .declare_identifier(node.value.identifier.value.clone(), name_type_id)?;
+
     let identifier_name = translate_type_identifier(schema, node.value.identifier.clone())?;
     let type_expression_id = translate_parsed_type_expression(schema, &node.value.type_expression)?;
-    schema.set_equal_to_canonical_type(name_type_id, type_expression_id)?;
+    schema.set_equal_to_canonical_type(type_expression_id, name_type_id)?;
     Ok(GenericTypeDeclarationExpression {
         declaration_type: GenericSourcedType {
-            type_id: name_type_id,
+            type_id: declaration_type_id,
             source_of_type: node.source.clone(),
         },
         expression_type: GenericSourcedType {
-            type_id: declaration_type_id,
+            type_id: type_expression_id,
             source_of_type: node.source,
         },
         identifier_name,
@@ -749,7 +757,7 @@ fn translate_type_identifier_type(
     schema
         .scope
         .get_variable_declaration_type(&node.value)
-        .ok_or_else(|| "TypeIdentifierTypeNotFound".to_owned())
+        .ok_or_else(|| format!("Type identifier not found: {}", node.value))
 }
 
 fn translate_list_type(
@@ -881,6 +889,7 @@ mod test {
     use ast::{FunctionApplicationArgumentsNode, FunctionApplicationArgumentsValue, ParserInput};
     use indoc::indoc;
     use parser::parse_test_expression;
+    use typed_ast::ConcreteType;
 
     const INITIAL_CONSTRAINT_COUNT: usize = 2;
 
@@ -1580,6 +1589,39 @@ mod test {
     fn can_declare_a_type_identifier() {
         let mut schema = TypeSchema::new();
         let expression = parse_test_expression("MyInt = Int");
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn declaring_type_identifier_adds_it_to_the_scope() {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression("MyInt = Int");
+        translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
+        let my_int_type_id = schema.scope.get_variable_declaration_type("MyInt").unwrap();
+        assert_eq!(
+            schema.get_concrete_type_from_id(my_int_type_id),
+            ConcreteType::Primitive(PrimitiveType::Int)
+        );
+    }
+
+    #[test]
+    fn type_in_declaration_must_match_expression_type() {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression("string: Str = 1");
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn type_in_declaration_can_reference_previous_type_declaration() {
+        let mut schema = TypeSchema::new();
+        let id = schema.make_id();
+        schema
+            .scope
+            .declare_identifier(String::from("MyInt"), id)
+            .unwrap();
+        let expression = parse_test_expression("int: MyInt = 1");
         let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
         assert!(result.is_ok());
     }

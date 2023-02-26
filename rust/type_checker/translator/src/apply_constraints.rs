@@ -31,15 +31,6 @@ fn translate_top_level_type_declaration<'a>(
 
 pub fn apply_constraints(input: DocumentNode) -> Result<(GenericDocument, TypeSchema), String> {
     let mut schema = TypeSchema::new();
-    let mut variable_declarations: Vec<TopLevelDeclaration<GenericDeclarationExpression>> =
-        Vec::new();
-    variable_declarations.reserve_exact(input.value.variable_declarations.len());
-    for variable_declaration in input.value.variable_declarations {
-        variable_declarations.push(translate_top_level_variable_declaration(
-            &mut schema,
-            variable_declaration,
-        )?);
-    }
     let mut type_declarations: Vec<TopLevelDeclaration<GenericTypeDeclarationExpression>> =
         Vec::new();
     type_declarations.reserve_exact(input.value.type_declarations.len());
@@ -47,6 +38,15 @@ pub fn apply_constraints(input: DocumentNode) -> Result<(GenericDocument, TypeSc
         type_declarations.push(translate_top_level_type_declaration(
             &mut schema,
             type_declaration,
+        )?);
+    }
+    let mut variable_declarations: Vec<TopLevelDeclaration<GenericDeclarationExpression>> =
+        Vec::new();
+    variable_declarations.reserve_exact(input.value.variable_declarations.len());
+    for variable_declaration in input.value.variable_declarations {
+        variable_declarations.push(translate_top_level_variable_declaration(
+            &mut schema,
+            variable_declaration,
         )?);
     }
     Ok((
