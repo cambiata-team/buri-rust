@@ -1,0 +1,3 @@
+Func = (Int) => Int
+func: Func = (a) => a
+hello = func("hello")

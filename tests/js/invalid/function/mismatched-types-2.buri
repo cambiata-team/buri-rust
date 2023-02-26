@@ -1,0 +1,2 @@
+func: Func = (a: #hello) => a
+hello = func("hello")
