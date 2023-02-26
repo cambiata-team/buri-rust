@@ -22,7 +22,7 @@ enum RecordConstraints {
     /// For records that need to have at least these fields.
     OpenFields(HashMap<String, TypeId>),
     /// For records that can accept at most these fields.
-    ClosedFields(HashMap<String, TypeId>),
+    ExactFields(HashMap<String, TypeId>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -104,23 +104,26 @@ impl CategoryConstraints {
                 })
             }),
             (
-                Self::Record(RecordConstraints::ClosedFields(self_items)),
-                Self::Record(RecordConstraints::ClosedFields(other_items)),
-            ) => other_items.iter().all(|(name, type_id)| {
-                self_items.get(name).map_or(false, |self_type_id| {
-                    schema.types_are_compatible(*self_type_id, *type_id)
-                })
-            }),
+                Self::Record(RecordConstraints::ExactFields(self_items)),
+                Self::Record(RecordConstraints::ExactFields(other_items)),
+            ) => {
+                other_items.len() == self_items.len()
+                    && other_items.iter().all(|(name, type_id)| {
+                        self_items.get(name).map_or(false, |self_type_id| {
+                            schema.types_are_compatible(*self_type_id, *type_id)
+                        })
+                    })
+            }
             (
                 Self::Record(RecordConstraints::OpenFields(self_items)),
-                Self::Record(RecordConstraints::ClosedFields(other_items)),
+                Self::Record(RecordConstraints::ExactFields(other_items)),
             ) => other_items.iter().all(|(name, type_id)| {
                 self_items.get(name).map_or(true, |self_type_id| {
                     schema.types_are_compatible(*self_type_id, *type_id)
                 })
             }),
             (
-                Self::Record(RecordConstraints::ClosedFields(self_items)),
+                Self::Record(RecordConstraints::ExactFields(self_items)),
                 Self::Record(RecordConstraints::OpenFields(other_items)),
             ) => other_items.iter().all(|(name, other_type_id)| {
                 self_items.get(name).map_or(false, |self_type_id| {
@@ -181,8 +184,8 @@ impl CategoryConstraints {
                 }
             }
             (
-                Self::Record(RecordConstraints::ClosedFields(self_fields)),
-                Self::Record(RecordConstraints::ClosedFields(other_fields)),
+                Self::Record(RecordConstraints::ExactFields(self_fields)),
+                Self::Record(RecordConstraints::ExactFields(other_fields)),
             ) => {
                 let mut new_tags = self_fields.clone();
                 for (k, _) in self_fields.iter() {
@@ -304,8 +307,8 @@ impl ParsedConstraint {
             Constraint::HasField(f) => CategoryConstraints::Record(RecordConstraints::OpenFields(
                 vec![(f.field_name, f.field_type)].into_iter().collect(),
             )),
-            Constraint::FieldAtMost(f) => {
-                CategoryConstraints::Record(RecordConstraints::ClosedFields(f.fields))
+            Constraint::HasExactFields(f) => {
+                CategoryConstraints::Record(RecordConstraints::ExactFields(f.fields))
             }
             Constraint::HasFunctionShape(f) => CategoryConstraints::Function(FunctionConstraints {
                 argument_types: f.argument_types,
@@ -363,7 +366,7 @@ impl ParsedConstraint {
                 }))
             }
             CategoryConstraints::Record(
-                RecordConstraints::ClosedFields(r) | RecordConstraints::OpenFields(r),
+                RecordConstraints::ExactFields(r) | RecordConstraints::OpenFields(r),
             ) => ConcreteType::Record(Box::new(ConcreteRecordType {
                 field_types: r
                     .iter()
@@ -408,7 +411,7 @@ impl ParsedConstraint {
 mod test {
     use super::*;
     use crate::constraints::{
-        FieldAtMostConstraint, HasFieldConstraint, HasFunctionShape, HasMethodConstraint,
+        HasExactFieldsConstraint, HasFieldConstraint, HasFunctionShape, HasMethodConstraint,
         HasTagConstraint, TagAtMostConstraint,
     };
 
@@ -560,14 +563,14 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: vec![("foo".to_string(), type_id)].into_iter().collect(),
             }),
             &schema,
         );
         assert_eq!(
             parsed_constraint.category,
-            CategoryConstraints::Record(RecordConstraints::ClosedFields(
+            CategoryConstraints::Record(RecordConstraints::ExactFields(
                 vec![("foo".to_string(), type_id)].into_iter().collect()
             ))
         );
@@ -597,14 +600,14 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: vec![("foo".to_string(), type_id)].into_iter().collect(),
             }),
             &schema,
         );
         assert_eq!(
             parsed_constraint.category,
-            CategoryConstraints::Record(RecordConstraints::ClosedFields(
+            CategoryConstraints::Record(RecordConstraints::ExactFields(
                 vec![("foo".to_string(), type_id)].into_iter().collect()
             ))
         );
@@ -858,7 +861,7 @@ mod test {
         let mut parsed_constraint =
             ParsedConstraint::new(Constraint::HasName("foo".to_string()), &schema);
         let new_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([("bar".to_string(), type_id)]),
             }),
             &schema,
@@ -866,7 +869,7 @@ mod test {
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         assert_eq!(
             parsed_constraint.category,
-            CategoryConstraints::Record(RecordConstraints::ClosedFields(HashMap::from([(
+            CategoryConstraints::Record(RecordConstraints::ExactFields(HashMap::from([(
                 "bar".to_string(),
                 type_id
             )])))
@@ -879,13 +882,13 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let mut parsed_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([("foo".to_string(), type_id), ("bar".to_string(), type_id)]),
             }),
             &schema,
         );
         let new_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([("bar".to_string(), type_id), ("baz".to_string(), type_id)]),
             }),
             &schema,
@@ -893,7 +896,7 @@ mod test {
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         assert_eq!(
             parsed_constraint.category,
-            CategoryConstraints::Record(RecordConstraints::ClosedFields(HashMap::from([(
+            CategoryConstraints::Record(RecordConstraints::ExactFields(HashMap::from([(
                 "bar".to_string(),
                 type_id
             )])))
@@ -1273,6 +1276,27 @@ mod test {
         let other_constraint = ParsedConstraint::new(
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("bar".to_string(), Vec::new())]),
+            }),
+            &schema,
+        );
+        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+    }
+
+    #[test]
+    fn is_not_compatible_with_tag_at_most_constraint_that_is_a_superset_of_current_tags() {
+        let schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            Constraint::TagAtMost(TagAtMostConstraint {
+                tags: HashMap::from([("foo".to_string(), Vec::new())]),
+            }),
+            &schema,
+        );
+        let other_constraint = ParsedConstraint::new(
+            Constraint::TagAtMost(TagAtMostConstraint {
+                tags: HashMap::from([
+                    ("foo".to_string(), Vec::new()),
+                    ("bar".to_string(), Vec::new()),
+                ]),
             }),
             &schema,
         );
@@ -1935,17 +1959,17 @@ mod test {
     }
 
     #[test]
-    fn is_compatible_with_field_at_most_constraint_when_fields_are_the_same() {
+    fn is_compatible_with_exact_fields_constraint_when_fields_are_the_same() {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_id)]),
             }),
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_id)]),
             }),
             &schema,
@@ -1954,12 +1978,12 @@ mod test {
     }
 
     #[test]
-    fn is_compatible_with_field_at_most_constraint_when_is_subset_of_current_fields() {
+    fn is_not_compatible_with_exact_fields_constraint_when_is_subset_of_current_fields() {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([
                     (String::from("foo"), type_a),
                     (String::from("bar"), type_b),
@@ -1968,27 +1992,27 @@ mod test {
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_a)]),
             }),
             &schema,
         );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
     }
 
     #[test]
-    fn is_not_compatible_with_field_at_most_constraint_when_field_not_in_current_fields() {
+    fn is_not_compatible_with_exact_fields_constraint_when_field_not_in_current_fields() {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_a)]),
             }),
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("bar"), type_b)]),
             }),
             &schema,
@@ -1997,17 +2021,17 @@ mod test {
     }
 
     #[test]
-    fn is_compatible_with_field_at_most_constraint_when_type_ids_are_the_same() {
+    fn is_compatible_with_exact_fields_constraint_when_type_ids_are_the_same() {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_id)]),
             }),
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_id)]),
             }),
             &schema,
@@ -2016,19 +2040,19 @@ mod test {
     }
 
     #[test]
-    fn is_compatible_with_field_at_most_constraint_when_canonical_ids_are_the_same() {
+    fn is_compatible_with_exact_fields_constraint_when_canonical_ids_are_the_same() {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         schema.set_equal_to_canonical_type(type_a, type_b).unwrap();
         let parsed_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_a)]),
             }),
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_b)]),
             }),
             &schema,
@@ -2037,7 +2061,7 @@ mod test {
     }
 
     #[test]
-    fn is_compatible_with_field_at_most_constraint_when_types_are_compatible() {
+    fn is_compatible_with_exact_fields_constraint_when_types_are_compatible() {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
@@ -2048,13 +2072,13 @@ mod test {
             .add_constraint(type_b, Constraint::HasName("a".to_string()))
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_a)]),
             }),
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_b)]),
             }),
             &schema,
@@ -2063,7 +2087,7 @@ mod test {
     }
 
     #[test]
-    fn is_not_compatible_with_field_at_most_constraint_when_types_are_not_compatible() {
+    fn is_not_compatible_with_exact_fields_constraint_when_types_are_not_compatible() {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
@@ -2074,13 +2098,13 @@ mod test {
             .add_constraint(type_b, Constraint::HasName("b".to_string()))
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_a)]),
             }),
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_b)]),
             }),
             &schema,
@@ -2089,7 +2113,7 @@ mod test {
     }
 
     #[test]
-    fn is_compatible_with_field_at_most_constraint_when_open_fields_are_the_same() {
+    fn is_compatible_with_exact_fields_constraint_when_open_fields_are_the_same() {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
@@ -2100,7 +2124,7 @@ mod test {
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_id)]),
             }),
             &schema,
@@ -2109,7 +2133,7 @@ mod test {
     }
 
     #[test]
-    fn is_compatible_with_field_at_most_constraint_when_is_subset_of_open_fields() {
+    fn is_compatible_with_exact_fields_constraint_when_is_subset_of_open_fields() {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
@@ -2129,7 +2153,7 @@ mod test {
         );
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         let other_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_a)]),
             }),
             &schema,
@@ -2138,7 +2162,7 @@ mod test {
     }
 
     #[test]
-    fn is_compatible_with_field_at_most_constraint_when_field_not_in_open_fields() {
+    fn is_compatible_with_exact_fields_constraint_when_field_not_in_open_fields() {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
@@ -2150,7 +2174,7 @@ mod test {
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("bar"), type_b)]),
             }),
             &schema,
@@ -2159,7 +2183,7 @@ mod test {
     }
 
     #[test]
-    fn is_compatible_with_field_at_most_constraint_when_open_field_type_ids_are_the_same() {
+    fn is_compatible_with_exact_fields_constraint_when_open_field_type_ids_are_the_same() {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
@@ -2170,7 +2194,7 @@ mod test {
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_id)]),
             }),
             &schema,
@@ -2179,7 +2203,7 @@ mod test {
     }
 
     #[test]
-    fn is_compatible_with_field_at_most_constraint_when_open_field_canonical_ids_are_the_same() {
+    fn is_compatible_with_exact_fields_constraint_when_open_field_canonical_ids_are_the_same() {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
@@ -2192,7 +2216,7 @@ mod test {
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_b)]),
             }),
             &schema,
@@ -2201,7 +2225,7 @@ mod test {
     }
 
     #[test]
-    fn is_compatible_with_field_at_most_constraint_when_open_field_types_are_compatible() {
+    fn is_compatible_with_exact_fields_constraint_when_open_field_types_are_compatible() {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
@@ -2219,7 +2243,7 @@ mod test {
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_b)]),
             }),
             &schema,
@@ -2228,7 +2252,7 @@ mod test {
     }
 
     #[test]
-    fn is_not_compatible_with_field_at_most_constraint_when_open_field_types_are_not_compatible() {
+    fn is_not_compatible_with_exact_fields_constraint_when_open_field_types_are_not_compatible() {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
@@ -2246,7 +2270,7 @@ mod test {
             &schema,
         );
         let other_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_b)]),
             }),
             &schema,
@@ -2430,7 +2454,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_id)]),
             }),
             &schema,
@@ -2450,7 +2474,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([
                     (String::from("foo"), type_id),
                     (String::from("bar"), type_id),
@@ -2473,7 +2497,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_id)]),
             }),
             &schema,
@@ -2493,7 +2517,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_id)]),
             }),
             &schema,
@@ -2515,7 +2539,7 @@ mod test {
         let type_b = schema.make_id();
         schema.set_equal_to_canonical_type(type_a, type_b).unwrap();
         let parsed_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_a)]),
             }),
             &schema,
@@ -2542,7 +2566,7 @@ mod test {
             .add_constraint(type_b, Constraint::HasName("a".to_string()))
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_a)]),
             }),
             &schema,
@@ -2569,7 +2593,7 @@ mod test {
             .add_constraint(type_b, Constraint::HasName("b".to_string()))
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_a)]),
             }),
             &schema,
@@ -2912,7 +2936,7 @@ mod test {
             .add_constraint(field_type, Constraint::EqualToPrimitive(PrimitiveType::Int))
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
-            Constraint::FieldAtMost(FieldAtMostConstraint {
+            Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), field_type)]),
             }),
             &schema,

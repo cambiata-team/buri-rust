@@ -1,0 +1,36 @@
+Person = {
+    name: Str,
+    age: Int,
+}
+john: Person = {
+    name: "John",
+    age: 42,
+}
+
+inlineDefinition: {
+    name: Str,
+    age: Int,
+} = {
+    name: "John",
+    age: 42,
+}
+
+Nested = {
+    person: Person,
+    roles: [Str],
+    gradeCount: {
+        a: Int,
+        b: Int,
+        c: Int,
+    },
+}
+
+nested: Nested = {
+    person: john,
+    roles: ["admin", "user"],
+    gradeCount: {
+        a: 1,
+        b: 2,
+        c: 3,
+    },
+}

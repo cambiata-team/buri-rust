@@ -1,0 +1,7 @@
+Person = {
+    name: #charlie | #jane,
+}
+
+jane: Person = {
+    name: "Jane",
+}
