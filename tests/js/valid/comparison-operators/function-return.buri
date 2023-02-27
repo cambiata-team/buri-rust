@@ -1,0 +1,139 @@
+-- helpers
+
+one = () => 1
+two = () => 2
+
+negativeOne = () => -1
+negativeTwo = () => -2
+
+-- ==
+
+@export
+oneEqualsOne = one() == one()
+
+@export
+oneEqualsTwo = one() == two()
+
+@export
+negativeOneEqualsNegativeOne = negativeOne() == negativeOne()
+
+@export
+negativeOneEqualsOne = negativeOne() == one()
+
+@export
+negativeOneEqualsNegativeTwo = negativeOne() == negativeTwo()
+
+@export
+negativeOneEqualsTwo = negativeOne() == two()
+
+-- !=
+
+@export
+oneNotEqualsOne = one() != one()
+
+@export
+oneNotEqualsTwo = one() != two()
+
+@export
+negativeOneNotEqualsNegativeOne = negativeOne() != negativeOne()
+
+@export
+negativeOneNotEqualsOne = negativeOne() != one()
+
+@export
+negativeOneNotEqualsNegativeTwo = negativeOne() != negativeTwo()
+
+@export
+negativeOneNotEqualsTwo = negativeOne() != two()
+
+-- <
+
+@export
+oneLessThanOne = one() < one()
+
+@export
+oneLessThanTwo = one() < two()
+
+@export
+twoLessThanOne = two() < one()
+
+@export
+negativeOneLessThanNegativeOne = negativeOne() < negativeOne()
+
+@export
+negativeOneLessThanOne = negativeOne() < one()
+
+@export
+negativeOneLessThanNegativeTwo = negativeOne() < negativeTwo()
+
+@export
+negativeOneLessThanTwo = negativeOne() < two()
+
+-- <=
+
+@export
+oneLessThanEqualsOne = one() <= one()
+
+@export
+oneLessThanEqualsTwo = one() <= two()
+
+@export
+twoLessThanEqualsOne = two() <= one()
+
+@export
+negativeOneLessThanEqualsNegativeOne = negativeOne() <= negativeOne()
+
+@export
+negativeOneLessThanEqualsOne = negativeOne() <= one()
+
+@export
+negativeOneLessThanEqualsNegativeTwo = negativeOne() <= negativeTwo()
+
+@export
+negativeOneLessThanEqualsTwo = negativeOne() <= two()
+
+-- >
+
+@export
+oneGreaterThanOne = one() > one()
+
+@export
+oneGreaterThanTwo = one() > two()
+
+@export
+twoGreaterThanOne = two() > one()
+
+@export
+negativeOneGreaterThanNegativeOne = negativeOne() > negativeOne()
+
+@export
+negativeOneGreaterThanOne = negativeOne() > one()
+
+@export
+negativeOneGreaterThanNegativeTwo = negativeOne() > negativeTwo()
+
+@export
+negativeOneGreaterThanTwo = negativeOne() > two()
+
+-- >=
+
+@export
+oneGreaterThanEqualsOne = one() >= one()
+
+@export
+oneGreaterThanEqualsTwo = one() >= two()
+
+@export
+twoGreaterThanEqualsOne = two() >= one()
+
+@export
+negativeOneGreaterThanEqualsNegativeOne = negativeOne() >= negativeOne()
+
+@export
+negativeOneGreaterThanEqualsOne = negativeOne() >= one()
+
+@export
+negativeOneGreaterThanEqualsNegativeTwo = negativeOne() >= negativeTwo()
+
+@export
+negativeOneGreaterThanEqualsTwo = negativeOne() >= two()
