@@ -1,0 +1,11 @@
+@export
+trueAndFalse = #true and #false
+
+@export
+falseAndTrue = #false and #true
+
+@export
+trueOrFalse = #true or #false
+
+@export
+falseOrTrue = #false or #true
