@@ -1,0 +1,95 @@
+-- ==
+
+@export
+zeroEqualsOne = 0 == 1
+
+@export
+oneEqualsZero = 1 == 0
+
+-- !=
+
+@export
+zeroNotEqualsOne = 0 != 1
+
+@export
+oneNotEqualsZero = 1 != 0
+
+-- < >
+
+@export
+zeroGreaterThanOne = 0 > 1
+
+@export
+oneGreaterThanOne = 1 > 1
+
+@export
+twoGreaterThanOne = 2 > 1
+
+@export
+oneLessThanZero = 1 < 0
+
+@export
+oneLessThanOne = 1 < 1
+
+@export
+oneLessThanTwo = 1 < 2
+
+-- <= >=
+
+@export
+zeroGreaterThanOrEqualToOne = 0 >= 1
+
+@export
+oneGreaterThanOrEqualToOne = 1 >= 1
+
+@export
+twoGreaterThanOrEqualToOne = 2 >= 1
+
+@export
+oneLessThanOrEqualToZero = 1 <= 0
+
+@export
+oneLessThanOrEqualToOne = 1 <= 1
+
+@export
+oneLessThanOrEqualToTwo = 1 <= 2
+
+-- >= >
+
+@export
+fourGreaterThanOrEqualToFive = 4 >= 5
+
+@export
+fiveGreaterThanOrEqualToFive = 5 >= 5
+
+@export
+sixGreaterThanOrEqualToFive = 6 >= 5
+
+@export
+fiveNotGreaterThanFour = not (5 > 4)
+
+@export
+fiveNotGreaterThanFive = not (5 > 5)
+
+@export
+fiveNotGreaterThanSix = not (5 > 6)
+
+-- <= <
+
+@export
+fourLessThanOrEqualToFive = 4 <= 5
+
+@export
+fiveLessThanOrEqualToFive = 5 <= 5
+
+@export
+sixLessThanOrEqualToFive = 6 <= 5
+
+@export
+fiveNotLessThanFour = not (5 < 4)
+
+@export
+fiveNotLessThanFive = not (5 < 5)
+
+@export
+fiveNotLessThanSix = not (5 < 6)
