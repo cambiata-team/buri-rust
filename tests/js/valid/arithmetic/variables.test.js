@@ -1,4 +1,4 @@
-import { BsevenPlusThree, BsevenMinusThree, BsevenTimesThree, BsevenDividedThree, BdifferenceOfSevenTimesThreeAndSevenPlusThree } from "@tests/js/valid/arithmetic/arithmetic.mjs"
+import { BsevenPlusThree, BsevenMinusThree, BsevenTimesThree, BsevenDividedThree, BdifferenceOfSevenTimesThreeAndSevenPlusThree } from "@tests/js/valid/arithmetic/variables.mjs"
 import { expect, it } from "bun:test"
 
 it("two variables can be added", () => {
