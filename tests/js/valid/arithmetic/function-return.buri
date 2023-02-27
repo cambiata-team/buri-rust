@@ -1,0 +1,20 @@
+seven = () => 7
+three = () => 3
+
+@export
+sevenPlusThree = seven() + three()
+
+@export
+sevenMinusThree = seven() - three()
+
+@export
+sevenTimesThree = seven() * three()
+
+@export
+sevenDividedThree = seven() / three()
+
+onePlusTwo = () => 1 + 2
+threePlusFour = () => 3 + 4
+
+@export
+productOfOnePlusTwoAndThreePlusFour = onePlusTwo() * threePlusFour()
