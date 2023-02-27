@@ -31,6 +31,38 @@ import {
     BtrueOrNotTrue,
     BtrueOrTrueAndFalse,
     BtrueOrTrueAndTrue,
+    BtrueAndLParenTrueOrTrueRParen,
+    BtrueAndLParenTrueOrFalseRParen,
+    BtrueAndLParenFalseOrTrueRParen,
+    BtrueAndLParenFalseOrFalseRParen,
+    BfalseAndLParenTrueOrTrueRParen,
+    BfalseAndLParenTrueOrFalseRParen,
+    BfalseAndLParenFalseOrTrueRParen,
+    BfalseAndLParenFalseOrFalseRParen,
+    BlParenTrueOrTrueRParenAndTrue,
+    BlParenTrueOrTrueRParenAndFalse,
+    BlParenTrueOrFalseRParenAndTrue,
+    BlParenTrueOrFalseRParenAndFalse,
+    BlParenFalseOrTrueRParenAndTrue,
+    BlParenFalseOrTrueRParenAndFalse,
+    BlParenFalseOrFalseRParenAndTrue,
+    BlParenFalseOrFalseRParenAndFalse,
+    BnotLParenTrueAndTrueRParen,
+    BnotLParenTrueAndFalseRParen,
+    BnotLParenFalseAndTrueRParen,
+    BnotLParenFalseAndFalseRParen,
+    BnotLParenTrueOrTrueRParen,
+    BnotLParenTrueOrFalseRParen,
+    BnotLParenFalseOrTrueRParen,
+    BnotLParenFalseOrFalseRParen,
+    BlParenNotTrueRParenAndTrue,
+    BlParenNotTrueRParenAndFalse,
+    BlParenNotFalseRParenAndTrue,
+    BlParenNotFalseRParenAndFalse,
+    BlParenNotTrueRParenOrTrue,
+    BlParenNotTrueRParenOrFalse,
+    BlParenNotFalseRParenOrTrue,
+    BlParenNotFalseRParenOrFalse,
 } from "@tests/js/valid/logical-operators/order-of-operations.mjs"
 import { describe, expect, it } from "bun:test"
 import { tag } from "../helpers"
@@ -172,5 +204,126 @@ describe("or not", () => {
 
     it("#false or not #false", () => {
         expect(BfalseOrNotFalse).toEqual(tag("true"))
+    })
+})
+
+describe("and or with parentheses", () => {
+    it("#true and (#true or #true)", () => {
+        expect(BtrueAndLParenTrueOrTrueRParen).toEqual(tag("true"))
+    })
+
+    it("#true and (#true or #false)", () => {
+        expect(BtrueAndLParenTrueOrFalseRParen).toEqual(tag("true"))
+    })
+
+    it("#true and (#false or #true)", () => {
+        expect(BtrueAndLParenFalseOrTrueRParen).toEqual(tag("true"))
+    })
+
+    it("#true and (#false or #false)", () => {
+        expect(BtrueAndLParenFalseOrFalseRParen).toEqual(tag("false"))
+    })
+
+    it("#false and (#true or #true)", () => {
+        expect(BfalseAndLParenTrueOrTrueRParen).toEqual(tag("false"))
+    })
+
+    it("#false and (#true or #false)", () => {
+        expect(BfalseAndLParenTrueOrFalseRParen).toEqual(tag("false"))
+    })
+
+    it("#false and (#false or #true)", () => {
+        expect(BfalseAndLParenFalseOrTrueRParen).toEqual(tag("false"))
+    })
+
+    it("#false and (#false or #false)", () => {
+        expect(BfalseAndLParenFalseOrFalseRParen).toEqual(tag("false"))
+    })
+})
+
+describe("or with parentheses and", () => {
+    it("(#true or #true) and #true", () => {
+        expect(BlParenTrueOrTrueRParenAndTrue).toEqual(tag("true"))
+    })
+    it("(#true or #true) and #false", () => {
+        expect(BlParenTrueOrTrueRParenAndFalse).toEqual(tag("false"))
+    })
+    it("(#true or #false) and #true", () => {
+        expect(BlParenTrueOrFalseRParenAndTrue).toEqual(tag("true"))
+    })
+    it("(#true or #false) and #false", () => {
+        expect(BlParenTrueOrFalseRParenAndFalse).toEqual(tag("false"))
+    })
+    it("(#false or #true) and #true", () => {
+        expect(BlParenFalseOrTrueRParenAndTrue).toEqual(tag("true"))
+    })
+    it("(#false or #true) and #false", () => {
+        expect(BlParenFalseOrTrueRParenAndFalse).toEqual(tag("false"))
+    })
+    it("(#false or #false) and #true", () => {
+        expect(BlParenFalseOrFalseRParenAndTrue).toEqual(tag("false"))
+    })
+    it("(#false or #false) and #false", () => {
+        expect(BlParenFalseOrFalseRParenAndFalse).toEqual(tag("false"))
+    })
+})
+
+describe("not and with parentheses", () => {
+    it("not (#true and #true)", () => {
+        expect(BnotLParenTrueAndTrueRParen).toEqual(tag("false"))
+    })
+    it("not (#true and #false)", () => {
+        expect(BnotLParenTrueAndFalseRParen).toEqual(tag("true"))
+    })
+    it("not (#false and #true)", () => {
+        expect(BnotLParenFalseAndTrueRParen).toEqual(tag("true"))
+    })
+    it("not (#false and #false)", () => {
+        expect(BnotLParenFalseAndFalseRParen).toEqual(tag("true"))
+    })
+})
+
+describe("not or with parentheses", () => {
+    it("not (#true or #true)", () => {
+        expect(BnotLParenTrueOrTrueRParen).toEqual(tag("false"))
+    })
+    it("not (#true or #false)", () => {
+        expect(BnotLParenTrueOrFalseRParen).toEqual(tag("false"))
+    })
+    it("not (#false or #true)", () => {
+        expect(BnotLParenFalseOrTrueRParen).toEqual(tag("false"))
+    })
+    it("not (#false or #false)", () => {
+        expect(BnotLParenFalseOrFalseRParen).toEqual(tag("true"))
+    })
+})
+
+describe("not with parenthesis and", () => {
+    it("(not #true) and #true", () => {
+        expect(BlParenNotTrueRParenAndTrue).toEqual(tag("false"))
+    })
+    it("(not #true) and #false", () => {
+        expect(BlParenNotTrueRParenAndFalse).toEqual(tag("false"))
+    })
+    it("(not #false) and #true", () => {
+        expect(BlParenNotFalseRParenAndTrue).toEqual(tag("true"))
+    })
+    it("(not #false) and #false", () => {
+        expect(BlParenNotFalseRParenAndFalse).toEqual(tag("false"))
+    })
+})
+
+describe("not with parenthesis or", () => {
+    it("(not #true) or #true", () => {
+        expect(BlParenNotTrueRParenOrTrue).toEqual(tag("true"))
+    })
+    it("(not #true) or #false", () => {
+        expect(BlParenNotTrueRParenOrFalse).toEqual(tag("false"))
+    })
+    it("(not #false) or #true", () => {
+        expect(BlParenNotFalseRParenOrTrue).toEqual(tag("true"))
+    })
+    it("(not #false) or #false", () => {
+        expect(BlParenNotFalseRParenOrFalse).toEqual(tag("true"))
     })
 })

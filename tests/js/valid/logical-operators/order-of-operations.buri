@@ -105,3 +105,111 @@ falseAndNotTrue = #false and not #true
 
 @export
 falseAndNotFalse = #false and not #false
+
+-- and (or)
+
+@export
+trueAndLParenTrueOrTrueRParen = #true and (#true or #true)
+
+@export
+trueAndLParenTrueOrFalseRParen = #true and (#true or #false)
+
+@export
+trueAndLParenFalseOrTrueRParen = #true and (#false or #true)
+
+@export
+trueAndLParenFalseOrFalseRParen = #true and (#false or #false)
+
+@export
+falseAndLParenTrueOrTrueRParen = #false and (#true or #true)
+
+@export
+falseAndLParenTrueOrFalseRParen = #false and (#true or #false)
+
+@export
+falseAndLParenFalseOrTrueRParen = #false and (#false or #true)
+
+@export
+falseAndLParenFalseOrFalseRParen = #false and (#false or #false)
+
+-- (or) and
+
+@export
+lParenTrueOrTrueRParenAndTrue = (#true or #true) and #true
+
+@export
+lParenTrueOrTrueRParenAndFalse = (#true or #true) and #false
+
+@export
+lParenTrueOrFalseRParenAndTrue = (#true or #false) and #true
+
+@export
+lParenTrueOrFalseRParenAndFalse = (#true or #false) and #false
+
+@export
+lParenFalseOrTrueRParenAndTrue = (#false or #true) and #true
+
+@export
+lParenFalseOrTrueRParenAndFalse = (#false or #true) and #false
+
+@export
+lParenFalseOrFalseRParenAndTrue = (#false or #false) and #true
+
+@export
+lParenFalseOrFalseRParenAndFalse = (#false or #false) and #false
+
+-- not (and)
+
+@export
+notLParenTrueAndTrueRParen = not (#true and #true)
+
+@export
+notLParenTrueAndFalseRParen = not (#true and #false)
+
+@export
+notLParenFalseAndTrueRParen = not (#false and #true)
+
+@export
+notLParenFalseAndFalseRParen = not (#false and #false)
+
+-- not (or)
+
+@export
+notLParenTrueOrTrueRParen = not (#true or #true)
+
+@export
+notLParenTrueOrFalseRParen = not (#true or #false)
+
+@export
+notLParenFalseOrTrueRParen = not (#false or #true)
+
+@export
+notLParenFalseOrFalseRParen = not (#false or #false)
+
+-- (not) and
+
+@export
+lParenNotTrueRParenAndTrue = (not #true) and #true
+
+@export
+lParenNotTrueRParenAndFalse = (not #true) and #false
+
+@export
+lParenNotFalseRParenAndTrue = (not #false) and #true
+
+@export
+lParenNotFalseRParenAndFalse = (not #false) and #false
+
+-- (not) or
+
+@export
+lParenNotTrueRParenOrTrue = (not #true) or #true
+
+@export
+lParenNotTrueRParenOrFalse = (not #true) or #false
+
+@export
+lParenNotFalseRParenOrTrue = (not #false) or #true
+
+@export
+lParenNotFalseRParenOrFalse = (not #false) or #false
