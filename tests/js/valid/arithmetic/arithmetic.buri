@@ -1,0 +1,17 @@
+seven = 7
+three = 3
+
+@export
+sevenPlusThree = seven + three
+
+@export
+sevenMinusThree = seven - three
+
+@export
+sevenTimesThree = seven * three
+
+@export
+sevenDividedThree = seven / three
+
+@export
+differenceOfSevenTimesThreeAndSevenPlusThree = sevenTimesThree - sevenPlusThree
