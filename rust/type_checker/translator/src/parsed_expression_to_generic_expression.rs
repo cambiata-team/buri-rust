@@ -263,6 +263,8 @@ fn translate_binary_operator<'a>(
                 &id_collection,
                 &translated_right_child,
             )?;
+            let function_type_id = get_generic_type_id(&translated_left_child);
+            schema.set_equal_to_function_result(type_id, function_type_id)?;
         }
         BinaryOperatorSymbol::MethodLookup => {
             translate_binary_operator_add_method_lookup_constraints(
@@ -1626,5 +1628,15 @@ mod test {
         let expression = parse_test_expression("int: MyInt = 1");
         let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn checks_if_function_result_is_assigned_to_wrong_type() {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression("func: (Int) => Int = (a) => a");
+        translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
+        let expression = parse_test_expression("hello: Str = func(1)");
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_err());
     }
 }

@@ -133,6 +133,23 @@ impl TypeSchema {
             |parsed_constraint| parsed_constraint.to_concrete_type(self),
         )
     }
+    pub fn set_equal_to_function_result(
+        &mut self,
+        expression_type_id: TypeId,
+        function_type_id: TypeId,
+    ) -> Result<(), String> {
+        let function_type_canonical_id = self.get_canonical_id(function_type_id);
+        #[allow(clippy::option_if_let_else)] // Making this change violates the borrow checker.
+        match self.constraints.get(&function_type_canonical_id) {
+            Some(parsed_constraint) => parsed_constraint.get_function_return_type().map_or_else(
+                || Err(generate_backtrace_error("NotAFunction".to_owned())),
+                |return_type_id| {
+                    self.set_equal_to_canonical_type(return_type_id, expression_type_id)
+                },
+            ),
+            _ => Err(generate_backtrace_error("NotAFunction".to_owned())),
+        }
+    }
     #[must_use]
     pub fn get_canonical_id(&self, type_id: TypeId) -> TypeId {
         self.types.get_canonical_id(type_id)

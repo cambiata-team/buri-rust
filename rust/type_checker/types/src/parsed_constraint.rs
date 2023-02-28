@@ -209,6 +209,17 @@ impl CategoryConstraints {
             _ => (),
         }
     }
+
+    #[must_use]
+    pub const fn get_function_return_type(&self) -> Option<TypeId> {
+        match self {
+            Self::Function(FunctionConstraints {
+                return_type,
+                argument_types: _,
+            }) => Some(*return_type),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -407,6 +418,11 @@ impl ParsedConstraint {
                 }))
             }
         }
+    }
+
+    #[must_use]
+    pub const fn get_function_return_type(&self) -> Option<TypeId> {
+        self.category.get_function_return_type()
     }
 }
 
