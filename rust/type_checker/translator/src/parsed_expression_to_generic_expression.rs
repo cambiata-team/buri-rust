@@ -1639,4 +1639,16 @@ mod test {
         let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
         assert!(result.is_err());
     }
+
+    #[test]
+    fn cannot_use_a_function_to_lookup_a_non_existent_field() {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression("person = { name: \"Derek\" }");
+        translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
+        let expression = parse_test_expression("getAge = (arg) => arg.age");
+        translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
+        let expression = parse_test_expression("age = getAge(person)");
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_err());
+    }
 }

@@ -1,0 +1,3 @@
+person = { name: "Derek" }
+getAge = (arg) => arg.age
+age = getAge(person)

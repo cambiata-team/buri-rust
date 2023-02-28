@@ -120,9 +120,9 @@ impl CategoryConstraints {
             (
                 Self::Record(RecordConstraints::OpenFields(self_items)),
                 Self::Record(RecordConstraints::ExactFields(other_items)),
-            ) => other_items.iter().all(|(name, type_id)| {
-                self_items.get(name).map_or(true, |self_type_id| {
-                    schema.types_are_compatible(*self_type_id, *type_id)
+            ) => self_items.iter().all(|(name, self_type_id)| {
+                other_items.get(name).map_or(false, |other_type_id| {
+                    schema.types_are_compatible(*other_type_id, *self_type_id)
                 })
             }),
             (
@@ -2152,7 +2152,7 @@ mod test {
     }
 
     #[test]
-    fn is_compatible_with_exact_fields_constraint_when_is_subset_of_open_fields() {
+    fn is_not_compatible_with_exact_fields_constraint_when_is_subset_of_open_fields() {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
@@ -2177,11 +2177,11 @@ mod test {
             }),
             &schema,
         );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
     }
 
     #[test]
-    fn is_compatible_with_exact_fields_constraint_when_field_not_in_open_fields() {
+    fn is_not_compatible_with_exact_fields_constraint_when_field_not_in_open_fields() {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
@@ -2198,7 +2198,7 @@ mod test {
             }),
             &schema,
         );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
     }
 
     #[test]

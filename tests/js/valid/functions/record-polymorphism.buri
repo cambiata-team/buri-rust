@@ -1,0 +1,8 @@
+@export
+age = 314
+
+person = { name: "Derek", age: age }
+getAge = (arg) => arg.age
+
+@export
+retrievedAge = getAge(person)
