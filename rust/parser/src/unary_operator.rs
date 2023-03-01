@@ -1,13 +1,15 @@
 use crate::{
-    basic_expression::basic_expression, intra_expression_whitespace::intra_expression_whitespace,
-    ExpressionContext,
+    basic_expression::basic_expression, binary_operator_expression::binary_operator_expression,
+    intra_expression_whitespace::intra_expression_whitespace, ExpressionContext,
 };
-use ast::{IResult, ParsedNode, ParserInput};
-use ast::{UnaryOperatorNode, UnaryOperatorSymbol, UnaryOperatorValue};
+use ast::{
+    BinaryOperatorSymbol, Expression, IResult, ParsedNode, ParserInput, UnaryOperatorNode,
+    UnaryOperatorSymbol, UnaryOperatorValue,
+};
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    combinator::{consumed, map, opt},
+    combinator::{consumed, map, opt, verify},
     sequence::preceded,
 };
 
@@ -22,7 +24,22 @@ pub fn unary_operator_expression(
                     tag("not"),
                     preceded(
                         intra_expression_whitespace(context),
-                        basic_expression(context),
+                        alt((
+                            verify(binary_operator_expression(context), |expression| {
+                                match expression {
+                                    Expression::BinaryOperator(binary_operator) => {
+                                        matches!(
+                                            binary_operator.value.symbol,
+                                            BinaryOperatorSymbol::FunctionApplication
+                                                | BinaryOperatorSymbol::MethodLookup
+                                                | BinaryOperatorSymbol::FieldLookup
+                                        )
+                                    }
+                                    _ => false,
+                                }
+                            }),
+                            basic_expression(context),
+                        )),
                     ),
                 ),
                 |expr| UnaryOperatorValue {
@@ -120,5 +137,17 @@ mod test {
             input,
         );
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn not_followed_by_function_call_is_not_expression() {
+        let input = ParserInput::new("not foo()");
+        let result = unary_operator_expression(
+            ExpressionContext::new().allow_newlines_in_expressions(),
+            input,
+        );
+        let (remainder, consumed) = result.unwrap();
+        assert_eq!(remainder, "");
+        assert!(matches!(consumed.value.symbol, UnaryOperatorSymbol::Not));
     }
 }
