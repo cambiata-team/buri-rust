@@ -1,0 +1,32 @@
+true = () => #true()
+false = () => #false()
+
+@export
+trueAndTrue = true() and true()
+
+@export
+trueAndFalse = true() and false()
+
+@export
+falseAndTrue = false() and true()
+
+@export
+falseAndFalse = false() and false()
+
+@export
+trueOrTrue = true() or true()
+
+@export
+trueOrFalse = true() or false()
+
+@export
+falseOrTrue = false() or true()
+
+@export
+falseOrFalse = false() or false()
+
+@export
+notTrue = not true()
+
+@export
+notFalse = not false()
