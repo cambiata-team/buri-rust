@@ -1,0 +1,27 @@
+@export
+person = {
+    name: "John",
+    age: 36,
+    eye_color: #brown
+}
+
+@export
+person_name = person.name
+
+@export
+person_age = person.age
+
+@export
+person_eye_color = person.eye_color
+
+@export
+nest = {
+    bird: {
+        egg: {
+            id: 24601
+        }
+    }
+}
+
+@export
+nest_bird_egg_id = nest.bird.egg.id
