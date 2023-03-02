@@ -19,3 +19,11 @@ functionAsReturnValue = (a): Identity =>
     (b) => b
 
 inlineTypeDef: (Int) => Int = (a) => a
+
+Primary = #red | #green | #blue
+Rainbow = #red | #orange | #yellow | #green | #blue | #purple
+
+isBlue: (Primary) => #true | #false = (a: Rainbow) => a == #blue
+
+IsRed = (Primary) => #true | #false
+isRed: IsRed = (a: Rainbow) => a == #red
