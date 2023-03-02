@@ -325,6 +325,43 @@ fn translate_block<'a>(
     })
 }
 
+fn translate_declaration_expression<'a>(
+    schema: &mut TypeSchema,
+    name_type_id: TypeId,
+    expression: Expression<'a>,
+    maybe_type_expression: Option<TypeExpression<'a>>,
+) -> Result<GenericExpression<'a>, String> {
+    if let Expression::Function(function) = &expression {
+        let maybe_function_type_id = match &maybe_type_expression {
+            Some(TypeExpression::Function(function_type)) => {
+                Some(translate_function_type(schema, function_type)?)
+            }
+            Some(TypeExpression::Identifier(identifier_node)) => Some(
+                translate_type_identifier(schema, identifier_node.clone())?
+                    .expression_type
+                    .type_id,
+            ),
+            _ => None,
+        };
+        if let Some(function_type_id) = maybe_function_type_id {
+            schema.set_equal_to_canonical_type(function_type_id, name_type_id)?;
+            let translated_function =
+                translate_function(schema, function.clone(), Some(function_type_id))?;
+            return Ok(GenericExpression::Function(Box::new(translated_function)));
+        }
+    }
+
+    let expression = translate_parsed_expression_to_generic_expression(schema, expression)?;
+    let expression_id = get_generic_type_id(&expression);
+
+    if let Some(type_expression) = maybe_type_expression {
+        let type_expression_id = translate_parsed_type_expression(schema, &type_expression)?;
+        schema.set_equal_to_canonical_type(type_expression_id, expression_id)?;
+    }
+    schema.set_equal_to_canonical_type(expression_id, name_type_id)?;
+    Ok(expression)
+}
+
 pub fn translate_declaration<'a>(
     schema: &mut TypeSchema,
     node: DeclarationNode<'a>,
@@ -339,16 +376,13 @@ pub fn translate_declaration<'a>(
         .declare_identifier(node.value.identifier.value.name.clone(), name_type_id)?;
     let identifier = translate_identifier(schema, node.value.identifier.clone())?;
 
-    let expression =
-        translate_parsed_expression_to_generic_expression(schema, *node.value.expression)?;
-    let expression_id = get_generic_type_id(&expression);
+    let expression = translate_declaration_expression(
+        schema,
+        name_type_id,
+        *node.value.expression,
+        node.value.type_expression,
+    )?;
 
-    if let Some(type_expression) = node.value.type_expression {
-        let type_expression_id = translate_parsed_type_expression(schema, &type_expression)?;
-        schema.set_equal_to_canonical_type(type_expression_id, expression_id)?;
-    }
-
-    schema.set_equal_to_canonical_type(expression_id, name_type_id)?;
     Ok(GenericDeclarationExpression {
         declaration_type: GenericSourcedType {
             type_id: name_type_id,
@@ -366,6 +400,7 @@ pub fn translate_declaration<'a>(
 fn translate_function<'a>(
     schema: &mut TypeSchema,
     node: FunctionNode<'a>,
+    declaration_type: Option<TypeId>,
 ) -> Result<GenericFunctionExpression<'a>, String> {
     let function_type = schema.make_id();
     schema.scope.start_sub_scope();
@@ -373,7 +408,26 @@ fn translate_function<'a>(
     let mut argument_types = Vec::new();
     argument_names.reserve_exact(node.value.arguments.len());
     argument_types.reserve_exact(node.value.arguments.len());
-    for argument in node.value.arguments {
+    let declaration_argument_types = match declaration_type {
+        Some(declaration_type) => {
+            let Some(declaration_function_type) = schema.get_function_argument_types(declaration_type) else {
+                return Err(generate_backtrace_error("Declaration type is not for a function".to_owned()))
+            };
+            declaration_function_type.into_iter().map(Some).collect()
+        }
+        None => std::vec::from_elem(None, node.value.arguments.len()),
+    };
+    if declaration_argument_types.len() != node.value.arguments.len() {
+        return Err(generate_backtrace_error(
+            "Function does not have the same number of arguments as the declaration".to_owned(),
+        ));
+    }
+    for (argument, declaration_argument_type) in node
+        .value
+        .arguments
+        .into_iter()
+        .zip(declaration_argument_types)
+    {
         let identifier_type = schema.make_id();
         schema.scope.declare_identifier(
             argument.value.argument_name.value.name.clone(),
@@ -383,7 +437,16 @@ fn translate_function<'a>(
             let Some(argument_type_id) = schema.scope.get_variable_declaration_type(&argument_type_expression.value) else {
                 return Err(generate_backtrace_error("IdentifierNotFound".to_owned()))
             };
+            if let Some(declaration_argument_type) = declaration_argument_type {
+                if !schema.types_are_compatible(argument_type_id, declaration_argument_type) {
+                    return Err(generate_backtrace_error(
+                        "Argument type does not match declaration".to_owned(),
+                    ));
+                }
+            };
             schema.set_equal_to_canonical_type(argument_type_id, identifier_type)?;
+        } else if let Some(declaration_argument_type) = declaration_argument_type {
+            schema.set_equal_to_canonical_type(declaration_argument_type, identifier_type)?;
         }
         argument_types.push(identifier_type);
         argument_names.push(argument.value.argument_name.value.name.clone());
@@ -392,6 +455,9 @@ fn translate_function<'a>(
     let body_id = get_generic_type_id(&body);
     let return_type = schema.make_id();
     schema.set_equal_to_canonical_type(body_id, return_type)?;
+    if let Some(declaration_type) = declaration_type {
+        schema.set_equal_to_function_result(body_id, declaration_type)?;
+    }
     schema.add_constraint(
         function_type,
         Constraint::HasFunctionShape(HasFunctionShape {
@@ -848,7 +914,7 @@ pub fn translate_parsed_expression_to_generic_expression<'a>(
         Expression::Declaration(node) => translate_declaration(schema, node)
             .map(Box::new)
             .map(GenericExpression::Declaration),
-        Expression::Function(node) => translate_function(schema, node)
+        Expression::Function(node) => translate_function(schema, node, None)
             .map(Box::new)
             .map(GenericExpression::Function),
         Expression::FunctionApplicationArguments(_) => Err(generate_backtrace_error(
@@ -1636,6 +1702,63 @@ mod test {
         let expression = parse_test_expression("func: (Int) => Int = (a) => a");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         let expression = parse_test_expression("hello: Str = func(1)");
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn use_declaration_type_annotation_to_infer_function_argument_types() {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression("func: (Int) => Str = (a) => a");
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn use_declaration_type_annotation_to_infer_function_argument_types_with_separate_type_declaration(
+    ) {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression("Func = (Int) => Str");
+        translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
+        let expression = parse_test_expression("func: Func = (a) => a");
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn argument_type_can_be_more_flexible_than_the_declaration_type() {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression("Primary = #red | #green | #blue");
+        translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
+        let expression =
+            parse_test_expression("Rainbow = #red | #orange | #yellow | #green | #blue | #purple");
+        translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
+        let expression = parse_test_expression(
+            "isBlue: (Primary) => #true | #false = (a: Rainbow) => a == #blue",
+        );
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn argument_type_can_not_be_less_flexible_than_the_declaration_type() {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression("Primary = #red | #green | #blue");
+        translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
+        let expression =
+            parse_test_expression("Rainbow = #red | #orange | #yellow | #green | #blue | #purple");
+        translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
+        let expression = parse_test_expression(
+            "isGreen: (Rainbow) => #true | #false = (a: Primary) => a == #green",
+        );
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn functions_with_different_numbers_of_arguments_do_not_type_check() {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression("func: (Int, Int) => Str = (a) => a");
         let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
         assert!(result.is_err());
     }

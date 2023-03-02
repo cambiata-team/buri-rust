@@ -1,0 +1,4 @@
+Primary = #red | #green | #blue
+Rainbow = #red | #orange | #yellow | #green | #blue | #purple
+
+isGreen: (Rainbow) => #true | #false = (a: Primary) => a == #green

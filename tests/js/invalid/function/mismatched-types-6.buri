@@ -1,0 +1,2 @@
+Func = (Int) => Str
+func: Func = (a) => a

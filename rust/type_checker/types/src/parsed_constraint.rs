@@ -220,6 +220,16 @@ impl CategoryConstraints {
             _ => None,
         }
     }
+
+    #[must_use]
+    pub fn get_function_argument_types(&self) -> Option<Vec<TypeId>> {
+        match self {
+            Self::Function(FunctionConstraints { argument_types, .. }) => {
+                Some(argument_types.clone())
+            }
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -423,6 +433,11 @@ impl ParsedConstraint {
     #[must_use]
     pub const fn get_function_return_type(&self) -> Option<TypeId> {
         self.category.get_function_return_type()
+    }
+
+    #[must_use]
+    pub fn get_function_argument_types(&self) -> Option<Vec<TypeId>> {
+        self.category.get_function_argument_types()
     }
 }
 

@@ -151,6 +151,13 @@ impl TypeSchema {
         }
     }
     #[must_use]
+    pub fn get_function_argument_types(&self, function_type_id: TypeId) -> Option<Vec<TypeId>> {
+        let function_type_canonical_id = self.get_canonical_id(function_type_id);
+        self.constraints
+            .get(&function_type_canonical_id)
+            .and_then(ParsedConstraint::get_function_argument_types)
+    }
+    #[must_use]
     pub fn get_canonical_id(&self, type_id: TypeId) -> TypeId {
         self.types.get_canonical_id(type_id)
     }
