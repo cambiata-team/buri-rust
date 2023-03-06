@@ -17,7 +17,7 @@ members = [
 nom = "7.1.3"
 nom_locate = "4.1.0"
 walkdir = "2.3.2"
-indoc = "2.0.0"
+indoc = "2.0.1"
 backtrace = "0.3"
 
 [toolchain]
