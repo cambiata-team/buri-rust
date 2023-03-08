@@ -10,4 +10,11 @@ Object.assign(Array.prototype, {
     notEquals(other) {
         return this[0] != other[0]
     },
+
+    get(index) {
+        if (index > this.length || index < 0) {
+            return ["none"]
+        }
+        return ["some", this[index]]
+    },
 })

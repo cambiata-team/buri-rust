@@ -115,9 +115,9 @@ impl TypeSchema {
                     parsed_constraint.add_constraints(new_constraint, &self.types);
                 }
             } else {
-                return Err(generate_backtrace_error(
-                    "ConstraintsNotCompatible".to_owned(),
-                ));
+                return Err(generate_backtrace_error(format!(
+                    "ConstraintsNotCompatible\nbase constraint: {parsed_constraint:?}\nnew constraint: {new_constraint:?}\n"
+                )));
             }
         } else {
             self.constraints

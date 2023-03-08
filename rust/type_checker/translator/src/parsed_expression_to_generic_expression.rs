@@ -200,7 +200,8 @@ fn translate_binary_operator<'a>(
     let type_id = schema.make_id();
     let translated_left_child =
         translate_parsed_expression_to_generic_expression(schema, *node.value.left_child)?;
-    let should_declare_unknown_identifier = node.value.symbol == BinaryOperatorSymbol::FieldLookup;
+    let should_declare_unknown_identifier = node.value.symbol == BinaryOperatorSymbol::FieldLookup
+        || node.value.symbol == BinaryOperatorSymbol::MethodLookup;
     let translated_right_child = match *node.value.right_child {
         Expression::FunctionApplicationArguments(arguments) => {
             let function_arguments: Result<Vec<GenericExpression>, String> = arguments
@@ -481,7 +482,7 @@ fn translate_identifier<'a>(
     node: IdentifierNode<'a>,
 ) -> Result<GenericIdentifierExpression<'a>, String> {
     let Some(type_id) = schema.scope.get_variable_declaration_type(&node.value.name) else {
-        return Err(generate_backtrace_error("IdentifierNotFound".to_owned()))
+        return Err(generate_backtrace_error(format!("IdentifierNotFound: {}", node.value.name)))
     };
     Ok(GenericIdentifierExpression {
         expression_type: GenericSourcedType {
@@ -1076,7 +1077,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 2
+            INITIAL_CONSTRAINT_COUNT + 3
         );
     }
 
@@ -1090,7 +1091,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 2
+            INITIAL_CONSTRAINT_COUNT + 3
         );
     }
 
