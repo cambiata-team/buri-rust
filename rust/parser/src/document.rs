@@ -1,5 +1,5 @@
 use crate::{
-    import::import, line::line, newline::newline, type_declaration::type_declaration,
+    expression, import::import, newline::newline, type_declaration::type_declaration,
     variable_declaration::variable_declaration, ExpressionContext,
 };
 use ast::{
@@ -51,17 +51,20 @@ pub fn document<'a>() -> impl FnMut(ParserInput<'a>) -> IResult<'a, DocumentNode
             tuple((
                 value(false, tag("")),
                 alt((
-                    map(newline, |_| DocumentElement::None),
+                    map(tuple((space0, newline)), |_| DocumentElement::None),
                     map(
                         terminated(import, alt((newline, eof))),
                         DocumentElement::Import,
                     ),
                     declaration,
-                    map(line(ExpressionContext::new()), |maybe_expression| {
-                        maybe_expression.map_or(DocumentElement::None, |expression| {
-                            DocumentElement::Expression(expression)
-                        })
-                    }),
+                    map(
+                        tuple((
+                            expression(ExpressionContext::new()),
+                            space0,
+                            alt((newline, eof)),
+                        )),
+                        |(expression, _, _)| DocumentElement::Expression(expression),
+                    ),
                 )),
             )),
         )))),

@@ -9,8 +9,8 @@ use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{space0, space1},
-    combinator::{cond, consumed, eof, map, opt},
-    sequence::{delimited, preceded, terminated, tuple},
+    combinator::{consumed, map, opt},
+    sequence::{delimited, preceded, tuple},
 };
 
 fn if_condition<'a>(
