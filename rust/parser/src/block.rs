@@ -8,7 +8,7 @@ use nom::{
     sequence::{delimited, preceded, tuple},
 };
 
-pub fn line<'a>(
+fn line<'a>(
     context: ExpressionContext,
 ) -> impl FnMut(ParserInput<'a>) -> IResult<'a, Option<Expression<'a>>> {
     alt((

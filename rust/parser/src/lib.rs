@@ -15,7 +15,6 @@ mod indent;
 mod integer;
 mod intra_expression_whitespace;
 mod is_keyword;
-mod line;
 mod list;
 mod list_type;
 mod newline;
