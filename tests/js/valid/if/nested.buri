@@ -1,0 +1,70 @@
+@export
+nestedIfTrueTrue = if #true do
+    if #true do
+        1
+    else
+        2
+else
+    if #true do
+        3
+    else
+        4
+
+@export
+nestedIfTrueFalse = if #true do
+    if #false do
+        1
+    else
+        2
+else
+    if #false do
+        3
+    else
+        4
+
+@export
+nestedIfFalseTrue = if #false do
+    if #true do
+        1
+    else
+        2
+else
+    if #true do
+        3
+    else
+        4
+
+@export
+nestedIfFalseFalse = if #false do
+    if #false do
+        1
+    else
+        2
+else
+    if #false do
+        3
+    else
+        4
+
+colorFromNumberKey = (key) =>
+    if key == 1 or key == 2 do
+        if key == 1 do
+            "red"
+        else
+            "green"
+    else if key == 3 do
+        "blue"
+    else
+        "unknown"
+
+@export
+colorRedString = colorFromNumberKey(1)
+
+@export
+colorGreenString = colorFromNumberKey(2)
+
+@export
+colorBlueString = colorFromNumberKey(3)
+
+@export
+colorYellowString = colorFromNumberKey(4)
