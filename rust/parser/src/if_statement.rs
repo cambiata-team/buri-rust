@@ -39,24 +39,28 @@ fn blockless_if<'a>(
 ) -> impl FnMut(ParserInput<'a>) -> IResult<'a, IfElsePair> {
     map(
         tuple((
-            intra_expression_whitespace(context.disallow_newlines_in_expressions()),
-            binary_operator_expression(context.disallow_newlines_in_expressions()),
-            opt(preceded(
-                tuple((
-                    intra_expression_whitespace(context.disallow_newlines_in_expressions()),
-                    tag("else"),
-                    intra_expression_whitespace(context.disallow_newlines_in_expressions()),
-                )),
-                binary_operator_expression(context.disallow_newlines_in_expressions()),
-            )),
-            cond(
-                !(context.allow_newlines_in_expressions),
-                tuple((space0, alt((newline, eof)))),
+            preceded(
+                space1,
+                expression(context.disallow_newlines_in_expressions()),
             ),
+            opt(preceded(
+                tuple((space1, tag("else"))),
+                alt((
+                    preceded(
+                        tuple((space0, newline)),
+                        map(block(context.increment_indentation()), Expression::Block),
+                    ),
+                    preceded(
+                        space1,
+                        expression(context.disallow_newlines_in_expressions()),
+                    ),
+                )),
+            )),
+            opt(space0),
         )),
-        |(_, expression_if_true, maybe_expression_if_false, _)| IfElsePair {
-            path_if_true: expression_if_true,
-            path_if_false: maybe_expression_if_false,
+        |(path_if_true, path_if_false, _)| IfElsePair {
+            path_if_true,
+            path_if_false,
         },
     )
 }
@@ -70,24 +74,16 @@ fn block_if<'a>(
             newline,
             map(block(context.increment_indentation()), Expression::Block),
             opt(preceded(
-                tuple((indent_exact(context.indentation), tag("else"))),
+                tuple((newline, indent_exact(context.indentation), tag("else"))),
                 alt((
                     preceded(
                         tuple((space0, newline)),
                         map(block(context.increment_indentation()), Expression::Block),
                     ),
-                    preceded(
+                    delimited(
                         space1,
-                        alt((
-                            map(
-                                if_statement(context.disallow_newlines_in_expressions()),
-                                Expression::If,
-                            ),
-                            terminated(
-                                expression(context.disallow_newlines_in_expressions()),
-                                tuple((space0, newline)),
-                            ),
-                        )),
+                        expression(context.disallow_newlines_in_expressions()),
+                        space0,
                     ),
                 )),
             )),
@@ -165,7 +161,7 @@ mod test {
         let input = ParserInput::new("if 1 == 2 do 3 else ");
         let result = if_statement(ExpressionContext::new().allow_newlines_in_expressions())(input);
         let (remainder, _) = result.unwrap();
-        assert_eq!(remainder, " else ");
+        assert_eq!(remainder, "else ");
     }
 
     #[test]
@@ -256,12 +252,12 @@ mod test {
         let input = ParserInput::new("if 1 == 2 do 3 else4");
         let result = if_statement(ExpressionContext::new().allow_newlines_in_expressions())(input);
         let (remainder, _) = result.unwrap();
-        assert_eq!(remainder, " else4");
+        assert_eq!(remainder, "else4");
     }
 
     #[test]
     fn basic_if_statement_parses_when_disallowing_multiline_expressions() {
-        let input = ParserInput::new("if 1 == 2 do 3\n");
+        let input = ParserInput::new("if 1 == 2 do 3");
         let result = if_statement(ExpressionContext::new())(input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");
@@ -295,7 +291,7 @@ mod test {
         let input = ParserInput::new("if 1 == 2 do\n    3\nelse\n4");
         let result = if_statement(ExpressionContext::new())(input);
         let (remainder, _) = result.unwrap();
-        assert_eq!(remainder, "else\n4");
+        assert_eq!(remainder, "\nelse\n4");
     }
 
     #[test]
@@ -303,15 +299,16 @@ mod test {
         let input = ParserInput::new("if 1 == 2 do\n    3\n    else\n    4");
         let result = if_statement(ExpressionContext::new())(input);
         let (remainder, _) = result.unwrap();
-        assert_eq!(remainder, "    else\n    4");
+        assert_eq!(remainder, "\n    else\n    4");
     }
 
     #[test]
-    fn when_disallowing_multiline_expressions_parsing_stops_before_one_line_else_clause() {
+    fn when_disallowing_multiline_expressions_allow_block_true_path_to_be_followed_by_blockless_false_path(
+    ) {
         let input = ParserInput::new("if 1 == 2 do\n    3\nelse 4");
         let result = if_statement(ExpressionContext::new())(input);
         let (remainder, _) = result.unwrap();
-        assert_eq!(remainder, "else 4");
+        assert_eq!(remainder, "");
     }
 
     #[test]
@@ -319,7 +316,7 @@ mod test {
         let input = ParserInput::new("if 1 == 2 do 3\nelse\n    4");
         let result = if_statement(ExpressionContext::new())(input);
         let (remainder, _) = result.unwrap();
-        assert_eq!(remainder, "else\n    4");
+        assert_eq!(remainder, "\nelse\n    4");
     }
 
     #[test]
