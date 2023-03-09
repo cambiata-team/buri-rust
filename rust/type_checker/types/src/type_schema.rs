@@ -176,6 +176,18 @@ impl TypeSchema {
         if !self.types_are_compatible(canonical_type_id, other_type_id) {
             return Err(generate_backtrace_error("TypesAreNotCompatible".to_owned()));
         }
+        match self.constraints.remove(&other_type_id) {
+            None => {}
+            Some(merged_constraint) => match self.constraints.get_mut(&canonical_type_id) {
+                None => {
+                    self.constraints
+                        .insert(canonical_type_id, merged_constraint);
+                }
+                Some(existing_constraint) => {
+                    existing_constraint.add_constraints(merged_constraint, &self.types);
+                }
+            },
+        };
         self.types.set_types_equal(canonical_type_id, other_type_id);
         Ok(())
     }

@@ -46,25 +46,25 @@ else
     else
         4
 
-colorFromNumberKey = (key) =>
-    if key == 1 or key == 2 do
-        if key == 1 do
+colorToString = (color) =>
+    if color == #red or color == #green do
+        if color == #red do
             "red"
         else
             "green"
-    else if key == 3 do
+    else if color == #blue do
         "blue"
     else
         "unknown"
 
 @export
-colorRedString = colorFromNumberKey(1)
+colorRedString = colorToString(#red)
 
 @export
-colorGreenString = colorFromNumberKey(2)
+colorGreenString = colorToString(#green)
 
 @export
-colorBlueString = colorFromNumberKey(3)
+colorBlueString = colorToString(#blue)
 
 @export
-colorYellowString = colorFromNumberKey(4)
+colorYellowString = colorToString(#yellow)
