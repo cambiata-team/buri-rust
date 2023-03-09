@@ -44,13 +44,21 @@ pub use file::parse_buri_file;
 ///
 /// Panics if the input is not a valid expression.
 pub fn parse_test_expression(input: &str) -> ast::Expression {
-    use nom::{combinator::eof, sequence::terminated};
+    use crate::newline::newline;
+    use nom::{
+        combinator::{eof, map, opt},
+        sequence::tuple,
+    };
 
     let input = ast::ParserInput::new(input);
     #[allow(clippy::unwrap_used)] // because this should only be used in tests.
-    let (_, expression) = terminated(
-        expression(ExpressionContext::new().allow_newlines_in_expressions()),
-        eof,
+    let (_, expression) = map(
+        tuple((
+            expression(ExpressionContext::new().allow_newlines_in_expressions()),
+            opt(newline),
+            eof,
+        )),
+        |(expression, _, _)| expression,
     )(input)
     .unwrap();
     expression

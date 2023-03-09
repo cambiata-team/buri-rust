@@ -1,29 +1,65 @@
-use crate::{line::line, ExpressionContext};
-use ast::BlockNode;
+use crate::{expression, indent::indent_exact, newline::newline, ExpressionContext};
+use ast::{BlockNode, Expression};
 use ast::{IResult, ParserInput};
 use nom::{
-    combinator::{consumed, map, verify},
-    multi::many1,
+    branch::alt,
+    character::complete::space0,
+    combinator::{consumed, map, map_res, opt, success},
+    sequence::{delimited, preceded, tuple},
 };
+
+pub fn line<'a>(
+    context: ExpressionContext,
+) -> impl FnMut(ParserInput<'a>) -> IResult<'a, Option<Expression<'a>>> {
+    alt((
+        delimited(
+            indent_exact(context.indentation),
+            map(expression(context.disallow_newlines_in_expressions()), Some),
+            space0,
+        ),
+        preceded(space0, success(None)),
+    ))
+}
+
+/// Parse a block by recursively examining each line. Return the expressions contained in the non-empty lines of the block in REVERSE ORDER.
+/// The first expression in the returned `Vec` corresponds to the last nonempty line in the block.
+///
+/// Consume a whitespace-only line if and only if a non-whitespace line exists later in the block.
+/// Consume trailing spaces, but do not consume trailing newlines.
+fn block_recursive<'a>(
+    context: ExpressionContext,
+) -> impl FnMut(ParserInput<'a>) -> IResult<'a, Vec<Expression<'a>>> {
+    move |input| {
+        map_res(
+            tuple((
+                line(context),
+                opt(tuple((newline, block_recursive(context)))),
+            )),
+            |(first_line_option, subsequent_lines_option)| match subsequent_lines_option {
+                None => {
+                    first_line_option.map_or_else(|| Err(()), |first_line| Ok(vec![first_line]))
+                }
+                Some((_, mut subsequent_lines)) => match first_line_option {
+                    None => Ok(subsequent_lines),
+                    Some(first_line) => {
+                        subsequent_lines.push(first_line);
+                        Ok(subsequent_lines)
+                    }
+                },
+            },
+        )(input)
+    }
+}
 
 pub fn block<'a>(
     context: ExpressionContext,
 ) -> impl FnMut(ParserInput<'a>) -> IResult<'a, BlockNode<'a>> {
-    verify(
-        map(
-            consumed(many1(line(context))),
-            |(source, maybe_expressions)| {
-                let mut nonempty_lines = Vec::new();
-                for maybe_expression in maybe_expressions {
-                    maybe_expression.map_or((), |line_contents| nonempty_lines.push(line_contents));
-                }
-                BlockNode {
-                    source,
-                    value: nonempty_lines,
-                }
-            },
-        ),
-        |node| !node.value.is_empty(),
+    map(
+        consumed(block_recursive(context)),
+        |(source, lines_in_reserve_order)| BlockNode {
+            source,
+            value: lines_in_reserve_order.into_iter().rev().collect(),
+        },
     )
 }
 
@@ -87,7 +123,7 @@ mod test {
         let input = ParserInput::new("    1\n2");
         let result = block(ExpressionContext::new().increment_indentation())(input);
         let (remainder, lines) = result.unwrap();
-        assert_eq!(remainder, "2");
+        assert_eq!(remainder, "\n2");
         assert_eq!(lines.value.len(), 1);
     }
 
@@ -97,7 +133,7 @@ mod test {
         let input = ParserInput::new("    1\n        2");
         let result = block(ExpressionContext::new().increment_indentation())(input);
         let (remainder, lines) = result.unwrap();
-        assert_eq!(remainder, "        2");
+        assert_eq!(remainder, "\n        2");
         assert_eq!(lines.value.len(), 1);
     }
 
@@ -147,20 +183,20 @@ mod test {
     }
 
     #[test]
-    fn block_can_end_with_empty_line() {
+    fn block_cannot_end_with_empty_line() {
         let input = ParserInput::new("1\n\n");
         let result = block(ExpressionContext::new())(input);
         let (remainder, lines) = result.unwrap();
-        assert_eq!(remainder, "");
+        assert_eq!(remainder, "\n\n");
         assert_eq!(lines.value.len(), 1);
     }
 
     #[test]
-    fn block_can_end_with_empty_line_when_nonzero_indentation_is_expected() {
+    fn block_cannot_end_with_empty_line_when_nonzero_indentation_is_expected() {
         let input = ParserInput::new("    1\n\n");
         let result = block(ExpressionContext::new().increment_indentation())(input);
         let (remainder, lines) = result.unwrap();
-        assert_eq!(remainder, "");
+        assert_eq!(remainder, "\n\n");
         assert_eq!(lines.value.len(), 1);
     }
 

@@ -208,7 +208,7 @@ mod test {
 
     #[test]
     fn function_body_can_be_block() {
-        let input = ParserInput::new("(x,y)=>\n    1 + 2\n    x - y\n");
+        let input = ParserInput::new("(x,y)=>\n    1 + 2\n    x - y");
         let result = function(ExpressionContext::new(), input);
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "");
@@ -248,6 +248,6 @@ mod test {
         "});
         let result = function(ExpressionContext::new(), input);
         let (remainder, _) = result.unwrap();
-        assert_eq!(remainder, "");
+        assert_eq!(remainder, "\n");
     }
 }

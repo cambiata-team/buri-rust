@@ -233,7 +233,7 @@ mod test {
         let input = ParserInput::new(input);
         let result = variable_declaration(ExpressionContext::new(), input);
         let (remainder, _) = result.unwrap();
-        assert_eq!(remainder, "bar = 3");
+        assert_eq!(remainder, "\nbar = 3");
     }
 
     #[test]
@@ -246,6 +246,6 @@ mod test {
         "});
         let result = variable_declaration(ExpressionContext::new(), input);
         let (remainder, _) = result.unwrap();
-        assert_eq!(remainder, "");
+        assert_eq!(remainder, "\n");
     }
 }
