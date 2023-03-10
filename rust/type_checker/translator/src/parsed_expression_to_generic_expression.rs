@@ -10,7 +10,7 @@ use type_checker_errors::generate_backtrace_error;
 use type_checker_types::{
     constraints::{
         Constraint, HasExactFieldsConstraint, HasFieldConstraint, HasFunctionShape,
-        HasMethodConstraint, HasTagConstraint, TagAtMostConstraint,
+        HasTagConstraint, TagAtMostConstraint,
     },
     generic_nodes::{
         get_generic_type_id, GenericBinaryOperatorExpression, GenericBlockExpression,
@@ -21,6 +21,7 @@ use type_checker_types::{
         GenericTypeDeclarationExpression, GenericTypeIdentifierExpression,
         GenericUnaryOperatorExpression,
     },
+    type_checking_call_stack::CheckedTypes,
     type_schema::TypeSchema,
     TypeId,
 };
@@ -60,6 +61,7 @@ fn constrain_at_most_none_tag() -> Constraint {
     })
 }
 
+#[derive(Debug)]
 struct TranslateBinaryOperatorIdCollection {
     pub type_id: TypeId,
     pub left_child_id: TypeId,
@@ -70,9 +72,21 @@ fn translate_binary_operator_add_arithmetic_constraints(
     schema: &mut TypeSchema,
     id_collection: &TranslateBinaryOperatorIdCollection,
 ) -> Result<(), String> {
-    schema.add_constraint(id_collection.type_id, constrain_equal_to_num())?;
-    schema.add_constraint(id_collection.left_child_id, constrain_equal_to_num())?;
-    schema.add_constraint(id_collection.right_child_id, constrain_equal_to_num())?;
+    schema.add_constraint(
+        id_collection.type_id,
+        constrain_equal_to_num(),
+        &mut CheckedTypes::new(),
+    )?;
+    schema.add_constraint(
+        id_collection.left_child_id,
+        constrain_equal_to_num(),
+        &mut CheckedTypes::new(),
+    )?;
+    schema.add_constraint(
+        id_collection.right_child_id,
+        constrain_equal_to_num(),
+        &mut CheckedTypes::new(),
+    )?;
     Ok(())
 }
 
@@ -80,9 +94,21 @@ fn translate_binary_operator_add_concatenate_constraints(
     schema: &mut TypeSchema,
     id_collection: &TranslateBinaryOperatorIdCollection,
 ) -> Result<(), String> {
-    schema.add_constraint(id_collection.type_id, constrain_equal_to_str())?;
-    schema.add_constraint(id_collection.left_child_id, constrain_equal_to_str())?;
-    schema.add_constraint(id_collection.right_child_id, constrain_equal_to_str())?;
+    schema.add_constraint(
+        id_collection.type_id,
+        constrain_equal_to_str(),
+        &mut CheckedTypes::new(),
+    )?;
+    schema.add_constraint(
+        id_collection.left_child_id,
+        constrain_equal_to_str(),
+        &mut CheckedTypes::new(),
+    )?;
+    schema.add_constraint(
+        id_collection.right_child_id,
+        constrain_equal_to_str(),
+        &mut CheckedTypes::new(),
+    )?;
     Ok(())
 }
 
@@ -90,11 +116,20 @@ fn translate_binary_operator_add_logic_constraints(
     schema: &mut TypeSchema,
     id_collection: &TranslateBinaryOperatorIdCollection,
 ) -> Result<(), String> {
-    schema.add_constraint(id_collection.type_id, constrain_at_most_boolean_tag())?;
-    schema.add_constraint(id_collection.left_child_id, constrain_at_most_boolean_tag())?;
+    schema.add_constraint(
+        id_collection.type_id,
+        constrain_at_most_boolean_tag(),
+        &mut CheckedTypes::new(),
+    )?;
+    schema.add_constraint(
+        id_collection.left_child_id,
+        constrain_at_most_boolean_tag(),
+        &mut CheckedTypes::new(),
+    )?;
     schema.add_constraint(
         id_collection.right_child_id,
         constrain_at_most_boolean_tag(),
+        &mut CheckedTypes::new(),
     )?;
     Ok(())
 }
@@ -103,9 +138,16 @@ fn translate_binary_operator_add_equality_constraints(
     schema: &mut TypeSchema,
     id_collection: &TranslateBinaryOperatorIdCollection,
 ) -> Result<(), String> {
-    schema.add_constraint(id_collection.type_id, constrain_at_most_boolean_tag())?;
-    schema
-        .set_equal_to_canonical_type(id_collection.left_child_id, id_collection.right_child_id)?;
+    schema.add_constraint(
+        id_collection.type_id,
+        constrain_at_most_boolean_tag(),
+        &mut CheckedTypes::new(),
+    )?;
+    schema.set_equal_to_canonical_type(
+        id_collection.left_child_id,
+        id_collection.right_child_id,
+        &mut CheckedTypes::new(),
+    )?;
     Ok(())
 }
 
@@ -113,10 +155,26 @@ fn translate_binary_operator_add_comparison_constraints(
     schema: &mut TypeSchema,
     id_collection: &TranslateBinaryOperatorIdCollection,
 ) -> Result<(), String> {
-    schema.add_constraint(id_collection.type_id, constrain_at_least_true())?;
-    schema.add_constraint(id_collection.type_id, constrain_at_least_false())?;
-    schema.add_constraint(id_collection.left_child_id, constrain_equal_to_num())?;
-    schema.add_constraint(id_collection.right_child_id, constrain_equal_to_num())?;
+    schema.add_constraint(
+        id_collection.type_id,
+        constrain_at_least_true(),
+        &mut CheckedTypes::new(),
+    )?;
+    schema.add_constraint(
+        id_collection.type_id,
+        constrain_at_least_false(),
+        &mut CheckedTypes::new(),
+    )?;
+    schema.add_constraint(
+        id_collection.left_child_id,
+        constrain_equal_to_num(),
+        &mut CheckedTypes::new(),
+    )?;
+    schema.add_constraint(
+        id_collection.right_child_id,
+        constrain_equal_to_num(),
+        &mut CheckedTypes::new(),
+    )?;
     Ok(())
 }
 
@@ -141,6 +199,7 @@ fn translate_binary_operator_add_function_application_constraints(
             argument_types,
             return_type: id_collection.type_id,
         }),
+        &mut CheckedTypes::new(),
     )?;
     Ok(())
 }
@@ -158,14 +217,17 @@ fn translate_binary_operator_add_method_lookup_constraints(
             ))
         }
     };
-    schema.add_constraint(
+    schema.declare_method_on_type(
         id_collection.left_child_id,
-        Constraint::HasMethod(HasMethodConstraint {
-            method_name,
-            method_type: id_collection.right_child_id,
-        }),
+        &method_name,
+        id_collection.right_child_id,
+        &mut CheckedTypes::new(),
     )?;
-    schema.set_equal_to_canonical_type(id_collection.type_id, id_collection.right_child_id)?;
+    schema.set_equal_to_canonical_type(
+        id_collection.right_child_id,
+        id_collection.type_id,
+        &mut CheckedTypes::new(),
+    )?;
     Ok(())
 }
 
@@ -182,13 +244,18 @@ fn translate_binary_operator_add_field_lookup_constraints(
             ))
         }
     };
-    schema.set_equal_to_canonical_type(id_collection.right_child_id, id_collection.type_id)?;
+    schema.set_equal_to_canonical_type(
+        id_collection.right_child_id,
+        id_collection.type_id,
+        &mut CheckedTypes::new(),
+    )?;
     schema.add_constraint(
         id_collection.left_child_id,
         Constraint::HasField(HasFieldConstraint {
             field_name,
             field_type: id_collection.right_child_id,
         }),
+        &mut CheckedTypes::new(),
     )?;
     Ok(())
 }
@@ -200,7 +267,8 @@ fn translate_binary_operator<'a>(
     let type_id = schema.make_id();
     let translated_left_child =
         translate_parsed_expression_to_generic_expression(schema, *node.value.left_child)?;
-    let should_declare_unknown_identifier = node.value.symbol == BinaryOperatorSymbol::FieldLookup;
+    let should_declare_unknown_identifier = node.value.symbol == BinaryOperatorSymbol::FieldLookup
+        || node.value.symbol == BinaryOperatorSymbol::MethodLookup;
     let translated_right_child = match *node.value.right_child {
         Expression::FunctionApplicationArguments(arguments) => {
             let function_arguments: Result<Vec<GenericExpression>, String> = arguments
@@ -264,7 +332,11 @@ fn translate_binary_operator<'a>(
                 &translated_right_child,
             )?;
             let function_type_id = get_generic_type_id(&translated_left_child);
-            schema.set_equal_to_function_result(type_id, function_type_id)?;
+            schema.set_equal_to_function_result(
+                type_id,
+                function_type_id,
+                &mut CheckedTypes::new(),
+            )?;
         }
         BinaryOperatorSymbol::MethodLookup => {
             translate_binary_operator_add_method_lookup_constraints(
@@ -312,7 +384,11 @@ fn translate_block<'a>(
             ))
         }
         Some(last_element) => {
-            schema.set_equal_to_canonical_type(get_generic_type_id(last_element), type_id)?;
+            schema.set_equal_to_canonical_type(
+                get_generic_type_id(last_element),
+                type_id,
+                &mut CheckedTypes::new(),
+            )?;
         }
     }
     schema.scope.end_sub_scope();
@@ -344,7 +420,11 @@ fn translate_declaration_expression<'a>(
             _ => None,
         };
         if let Some(function_type_id) = maybe_function_type_id {
-            schema.set_equal_to_canonical_type(function_type_id, name_type_id)?;
+            schema.set_equal_to_canonical_type(
+                function_type_id,
+                name_type_id,
+                &mut CheckedTypes::new(),
+            )?;
             let translated_function =
                 translate_function(schema, function.clone(), Some(function_type_id))?;
             return Ok(GenericExpression::Function(Box::new(translated_function)));
@@ -356,9 +436,13 @@ fn translate_declaration_expression<'a>(
 
     if let Some(type_expression) = maybe_type_expression {
         let type_expression_id = translate_parsed_type_expression(schema, &type_expression)?;
-        schema.set_equal_to_canonical_type(type_expression_id, expression_id)?;
+        schema.set_equal_to_canonical_type(
+            type_expression_id,
+            expression_id,
+            &mut CheckedTypes::new(),
+        )?;
     }
-    schema.set_equal_to_canonical_type(expression_id, name_type_id)?;
+    schema.set_equal_to_canonical_type(expression_id, name_type_id, &mut CheckedTypes::new())?;
     Ok(expression)
 }
 
@@ -368,7 +452,11 @@ pub fn translate_declaration<'a>(
 ) -> Result<GenericDeclarationExpression<'a>, String> {
     let declaration_type_id = schema.make_id();
     let declaration_type = constrain_at_most_none_tag();
-    schema.add_constraint(declaration_type_id, declaration_type)?;
+    schema.add_constraint(
+        declaration_type_id,
+        declaration_type,
+        &mut CheckedTypes::new(),
+    )?;
 
     let name_type_id = schema.make_id();
     schema
@@ -438,15 +526,27 @@ fn translate_function<'a>(
                 return Err(generate_backtrace_error("IdentifierNotFound".to_owned()))
             };
             if let Some(declaration_argument_type) = declaration_argument_type {
-                if !schema.types_are_compatible(argument_type_id, declaration_argument_type) {
+                if !schema.types_are_compatible(
+                    argument_type_id,
+                    declaration_argument_type,
+                    &mut CheckedTypes::new(),
+                ) {
                     return Err(generate_backtrace_error(
                         "Argument type does not match declaration".to_owned(),
                     ));
                 }
             };
-            schema.set_equal_to_canonical_type(argument_type_id, identifier_type)?;
+            schema.set_equal_to_canonical_type(
+                argument_type_id,
+                identifier_type,
+                &mut CheckedTypes::new(),
+            )?;
         } else if let Some(declaration_argument_type) = declaration_argument_type {
-            schema.set_equal_to_canonical_type(declaration_argument_type, identifier_type)?;
+            schema.set_equal_to_canonical_type(
+                declaration_argument_type,
+                identifier_type,
+                &mut CheckedTypes::new(),
+            )?;
         }
         argument_types.push(identifier_type);
         argument_names.push(argument.value.argument_name.value.name.clone());
@@ -454,9 +554,9 @@ fn translate_function<'a>(
     let body = translate_parsed_expression_to_generic_expression(schema, *node.value.body)?;
     let body_id = get_generic_type_id(&body);
     let return_type = schema.make_id();
-    schema.set_equal_to_canonical_type(body_id, return_type)?;
+    schema.set_equal_to_canonical_type(body_id, return_type, &mut CheckedTypes::new())?;
     if let Some(declaration_type) = declaration_type {
-        schema.set_equal_to_function_result(body_id, declaration_type)?;
+        schema.set_equal_to_function_result(body_id, declaration_type, &mut CheckedTypes::new())?;
     }
     schema.add_constraint(
         function_type,
@@ -464,6 +564,7 @@ fn translate_function<'a>(
             argument_types,
             return_type,
         }),
+        &mut CheckedTypes::new(),
     )?;
     schema.scope.end_sub_scope();
     Ok(GenericFunctionExpression {
@@ -481,7 +582,7 @@ fn translate_identifier<'a>(
     node: IdentifierNode<'a>,
 ) -> Result<GenericIdentifierExpression<'a>, String> {
     let Some(type_id) = schema.scope.get_variable_declaration_type(&node.value.name) else {
-        return Err(generate_backtrace_error("IdentifierNotFound".to_owned()))
+        return Err(generate_backtrace_error(format!("IdentifierNotFound: {}", node.value.name)))
     };
     Ok(GenericIdentifierExpression {
         expression_type: GenericSourcedType {
@@ -503,6 +604,7 @@ fn translate_if<'a>(
     schema.add_constraint(
         get_generic_type_id(&translated_condition),
         constrain_at_most_boolean_tag(),
+        &mut CheckedTypes::new(),
     )?;
     schema.scope.start_sub_scope();
     let translated_true_path =
@@ -510,10 +612,18 @@ fn translate_if<'a>(
     schema.scope.end_sub_scope();
     schema.scope.start_sub_scope();
     let translated_false_path = if let Some(false_path) = node.value.path_if_false {
-        schema.set_equal_to_canonical_type(get_generic_type_id(&translated_true_path), type_id)?;
+        schema.set_equal_to_canonical_type(
+            get_generic_type_id(&translated_true_path),
+            type_id,
+            &mut CheckedTypes::new(),
+        )?;
         let translated_false_path =
             translate_parsed_expression_to_generic_expression(schema, *false_path)?;
-        schema.set_equal_to_canonical_type(get_generic_type_id(&translated_false_path), type_id)?;
+        schema.set_equal_to_canonical_type(
+            get_generic_type_id(&translated_false_path),
+            type_id,
+            &mut CheckedTypes::new(),
+        )?;
         Some(translated_false_path)
     } else {
         schema.add_constraint(
@@ -522,6 +632,7 @@ fn translate_if<'a>(
                 tag_name: "none".to_owned(),
                 tag_content_types: vec![],
             }),
+            &mut CheckedTypes::new(),
         )?;
         schema.add_constraint(
             type_id,
@@ -529,6 +640,7 @@ fn translate_if<'a>(
                 tag_name: "some".to_owned(),
                 tag_content_types: vec![get_generic_type_id(&translated_true_path)],
             }),
+            &mut CheckedTypes::new(),
         )?;
         None
     };
@@ -549,7 +661,7 @@ fn translate_integer<'a>(
     node: IntegerNode<'a>,
 ) -> Result<GenericIntegerLiteralExpression<'a>, String> {
     let type_id = schema.make_id();
-    schema.add_constraint(type_id, constrain_equal_to_num())?;
+    schema.add_constraint(type_id, constrain_equal_to_num(), &mut CheckedTypes::new())?;
     Ok(GenericIntegerLiteralExpression {
         expression_type: GenericSourcedType {
             type_id,
@@ -565,7 +677,11 @@ fn translate_list<'a>(
 ) -> Result<GenericListExpression<'a>, String> {
     let list_type_id = schema.make_id();
     let element_type_id = schema.make_id();
-    schema.add_constraint(list_type_id, Constraint::ListOfType(element_type_id))?;
+    schema.add_constraint(
+        list_type_id,
+        Constraint::ListOfType(element_type_id),
+        &mut CheckedTypes::new(),
+    )?;
     let mut element_translations = Vec::new();
     element_translations.reserve_exact(node.value.len());
     for element in node.value {
@@ -574,6 +690,7 @@ fn translate_list<'a>(
         schema.set_equal_to_canonical_type(
             get_generic_type_id(&element_translation),
             element_type_id,
+            &mut CheckedTypes::new(),
         )?;
         element_translations.push(element_translation);
     }
@@ -603,12 +720,14 @@ fn translate_record<'a>(
         schema.set_equal_to_canonical_type(
             get_generic_type_id(&element_translation),
             field_type_id,
+            &mut CheckedTypes::new(),
         )?;
         element_translations.insert(field_name, element_translation);
     }
     schema.add_constraint(
         record_type_id,
         Constraint::HasExactFields(HasExactFieldsConstraint { fields }),
+        &mut CheckedTypes::new(),
     )?;
     Ok(GenericRecordExpression {
         expression_type: GenericSourcedType {
@@ -624,7 +743,7 @@ fn translate_string<'a>(
     node: StringLiteralNode<'a>,
 ) -> Result<GenericStringLiteralExpression<'a>, String> {
     let type_id = schema.make_id();
-    schema.add_constraint(type_id, constrain_equal_to_str())?;
+    schema.add_constraint(type_id, constrain_equal_to_str(), &mut CheckedTypes::new())?;
     Ok(GenericStringLiteralExpression {
         expression_type: GenericSourcedType {
             type_id,
@@ -661,6 +780,7 @@ fn translate_tag<'a>(
             tag_name: node.value.name.value.clone(),
             tag_content_types: translated_content_types,
         }),
+        &mut CheckedTypes::new(),
     )?;
     Ok(GenericTagExpression {
         expression_type: GenericSourcedType {
@@ -679,23 +799,29 @@ fn translate_unary_operator<'a>(
     let type_id = schema.make_id();
     let new_child = match node.value.symbol {
         UnaryOperatorSymbol::Not => {
-            schema.add_constraint(type_id, constrain_at_least_true())?;
-            schema.add_constraint(type_id, constrain_at_least_false())?;
+            schema.add_constraint(type_id, constrain_at_least_true(), &mut CheckedTypes::new())?;
+            schema.add_constraint(
+                type_id,
+                constrain_at_least_false(),
+                &mut CheckedTypes::new(),
+            )?;
             let translated_child =
                 translate_parsed_expression_to_generic_expression(schema, *node.value.child)?;
             schema.add_constraint(
                 get_generic_type_id(&translated_child),
                 constrain_at_most_boolean_tag(),
+                &mut CheckedTypes::new(),
             )?;
             translated_child
         }
         UnaryOperatorSymbol::Negative => {
-            schema.add_constraint(type_id, constrain_equal_to_num())?;
+            schema.add_constraint(type_id, constrain_equal_to_num(), &mut CheckedTypes::new())?;
             let translated_child =
                 translate_parsed_expression_to_generic_expression(schema, *node.value.child)?;
             schema.add_constraint(
                 get_generic_type_id(&translated_child),
                 constrain_equal_to_num(),
+                &mut CheckedTypes::new(),
             )?;
             translated_child
         }
@@ -726,8 +852,11 @@ fn translate_record_assignment<'a>(
         let field_name = element.identifier.value.name;
         let field_translation =
             translate_parsed_expression_to_generic_expression(schema, element.value)?;
-        schema
-            .set_equal_to_canonical_type(get_generic_type_id(&field_translation), field_type_id)?;
+        schema.set_equal_to_canonical_type(
+            get_generic_type_id(&field_translation),
+            field_type_id,
+            &mut CheckedTypes::new(),
+        )?;
         field_translations.insert(field_name.clone(), field_translation);
         schema.add_constraint(
             assignment_type_id,
@@ -735,9 +864,14 @@ fn translate_record_assignment<'a>(
                 field_name,
                 field_type: field_type_id,
             }),
+            &mut CheckedTypes::new(),
         )?;
     }
-    schema.set_equal_to_canonical_type(name_type_id, assignment_type_id)?;
+    schema.set_equal_to_canonical_type(
+        name_type_id,
+        assignment_type_id,
+        &mut CheckedTypes::new(),
+    )?;
     Ok(GenericRecordAssignmentExpression {
         expression_type: GenericSourcedType {
             type_id: assignment_type_id,
@@ -759,7 +893,11 @@ pub fn translate_type_declaration<'a>(
     node: TypeDeclarationNode<'a>,
 ) -> Result<GenericTypeDeclarationExpression<'a>, String> {
     let declaration_type_id = schema.make_id();
-    schema.add_constraint(declaration_type_id, constrain_at_most_none_tag())?;
+    schema.add_constraint(
+        declaration_type_id,
+        constrain_at_most_none_tag(),
+        &mut CheckedTypes::new(),
+    )?;
 
     let name_type_id = schema.make_id();
     schema
@@ -768,7 +906,11 @@ pub fn translate_type_declaration<'a>(
 
     let identifier_name = translate_type_identifier(schema, node.value.identifier.clone())?;
     let type_expression_id = translate_parsed_type_expression(schema, &node.value.type_expression)?;
-    schema.set_equal_to_canonical_type(type_expression_id, name_type_id)?;
+    schema.set_equal_to_canonical_type(
+        type_expression_id,
+        name_type_id,
+        &mut CheckedTypes::new(),
+    )?;
     Ok(GenericTypeDeclarationExpression {
         declaration_type: GenericSourcedType {
             type_id: declaration_type_id,
@@ -815,6 +957,7 @@ fn translate_function_type(
             argument_types,
             return_type: return_type_id,
         }),
+        &mut CheckedTypes::new(),
     )?;
     Ok(type_id)
 }
@@ -835,7 +978,11 @@ fn translate_list_type(
 ) -> Result<TypeId, String> {
     let type_id = schema.make_id();
     let contents_type_id = translate_parsed_type_expression(schema, &expression.value)?;
-    schema.add_constraint(type_id, Constraint::ListOfType(contents_type_id))?;
+    schema.add_constraint(
+        type_id,
+        Constraint::ListOfType(contents_type_id),
+        &mut CheckedTypes::new(),
+    )?;
     Ok(type_id)
 }
 
@@ -855,6 +1002,7 @@ fn translate_record_type(
     schema.add_constraint(
         type_id,
         Constraint::HasExactFields(HasExactFieldsConstraint { fields }),
+        &mut CheckedTypes::new(),
     )?;
 
     Ok(type_id)
@@ -881,7 +1029,11 @@ fn translate_tag_group_type(
         }
         tags.insert(tag_name, content_item_ids);
     }
-    schema.add_constraint(type_id, Constraint::TagAtMost(TagAtMostConstraint { tags }))?;
+    schema.add_constraint(
+        type_id,
+        Constraint::TagAtMost(TagAtMostConstraint { tags }),
+        &mut CheckedTypes::new(),
+    )?;
     Ok(type_id)
 }
 
@@ -1076,7 +1228,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 2
+            INITIAL_CONSTRAINT_COUNT + 3
         );
     }
 
@@ -1090,7 +1242,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 2
+            INITIAL_CONSTRAINT_COUNT + 3
         );
     }
 
@@ -1370,7 +1522,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let expression = parse_test_expression("[2, 3, 5]");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
-        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 5);
+        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 9);
     }
 
     #[test]
@@ -1380,7 +1532,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 2
+            INITIAL_CONSTRAINT_COUNT + 6
         );
     }
 
@@ -1404,7 +1556,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 2
+            INITIAL_CONSTRAINT_COUNT + 6
         );
     }
 

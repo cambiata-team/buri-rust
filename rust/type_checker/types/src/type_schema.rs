@@ -1,10 +1,19 @@
-use crate::{constraints::Constraint, parsed_constraint::ParsedConstraint, scope::Scope, TypeId};
+use crate::{
+    constraints::{Constraint, HasMethodConstraint},
+    parsed_constraint::ParsedConstraint,
+    scope::Scope,
+    type_checking_call_stack::CheckedTypes,
+    TypeId,
+};
 use std::collections::HashMap;
 use type_checker_errors::generate_backtrace_error;
 use typed_ast::{ConcreteType, PrimitiveType};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct CanonicalIds(Vec<TypeId>);
+
+pub const INT_TYPE_ID: usize = 0;
+pub const STR_TYPE_ID: usize = 1;
 
 impl CanonicalIds {
     const fn new() -> Self {
@@ -66,18 +75,22 @@ impl TypeSchema {
             constraints: HashMap::new(),
             scope: Scope::new(),
         };
+        // if-change: update type id constants at the top of the file
         schema
             .declare_identifier_with_constraint(
                 String::from("Int"),
                 Constraint::EqualToPrimitive(PrimitiveType::Int),
+                &mut CheckedTypes::new(),
             )
             .unwrap();
         schema
             .declare_identifier_with_constraint(
                 String::from("Str"),
                 Constraint::EqualToPrimitive(PrimitiveType::Str),
+                &mut CheckedTypes::new(),
             )
             .unwrap();
+        // end-if-change
         schema
     }
 
@@ -85,12 +98,13 @@ impl TypeSchema {
         &mut self,
         identifier_name: String,
         constraint: Constraint,
+        checked_types: &mut CheckedTypes,
     ) -> Result<(), String> {
         let type_id = self.types.make_id();
         self.scope
             .declare_identifier(identifier_name, type_id)
             .map_err(generate_backtrace_error)?;
-        self.add_constraint(type_id, constraint)
+        self.add_constraint(type_id, constraint, checked_types)
             .map_err(generate_backtrace_error)?;
         Ok(())
     }
@@ -103,25 +117,25 @@ impl TypeSchema {
         &mut self,
         type_id: TypeId,
         constraint: Constraint,
+        checked_types: &mut CheckedTypes,
     ) -> Result<(), String> {
         let canonical_id = self.get_canonical_id(type_id);
         // Get the existing parsed constraint with an immutable reference so we can still
         // use the type schema.
+        let new_constraint = ParsedConstraint::new(canonical_id, constraint, self)?;
         if let Some(parsed_constraint) = self.constraints.get(&canonical_id) {
-            let new_constraint = ParsedConstraint::new(constraint, self);
-            if parsed_constraint.is_compatible_with(&new_constraint, self) {
+            if parsed_constraint.is_compatible_with(&new_constraint, self, checked_types) {
                 // Getting the parsed constraint again so we can mutate it.
                 if let Some(parsed_constraint) = self.constraints.get_mut(&canonical_id) {
                     parsed_constraint.add_constraints(new_constraint, &self.types);
                 }
             } else {
-                return Err(generate_backtrace_error(
-                    "ConstraintsNotCompatible".to_owned(),
-                ));
+                return Err(generate_backtrace_error(format!(
+                    "ConstraintsNotCompatible\nbase constraint: {parsed_constraint:?}\nnew constraint: {new_constraint:?}\n"
+                )));
             }
         } else {
-            self.constraints
-                .insert(canonical_id, ParsedConstraint::new(constraint, self));
+            self.constraints.insert(canonical_id, new_constraint);
         };
         Ok(())
     }
@@ -137,6 +151,7 @@ impl TypeSchema {
         &mut self,
         expression_type_id: TypeId,
         function_type_id: TypeId,
+        checked_types: &mut CheckedTypes,
     ) -> Result<(), String> {
         let function_type_canonical_id = self.get_canonical_id(function_type_id);
         #[allow(clippy::option_if_let_else)] // Making this change violates the borrow checker.
@@ -144,7 +159,11 @@ impl TypeSchema {
             Some(parsed_constraint) => parsed_constraint.get_function_return_type().map_or_else(
                 || Err(generate_backtrace_error("NotAFunction".to_owned())),
                 |return_type_id| {
-                    self.set_equal_to_canonical_type(return_type_id, expression_type_id)
+                    self.set_equal_to_canonical_type(
+                        return_type_id,
+                        expression_type_id,
+                        checked_types,
+                    )
                 },
             ),
             _ => Err(generate_backtrace_error("NotAFunction".to_owned())),
@@ -172,8 +191,9 @@ impl TypeSchema {
         &mut self,
         canonical_type_id: TypeId,
         other_type_id: TypeId,
+        checked_types: &mut CheckedTypes,
     ) -> Result<(), String> {
-        if !self.types_are_compatible(canonical_type_id, other_type_id) {
+        if !self.types_are_compatible(canonical_type_id, other_type_id, checked_types) {
             return Err(generate_backtrace_error("TypesAreNotCompatible".to_owned()));
         }
         match self.constraints.remove(&other_type_id) {
@@ -192,21 +212,60 @@ impl TypeSchema {
         Ok(())
     }
     #[must_use]
-    pub fn types_are_compatible(&self, base_type: TypeId, other_type: TypeId) -> bool {
+    pub fn types_are_compatible(
+        &self,
+        base_type: TypeId,
+        other_type: TypeId,
+        checked_types: &mut CheckedTypes,
+    ) -> bool {
         let base_canonical_id = self.get_canonical_id(base_type);
         let other_canonical_id = self.get_canonical_id(other_type);
-        if base_canonical_id == other_canonical_id {
+        if base_canonical_id == other_canonical_id
+            || checked_types.contains(base_canonical_id, other_canonical_id)
+        {
             return true;
         }
+        checked_types.add(base_canonical_id, other_canonical_id);
         match (
             self.constraints.get(&base_canonical_id),
             self.constraints.get(&other_canonical_id),
         ) {
             (Some(base_constraint), Some(other_constraint)) => {
-                base_constraint.is_compatible_with(other_constraint, self)
+                base_constraint.is_compatible_with(other_constraint, self, checked_types)
             }
             _ => true,
         }
+    }
+
+    pub fn declare_method_on_type(
+        &mut self,
+        base_type: TypeId,
+        method_name: &str,
+        method_type_id: TypeId,
+        checked_types: &mut CheckedTypes,
+    ) -> Result<(), String> {
+        let canonical_type_id = self.get_canonical_id(base_type);
+
+        if let Some(parsed_constraint) = self.constraints.get(&canonical_type_id) {
+            if let Some(base_method_type) = parsed_constraint.get_same_method_type(
+                self,
+                method_name,
+                method_type_id,
+                checked_types,
+            )? {
+                self.set_equal_to_canonical_type(base_method_type, method_type_id, checked_types)?;
+                return Ok(());
+            }
+        }
+        self.add_constraint(
+            base_type,
+            Constraint::HasMethod(HasMethodConstraint {
+                method_name: method_name.to_string(),
+                method_type: method_type_id,
+            }),
+            checked_types,
+        )?;
+        Ok(())
     }
 
     // TODO(aaron) B-279
@@ -246,7 +305,9 @@ mod test {
         let mut type_schema = TypeSchema::new();
         let id_a = type_schema.make_id();
         let id_b = type_schema.make_id();
-        type_schema.set_equal_to_canonical_type(id_a, id_b).unwrap();
+        type_schema
+            .set_equal_to_canonical_type(id_a, id_b, &mut CheckedTypes::new())
+            .unwrap();
         assert_eq!(type_schema.get_canonical_id(id_a), id_a);
         assert_eq!(type_schema.get_canonical_id(id_b), id_a);
     }
@@ -257,8 +318,12 @@ mod test {
         let id_a = type_schema.make_id();
         let id_b = type_schema.make_id();
         let id_c = type_schema.make_id();
-        type_schema.set_equal_to_canonical_type(id_a, id_b).unwrap();
-        type_schema.set_equal_to_canonical_type(id_b, id_c).unwrap();
+        type_schema
+            .set_equal_to_canonical_type(id_a, id_b, &mut CheckedTypes::new())
+            .unwrap();
+        type_schema
+            .set_equal_to_canonical_type(id_b, id_c, &mut CheckedTypes::new())
+            .unwrap();
         assert_eq!(type_schema.get_canonical_id(id_c), id_a);
     }
 
@@ -277,8 +342,12 @@ mod test {
         let id_a = type_schema.make_id();
         let id_b = type_schema.make_id();
         let id_c = type_schema.make_id();
-        type_schema.set_equal_to_canonical_type(id_a, id_b).unwrap();
-        type_schema.set_equal_to_canonical_type(id_b, id_c).unwrap();
+        type_schema
+            .set_equal_to_canonical_type(id_a, id_b, &mut CheckedTypes::new())
+            .unwrap();
+        type_schema
+            .set_equal_to_canonical_type(id_b, id_c, &mut CheckedTypes::new())
+            .unwrap();
         assert_eq!(type_schema.count_ids(), id_a + 3);
     }
 
@@ -297,8 +366,12 @@ mod test {
         let id_a = type_schema.make_id();
         let id_b = type_schema.make_id();
         let id_c = type_schema.make_id();
-        type_schema.set_equal_to_canonical_type(id_a, id_b).unwrap();
-        type_schema.set_equal_to_canonical_type(id_b, id_c).unwrap();
+        type_schema
+            .set_equal_to_canonical_type(id_a, id_b, &mut CheckedTypes::new())
+            .unwrap();
+        type_schema
+            .set_equal_to_canonical_type(id_b, id_c, &mut CheckedTypes::new())
+            .unwrap();
         assert_eq!(type_schema.get_total_canonical_ids(), id_a + 1);
     }
 

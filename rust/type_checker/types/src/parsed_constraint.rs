@@ -1,9 +1,12 @@
 use crate::{
     constraints::{Constraint, HasMethodConstraint},
+    default_types::create_list_default_methods,
+    type_checking_call_stack::CheckedTypes,
     type_schema::{CanonicalIds, TypeSchema},
     TypeId,
 };
 use std::collections::HashMap;
+use type_checker_errors::generate_backtrace_error;
 use typed_ast::{
     ConcreteFunctionType, ConcreteListType, ConcreteRecordType, ConcreteTagUnionType, ConcreteType,
     PrimitiveType,
@@ -45,14 +48,19 @@ enum CategoryConstraints {
 
 impl CategoryConstraints {
     #[allow(clippy::too_many_lines)]
-    pub fn is_compatible_with(&self, other: &Self, schema: &TypeSchema) -> bool {
+    pub fn is_compatible_with(
+        &self,
+        other: &Self,
+        schema: &TypeSchema,
+        checked_types: &mut CheckedTypes,
+    ) -> bool {
         match (self, other) {
             (Self::Unknown, _) | (_, Self::Unknown) => true,
             (Self::Primitive(self_primitive), Self::Primitive(constraint_primitive)) => {
                 self_primitive == constraint_primitive
             }
             (Self::List(self_type), Self::List(constraint_type)) => {
-                schema.types_are_compatible(*self_type, *constraint_type)
+                schema.types_are_compatible(*self_type, *constraint_type, checked_types)
             }
             (
                 Self::TagGroup(TagGroupConstraints::ClosedTags(self_tags)),
@@ -62,7 +70,7 @@ impl CategoryConstraints {
                     types.len() == self_types.len()
                         && types.iter().all(|type_id| {
                             self_types.iter().any(|self_type_id| {
-                                schema.types_are_compatible(*self_type_id, *type_id)
+                                schema.types_are_compatible(*self_type_id, *type_id, checked_types)
                             })
                         })
                 })
@@ -75,7 +83,11 @@ impl CategoryConstraints {
                     types.len() == other_types.len()
                         && types.iter().all(|self_type_id| {
                             other_types.iter().any(|other_type_id| {
-                                schema.types_are_compatible(*self_type_id, *other_type_id)
+                                schema.types_are_compatible(
+                                    *self_type_id,
+                                    *other_type_id,
+                                    checked_types,
+                                )
                             })
                         })
                 })
@@ -88,7 +100,7 @@ impl CategoryConstraints {
                     types.len() == self_types.len()
                         && types.iter().all(|type_id| {
                             self_types.iter().any(|self_type_id| {
-                                schema.types_are_compatible(*self_type_id, *type_id)
+                                schema.types_are_compatible(*self_type_id, *type_id, checked_types)
                             })
                         })
                 })
@@ -101,7 +113,7 @@ impl CategoryConstraints {
                     self_types.len() == other_types.len()
                         && other_types.iter().all(|other_type_id| {
                             self_types.iter().any(|type_id| {
-                                schema.types_are_compatible(*type_id, *other_type_id)
+                                schema.types_are_compatible(*type_id, *other_type_id, checked_types)
                             })
                         })
                 })
@@ -113,7 +125,7 @@ impl CategoryConstraints {
                 other_items.len() == self_items.len()
                     && other_items.iter().all(|(name, type_id)| {
                         self_items.get(name).map_or(false, |self_type_id| {
-                            schema.types_are_compatible(*self_type_id, *type_id)
+                            schema.types_are_compatible(*self_type_id, *type_id, checked_types)
                         })
                     })
             }
@@ -122,7 +134,7 @@ impl CategoryConstraints {
                 Self::Record(RecordConstraints::ExactFields(other_items)),
             ) => self_items.iter().all(|(name, self_type_id)| {
                 other_items.get(name).map_or(false, |other_type_id| {
-                    schema.types_are_compatible(*other_type_id, *self_type_id)
+                    schema.types_are_compatible(*other_type_id, *self_type_id, checked_types)
                 })
             }),
             (
@@ -130,7 +142,7 @@ impl CategoryConstraints {
                 Self::Record(RecordConstraints::OpenFields(other_items)),
             ) => other_items.iter().all(|(name, other_type_id)| {
                 self_items.get(name).map_or(false, |self_type_id| {
-                    schema.types_are_compatible(*other_type_id, *self_type_id)
+                    schema.types_are_compatible(*other_type_id, *self_type_id, checked_types)
                 })
             }),
             (
@@ -138,7 +150,7 @@ impl CategoryConstraints {
                 Self::Record(RecordConstraints::OpenFields(other_items)),
             ) => other_items.iter().all(|(name, type_id)| {
                 self_items.get(name).map_or(true, |self_type_id| {
-                    schema.types_are_compatible(*self_type_id, *type_id)
+                    schema.types_are_compatible(*self_type_id, *type_id, checked_types)
                 })
             }),
             (
@@ -156,9 +168,13 @@ impl CategoryConstraints {
                         .iter()
                         .zip(other_argument_types.iter())
                         .all(|(self_type, other_type)| {
-                            schema.types_are_compatible(*self_type, *other_type)
+                            schema.types_are_compatible(*self_type, *other_type, checked_types)
                         })
-                    && schema.types_are_compatible(*self_return_type, *other_return_type)
+                    && schema.types_are_compatible(
+                        *self_return_type,
+                        *other_return_type,
+                        checked_types,
+                    )
             }
             _ => false,
         }
@@ -285,14 +301,20 @@ impl ParsedMethodsConstraint {
         &self,
         method: &HasMethodConstraint,
         schema: &TypeSchema,
+        checked_types: &mut CheckedTypes,
     ) -> bool {
         self.0.get(&method.method_name).map_or(true, |type_id| {
-            schema.types_are_compatible(*type_id, method.method_type)
+            schema.types_are_compatible(*type_id, method.method_type, checked_types)
         })
     }
 
     #[must_use]
-    pub fn is_compatible_with(&self, other: &Self, schema: &TypeSchema) -> bool {
+    pub fn is_compatible_with(
+        &self,
+        other: &Self,
+        schema: &TypeSchema,
+        checked_types: &mut CheckedTypes,
+    ) -> bool {
         other.0.iter().all(|(name, type_id)| {
             self.is_compatible_with_method(
                 &HasMethodConstraint {
@@ -300,8 +322,28 @@ impl ParsedMethodsConstraint {
                     method_type: *type_id,
                 },
                 schema,
+                checked_types,
             )
         })
+    }
+
+    pub fn get_same_method_type(
+        &self,
+        schema: &TypeSchema,
+        method_name: &str,
+        method_type: TypeId,
+        checked_types: &mut CheckedTypes,
+    ) -> Result<Option<TypeId>, String> {
+        let canonical_id = schema.get_canonical_id(method_type);
+        if let Some(self_type_id) = self.0.get(method_name) {
+            if schema.types_are_compatible(*self_type_id, canonical_id, checked_types) {
+                return Ok(Some(*self_type_id));
+            }
+            return Err(generate_backtrace_error(format!(
+                "Method {method_name} has incompatible types: {self_type_id} and {canonical_id}",
+            )));
+        }
+        Ok(None)
     }
 }
 
@@ -313,13 +355,22 @@ pub struct ParsedConstraint {
 }
 
 impl ParsedConstraint {
-    #[must_use]
-    pub fn new(constraint: Constraint, schema: &TypeSchema) -> Self {
+    pub fn new(
+        type_id: TypeId,
+        constraint: Constraint,
+        schema: &mut TypeSchema,
+    ) -> Result<Self, String> {
         let mut name = ParsedNameConstraint::new();
         let mut methods = ParsedMethodsConstraint::new();
         let category = match constraint {
             Constraint::EqualToPrimitive(p) => CategoryConstraints::Primitive(p),
-            Constraint::ListOfType(t) => CategoryConstraints::List(t),
+            Constraint::ListOfType(t) => {
+                let (_, list_methods) = create_list_default_methods(schema, type_id, t)?;
+                for method in list_methods {
+                    methods.add(method.method_name, method.method_type, &schema.types);
+                }
+                CategoryConstraints::List(t)
+            }
             Constraint::HasTag(t) => CategoryConstraints::TagGroup(TagGroupConstraints::OpenTags(
                 vec![(t.tag_name, t.tag_content_types)]
                     .into_iter()
@@ -347,11 +398,11 @@ impl ParsedConstraint {
                 CategoryConstraints::Unknown
             }
         };
-        Self {
+        Ok(Self {
             category,
             name,
             methods,
-        }
+        })
     }
 
     /// Use `ParsedConstraint::is_satisfied_by` before adding a constraint.
@@ -366,10 +417,19 @@ impl ParsedConstraint {
     }
 
     #[must_use]
-    pub fn is_compatible_with(&self, other: &Self, schema: &TypeSchema) -> bool {
+    pub fn is_compatible_with(
+        &self,
+        other: &Self,
+        schema: &TypeSchema,
+        checked_types: &mut CheckedTypes,
+    ) -> bool {
         self.name.is_compatible_with(&other.name)
-            && self.methods.is_compatible_with(&other.methods, schema)
-            && self.category.is_compatible_with(&other.category, schema)
+            && self
+                .methods
+                .is_compatible_with(&other.methods, schema, checked_types)
+            && self
+                .category
+                .is_compatible_with(&other.category, schema, checked_types)
     }
 
     pub fn to_concrete_type(&self, schema: &TypeSchema) -> ConcreteType {
@@ -439,6 +499,17 @@ impl ParsedConstraint {
     pub fn get_function_argument_types(&self) -> Option<Vec<TypeId>> {
         self.category.get_function_argument_types()
     }
+
+    pub fn get_same_method_type(
+        &self,
+        schema: &TypeSchema,
+        method_name: &str,
+        method_type: TypeId,
+        checked_types: &mut CheckedTypes,
+    ) -> Result<Option<TypeId>, String> {
+        self.methods
+            .get_same_method_type(schema, method_name, method_type, checked_types)
+    }
 }
 
 #[cfg(test)]
@@ -455,24 +526,37 @@ mod test {
 
     #[test]
     fn new_parsed_constraint_with_name_constraint_sets_name() {
-        let parsed_constraint =
-            ParsedConstraint::new(Constraint::HasName("foo".to_string()), &TypeSchema::new());
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasName("foo".to_string()),
+            &mut TypeSchema::new(),
+        )
+        .unwrap();
         assert_eq!(parsed_constraint.name.0, Some("foo".to_string()));
     }
 
     #[test]
     fn new_parsed_constraint_with_name_constraint_has_unknown_type() {
-        let parsed_constraint =
-            ParsedConstraint::new(Constraint::HasName("foo".to_string()), &TypeSchema::new());
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasName("foo".to_string()),
+            &mut TypeSchema::new(),
+        )
+        .unwrap();
         assert_eq!(parsed_constraint.category, CategoryConstraints::Unknown);
     }
 
     #[test]
     fn new_parsed_constraint_with_non_name_constraint_sets_name_to_none() {
+        let mut schema = TypeSchema::new();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::EqualToPrimitive(PrimitiveType::Int),
-            &TypeSchema::new(),
-        );
+            &mut TypeSchema::new(),
+        )
+        .unwrap();
         assert_eq!(parsed_constraint.name.0, None);
     }
 
@@ -481,12 +565,14 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasMethod(HasMethodConstraint {
                 method_name: "foo".to_string(),
                 method_type: type_id,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.methods.0,
             HashMap::from([("foo".to_string(), type_id)])
@@ -498,21 +584,26 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasMethod(HasMethodConstraint {
                 method_name: "foo".to_string(),
                 method_type: type_id,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(parsed_constraint.category, CategoryConstraints::Unknown);
     }
 
     #[test]
     fn new_parsed_constraint_with_primitive_constraint_sets_primitive() {
+        let mut schema = TypeSchema::new();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::EqualToPrimitive(PrimitiveType::Int),
-            &TypeSchema::new(),
-        );
+            &mut TypeSchema::new(),
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.category,
             CategoryConstraints::Primitive(PrimitiveType::Int)
@@ -523,7 +614,12 @@ mod test {
     fn new_parsed_constraint_with_list_constraint_sets_list() {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
-        let parsed_constraint = ParsedConstraint::new(Constraint::ListOfType(type_id), &schema);
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::ListOfType(type_id),
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.category,
             CategoryConstraints::List(type_id)
@@ -535,12 +631,14 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: "foo".to_string(),
                 tag_content_types: vec![type_id],
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.category,
             CategoryConstraints::TagGroup(TagGroupConstraints::OpenTags(
@@ -556,13 +654,15 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: vec![("foo".to_string(), vec![type_id])]
                     .into_iter()
                     .collect(),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.category,
             CategoryConstraints::TagGroup(TagGroupConstraints::ClosedTags(
@@ -578,12 +678,14 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: "foo".to_string(),
                 field_type: type_id,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.category,
             CategoryConstraints::Record(RecordConstraints::OpenFields(
@@ -597,11 +699,13 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: vec![("foo".to_string(), type_id)].into_iter().collect(),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.category,
             CategoryConstraints::Record(RecordConstraints::ExactFields(
@@ -615,12 +719,14 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_id,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.category,
             CategoryConstraints::Record(RecordConstraints::OpenFields(
@@ -634,11 +740,13 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: vec![("foo".to_string(), type_id)].into_iter().collect(),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.category,
             CategoryConstraints::Record(RecordConstraints::ExactFields(
@@ -652,12 +760,14 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasFunctionShape(HasFunctionShape {
                 argument_types: vec![type_id],
                 return_type: type_id,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.category,
             CategoryConstraints::Function(FunctionConstraints {
@@ -673,20 +783,38 @@ mod test {
 
     #[test]
     fn add_name_constraint_sets_name() {
-        let schema = TypeSchema::new();
-        let mut parsed_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
-        let new_constraint = ParsedConstraint::new(Constraint::HasName("bar".to_string()), &schema);
+        let mut schema = TypeSchema::new();
+        let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EqualToPrimitive(PrimitiveType::Int),
+            &mut schema,
+        )
+        .unwrap();
+        let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasName("bar".to_string()),
+            &mut schema,
+        )
+        .unwrap();
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         assert_eq!(parsed_constraint.name.0, Some("bar".to_string()));
     }
 
     #[test]
     fn add_name_constraint_does_not_change_category() {
-        let schema = TypeSchema::new();
-        let mut parsed_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
-        let new_constraint = ParsedConstraint::new(Constraint::HasName("bar".to_string()), &schema);
+        let mut schema = TypeSchema::new();
+        let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EqualToPrimitive(PrimitiveType::Int),
+            &mut schema,
+        )
+        .unwrap();
+        let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasName("bar".to_string()),
+            &mut schema,
+        )
+        .unwrap();
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         assert!(matches!(
             parsed_constraint.category,
@@ -698,15 +826,21 @@ mod test {
     fn add_method_constraint_adds_method() {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
-        let mut parsed_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
+        let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EqualToPrimitive(PrimitiveType::Int),
+            &mut schema,
+        )
+        .unwrap();
         let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasMethod(HasMethodConstraint {
                 method_name: "foo".to_string(),
                 method_type: type_id,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         assert_eq!(
             parsed_constraint.methods.0.get(&"foo".to_string()),
@@ -720,17 +854,23 @@ mod test {
         let type_id = schema.make_id();
         let canonical_id = schema.make_id();
         schema
-            .set_equal_to_canonical_type(canonical_id, type_id)
+            .set_equal_to_canonical_type(canonical_id, type_id, &mut CheckedTypes::new())
             .unwrap();
-        let mut parsed_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
+        let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EqualToPrimitive(PrimitiveType::Int),
+            &mut schema,
+        )
+        .unwrap();
         let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasMethod(HasMethodConstraint {
                 method_name: "foo".to_string(),
                 method_type: type_id,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         assert_eq!(
             parsed_constraint.methods.0.get(&"foo".to_string()),
@@ -742,15 +882,21 @@ mod test {
     fn adding_method_constraint_does_not_change_category() {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
-        let mut parsed_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
+        let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EqualToPrimitive(PrimitiveType::Int),
+            &mut schema,
+        )
+        .unwrap();
         let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasMethod(HasMethodConstraint {
                 method_name: "foo".to_string(),
                 method_type: type_id,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         assert!(matches!(
             parsed_constraint.category,
@@ -760,11 +906,19 @@ mod test {
 
     #[test]
     fn adding_primitive_constraint_saves_constraint() {
-        let schema = TypeSchema::new();
-        let mut parsed_constraint =
-            ParsedConstraint::new(Constraint::HasName("foo".to_string()), &schema);
-        let new_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
+        let mut schema = TypeSchema::new();
+        let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasName("foo".to_string()),
+            &mut schema,
+        )
+        .unwrap();
+        let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EqualToPrimitive(PrimitiveType::Int),
+            &mut schema,
+        )
+        .unwrap();
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         assert_eq!(
             parsed_constraint.category,
@@ -776,9 +930,18 @@ mod test {
     fn adding_list_constraint_saves_constraint() {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
-        let mut parsed_constraint =
-            ParsedConstraint::new(Constraint::HasName("foo".to_string()), &schema);
-        let new_constraint = ParsedConstraint::new(Constraint::ListOfType(type_id), &schema);
+        let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasName("foo".to_string()),
+            &mut schema,
+        )
+        .unwrap();
+        let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::ListOfType(type_id),
+            &mut schema,
+        )
+        .unwrap();
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         assert_eq!(
             parsed_constraint.category,
@@ -788,15 +951,21 @@ mod test {
 
     #[test]
     fn adding_tag_at_most_constraint_saves_constraint() {
-        let schema = TypeSchema::new();
-        let mut parsed_constraint =
-            ParsedConstraint::new(Constraint::HasName("foo".to_string()), &schema);
+        let mut schema = TypeSchema::new();
+        let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasName("foo".to_string()),
+            &mut schema,
+        )
+        .unwrap();
         let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("bar".to_string(), Vec::new())]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         assert_eq!(
             parsed_constraint.category,
@@ -810,25 +979,29 @@ mod test {
     #[test]
     fn adding_tag_at_most_constraint_when_tag_at_most_constraint_already_exists_saves_the_intersection(
     ) {
-        let schema = TypeSchema::new();
+        let mut schema = TypeSchema::new();
         let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([
                     ("foo".to_string(), Vec::new()),
                     ("bar".to_string(), Vec::new()),
                 ]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([
                     ("bar".to_string(), Vec::new()),
                     ("baz".to_string(), Vec::new()),
                 ]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         assert_eq!(
             parsed_constraint.category,
@@ -841,16 +1014,22 @@ mod test {
 
     #[test]
     fn adding_has_tag_constraint_saves_tag() {
-        let schema = TypeSchema::new();
-        let mut parsed_constraint =
-            ParsedConstraint::new(Constraint::HasName("foo".to_string()), &schema);
+        let mut schema = TypeSchema::new();
+        let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasName("foo".to_string()),
+            &mut schema,
+        )
+        .unwrap();
         let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: "bar".to_string(),
                 tag_content_types: Vec::new(),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         assert_eq!(
             parsed_constraint.category,
@@ -863,21 +1042,25 @@ mod test {
 
     #[test]
     fn adding_has_tag_constraint_when_has_tag_constraint_already_exists_saves_the_union() {
-        let schema = TypeSchema::new();
+        let mut schema = TypeSchema::new();
         let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: "foo".to_string(),
                 tag_content_types: Vec::new(),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: "bar".to_string(),
                 tag_content_types: Vec::new(),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         assert_eq!(
             parsed_constraint.category,
@@ -892,14 +1075,20 @@ mod test {
     fn adding_at_most_field_constraint_saves_constraint() {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
-        let mut parsed_constraint =
-            ParsedConstraint::new(Constraint::HasName("foo".to_string()), &schema);
+        let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasName("foo".to_string()),
+            &mut schema,
+        )
+        .unwrap();
         let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([("bar".to_string(), type_id)]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         assert_eq!(
             parsed_constraint.category,
@@ -916,17 +1105,21 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([("foo".to_string(), type_id), ("bar".to_string(), type_id)]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([("bar".to_string(), type_id), ("baz".to_string(), type_id)]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         assert_eq!(
             parsed_constraint.category,
@@ -941,15 +1134,21 @@ mod test {
     fn adding_has_field_constraint_saves_field() {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
-        let mut parsed_constraint =
-            ParsedConstraint::new(Constraint::HasName("foo".to_string()), &schema);
+        let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasName("foo".to_string()),
+            &mut schema,
+        )
+        .unwrap();
         let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: "bar".to_string(),
                 field_type: type_id,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         assert_eq!(
             parsed_constraint.category,
@@ -965,19 +1164,23 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: "foo".to_string(),
                 field_type: type_id,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: "bar".to_string(),
                 field_type: type_id,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         assert_eq!(
             parsed_constraint.category,
@@ -992,15 +1195,21 @@ mod test {
     fn adding_function_shape_constraint_saves_constraint() {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
-        let mut parsed_constraint =
-            ParsedConstraint::new(Constraint::HasName("foo".to_string()), &schema);
+        let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasName("foo".to_string()),
+            &mut schema,
+        )
+        .unwrap();
         let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasFunctionShape(HasFunctionShape {
                 argument_types: Vec::new(),
                 return_type: type_id,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         assert_eq!(
             parsed_constraint.category,
@@ -1017,32 +1226,68 @@ mod test {
 
     #[test]
     fn is_compatible_with_name_constraint_when_it_does_not_have_a_name() {
-        let schema = TypeSchema::new();
-        let parsed_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
-        let other_constraint =
-            ParsedConstraint::new(Constraint::HasName("bar".to_string()), &schema);
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EqualToPrimitive(PrimitiveType::Int),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasName("bar".to_string()),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_compatible_with_name_constraint_if_it_matches_current_name() {
-        let schema = TypeSchema::new();
-        let parsed_constraint =
-            ParsedConstraint::new(Constraint::HasName("foo".to_string()), &schema);
-        let other_constraint =
-            ParsedConstraint::new(Constraint::HasName("foo".to_string()), &schema);
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasName("foo".to_string()),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasName("foo".to_string()),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_not_compatible_with_name_if_it_does_not_match_current_name() {
-        let schema = TypeSchema::new();
-        let parsed_constraint =
-            ParsedConstraint::new(Constraint::HasName("foo".to_string()), &schema);
-        let other_constraint =
-            ParsedConstraint::new(Constraint::HasName("bar".to_string()), &schema);
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasName("foo".to_string()),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasName("bar".to_string()),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1050,20 +1295,28 @@ mod test {
         let mut schema = TypeSchema::new();
         let method_type = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasMethod(HasMethodConstraint {
                 method_name: "foo".to_string(),
                 method_type,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasMethod(HasMethodConstraint {
                 method_name: "foo".to_string(),
                 method_type,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1071,22 +1324,32 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
-        schema.set_equal_to_canonical_type(type_a, type_b).unwrap();
+        schema
+            .set_equal_to_canonical_type(type_a, type_b, &mut CheckedTypes::new())
+            .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasMethod(HasMethodConstraint {
                 method_name: "foo".to_string(),
                 method_type: type_a,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasMethod(HasMethodConstraint {
                 method_name: "foo".to_string(),
                 method_type: type_b,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1095,20 +1358,28 @@ mod test {
         let foo_type = schema.make_id();
         let bar_type = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasMethod(HasMethodConstraint {
                 method_name: "foo".to_string(),
                 method_type: foo_type,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasMethod(HasMethodConstraint {
                 method_name: "bar".to_string(),
                 method_type: bar_type,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1117,26 +1388,42 @@ mod test {
         let foo_type = schema.make_id();
         let bar_type = schema.make_id();
         schema
-            .add_constraint(foo_type, Constraint::HasName("foo".to_string()))
+            .add_constraint(
+                foo_type,
+                Constraint::HasName("foo".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(bar_type, Constraint::HasName("foo".to_string()))
+            .add_constraint(
+                bar_type,
+                Constraint::HasName("foo".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasMethod(HasMethodConstraint {
                 method_name: "foo".to_string(),
                 method_type: foo_type,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasMethod(HasMethodConstraint {
                 method_name: "foo".to_string(),
                 method_type: bar_type,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1145,75 +1432,154 @@ mod test {
         let foo_type = schema.make_id();
         let bar_type = schema.make_id();
         schema
-            .add_constraint(foo_type, Constraint::HasName("foo".to_string()))
+            .add_constraint(
+                foo_type,
+                Constraint::HasName("foo".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(bar_type, Constraint::HasName("bar".to_string()))
+            .add_constraint(
+                bar_type,
+                Constraint::HasName("bar".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasMethod(HasMethodConstraint {
                 method_name: "foo".to_string(),
                 method_type: foo_type,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasMethod(HasMethodConstraint {
                 method_name: "foo".to_string(),
                 method_type: bar_type,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_compatible_with_primitive_constraint_if_it_matches_current_primitive() {
-        let schema = TypeSchema::new();
-        let parsed_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
-        let other_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EqualToPrimitive(PrimitiveType::Int),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EqualToPrimitive(PrimitiveType::Int),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_not_compatible_with_primitive_constraint_if_it_does_not_match_current_primitive() {
-        let schema = TypeSchema::new();
-        let parsed_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
-        let other_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Str), &schema);
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EqualToPrimitive(PrimitiveType::Int),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EqualToPrimitive(PrimitiveType::Str),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_compatible_with_primitive_constraint_when_current_category_is_unknown() {
-        let schema = TypeSchema::new();
-        let parsed_constraint =
-            ParsedConstraint::new(Constraint::HasName("foo".to_string()), &schema);
-        let other_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasName("foo".to_string()),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EqualToPrimitive(PrimitiveType::Int),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_not_compatible_with_primitive_constraint_when_current_category_is_not_primitive() {
         let mut schema = TypeSchema::new();
         let list_type = schema.make_id();
-        let parsed_constraint = ParsedConstraint::new(Constraint::ListOfType(list_type), &schema);
-        let other_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::ListOfType(list_type),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EqualToPrimitive(PrimitiveType::Int),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_compatible_with_list_constraint_of_same_type() {
         let mut schema = TypeSchema::new();
         let list_type = schema.make_id();
-        let parsed_constraint = ParsedConstraint::new(Constraint::ListOfType(list_type), &schema);
-        let other_constraint = ParsedConstraint::new(Constraint::ListOfType(list_type), &schema);
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::ListOfType(list_type),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::ListOfType(list_type),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1221,10 +1587,26 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
-        schema.set_equal_to_canonical_type(type_a, type_b).unwrap();
-        let parsed_constraint = ParsedConstraint::new(Constraint::ListOfType(type_a), &schema);
-        let other_constraint = ParsedConstraint::new(Constraint::ListOfType(type_b), &schema);
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+        schema
+            .set_equal_to_canonical_type(type_a, type_b, &mut CheckedTypes::new())
+            .unwrap();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::ListOfType(type_a),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::ListOfType(type_b),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1233,14 +1615,36 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         schema
-            .add_constraint(type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(type_b, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_b,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
-        let parsed_constraint = ParsedConstraint::new(Constraint::ListOfType(type_a), &schema);
-        let other_constraint = ParsedConstraint::new(Constraint::ListOfType(type_b), &schema);
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::ListOfType(type_a),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::ListOfType(type_b),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1249,92 +1653,146 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         schema
-            .add_constraint(type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(type_b, Constraint::HasName("b".to_string()))
+            .add_constraint(
+                type_b,
+                Constraint::HasName("b".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
-        let parsed_constraint = ParsedConstraint::new(Constraint::ListOfType(type_a), &schema);
-        let other_constraint = ParsedConstraint::new(Constraint::ListOfType(type_b), &schema);
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::ListOfType(type_a),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::ListOfType(type_b),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_compatible_with_tag_at_most_constraint_with_same_tags() {
-        let schema = TypeSchema::new();
+        let mut schema = TypeSchema::new();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), Vec::new())]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), Vec::new())]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_compatible_with_tag_at_most_constraint_that_is_a_subset_of_current_tags() {
-        let schema = TypeSchema::new();
+        let mut schema = TypeSchema::new();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([
                     ("foo".to_string(), Vec::new()),
                     ("bar".to_string(), Vec::new()),
                 ]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), Vec::new())]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_not_compatible_with_tag_at_most_constraint_that_does_not_overlap_with_current_tags() {
-        let schema = TypeSchema::new();
+        let mut schema = TypeSchema::new();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), Vec::new())]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("bar".to_string(), Vec::new())]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_not_compatible_with_tag_at_most_constraint_that_is_a_superset_of_current_tags() {
-        let schema = TypeSchema::new();
+        let mut schema = TypeSchema::new();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), Vec::new())]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([
                     ("foo".to_string(), Vec::new()),
                     ("bar".to_string(), Vec::new()),
                 ]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1342,18 +1800,26 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), Vec::new())]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), vec![type_id])]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1361,18 +1827,26 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), vec![type_id])]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), vec![type_id])]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1380,20 +1854,30 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
-        schema.set_equal_to_canonical_type(type_a, type_b).unwrap();
+        schema
+            .set_equal_to_canonical_type(type_a, type_b, &mut CheckedTypes::new())
+            .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), vec![type_a])]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), vec![type_b])]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1402,24 +1886,40 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         schema
-            .add_constraint(type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(type_b, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_b,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), vec![type_a])]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), vec![type_b])]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1428,90 +1928,132 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         schema
-            .add_constraint(type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(type_b, Constraint::HasName("b".to_string()))
+            .add_constraint(
+                type_b,
+                Constraint::HasName("b".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), vec![type_a])]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), vec![type_b])]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_compatible_with_tag_at_most_constraint_with_same_open_tags() {
-        let schema = TypeSchema::new();
+        let mut schema = TypeSchema::new();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: Vec::new(),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), Vec::new())]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_not_compatible_with_tag_at_most_constraint_that_is_a_subset_of_current_open_tags() {
-        let schema = TypeSchema::new();
+        let mut schema = TypeSchema::new();
         let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: Vec::new(),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("bar"),
                 tag_content_types: Vec::new(),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), Vec::new())]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_not_compatible_with_tag_at_most_constraint_that_does_not_overlap_with_current_open_tags()
     {
-        let schema = TypeSchema::new();
+        let mut schema = TypeSchema::new();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: Vec::new(),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("bar".to_string(), Vec::new())]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1519,19 +2061,27 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: Vec::new(),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), vec![type_id])]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1539,19 +2089,27 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: vec![type_id],
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), vec![type_id])]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1560,19 +2118,27 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: vec![type_a],
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), vec![type_b])]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1581,25 +2147,41 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         schema
-            .add_constraint(type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(type_b, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_b,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: vec![type_a],
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), vec![type_b])]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1608,113 +2190,163 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         schema
-            .add_constraint(type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(type_b, Constraint::HasName("b".to_string()))
+            .add_constraint(
+                type_b,
+                Constraint::HasName("b".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: vec![type_a],
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([("foo".to_string(), vec![type_b])]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_compatible_with_has_tag_constraint_when_tags_are_the_same() {
-        let schema = TypeSchema::new();
+        let mut schema = TypeSchema::new();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: Vec::new(),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: Vec::new(),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_compatible_with_has_tag_constraint_when_tag_is_in_tag_group() {
-        let schema = TypeSchema::new();
+        let mut schema = TypeSchema::new();
         let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: Vec::new(),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("bar"),
                 tag_content_types: Vec::new(),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("bar"),
                 tag_content_types: Vec::new(),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_compatible_with_has_tag_constraint_when_tag_is_not_in_tag_group() {
-        let schema = TypeSchema::new();
+        let mut schema = TypeSchema::new();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: Vec::new(),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("bar"),
                 tag_content_types: Vec::new(),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_not_compatible_with_has_tag_constraint_when_contents_are_different() {
         let mut schema = TypeSchema::new();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: Vec::new(),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: vec![schema.make_id()],
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1722,20 +2354,28 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: vec![type_id],
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: vec![type_id],
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1743,22 +2383,32 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
-        schema.set_equal_to_canonical_type(type_a, type_b).unwrap();
+        schema
+            .set_equal_to_canonical_type(type_a, type_b, &mut CheckedTypes::new())
+            .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: vec![type_a],
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: vec![type_b],
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1767,26 +2417,42 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         schema
-            .add_constraint(type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(type_b, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_b,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: vec![type_a],
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: vec![type_b],
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1795,105 +2461,153 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         schema
-            .add_constraint(type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(type_b, Constraint::HasName("b".to_string()))
+            .add_constraint(
+                type_b,
+                Constraint::HasName("b".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: vec![type_a],
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: vec![type_b],
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_compatible_with_has_tag_constraint_when_closed_tags_are_the_same() {
-        let schema = TypeSchema::new();
+        let mut schema = TypeSchema::new();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([(String::from("foo"), Vec::new())]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: Vec::new(),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_compatible_with_has_tag_constraint_when_tag_is_in_closed_tag_group() {
-        let schema = TypeSchema::new();
+        let mut schema = TypeSchema::new();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([
                     (String::from("foo"), Vec::new()),
                     (String::from("bar"), Vec::new()),
                 ]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: Vec::new(),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_not_compatible_with_has_tag_constraint_when_tag_is_not_in_closed_tag_group() {
-        let schema = TypeSchema::new();
+        let mut schema = TypeSchema::new();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([(String::from("foo"), Vec::new())]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("bar"),
                 tag_content_types: Vec::new(),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
     fn is_not_compatible_with_has_tag_constraint_when_closed_group_contents_are_different() {
         let mut schema = TypeSchema::new();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([(String::from("foo"), Vec::new())]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: vec![schema.make_id()],
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1901,19 +2615,27 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([(String::from("foo"), vec![type_id])]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: vec![type_id],
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1921,21 +2643,31 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
-        schema.set_equal_to_canonical_type(type_a, type_b).unwrap();
+        schema
+            .set_equal_to_canonical_type(type_a, type_b, &mut CheckedTypes::new())
+            .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([(String::from("foo"), vec![type_a])]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: vec![type_b],
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1944,25 +2676,41 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         schema
-            .add_constraint(type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(type_b, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_b,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([(String::from("foo"), vec![type_a])]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: vec![type_b],
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1971,25 +2719,41 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         schema
-            .add_constraint(type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(type_b, Constraint::HasName("b".to_string()))
+            .add_constraint(
+                type_b,
+                Constraint::HasName("b".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([(String::from("foo"), vec![type_a])]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: vec![type_b],
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -1997,18 +2761,26 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_id)]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_id)]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2017,21 +2789,29 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([
                     (String::from("foo"), type_a),
                     (String::from("bar"), type_b),
                 ]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_a)]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2040,18 +2820,26 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_a)]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("bar"), type_b)]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2059,18 +2847,26 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_id)]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_id)]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2078,20 +2874,30 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
-        schema.set_equal_to_canonical_type(type_a, type_b).unwrap();
+        schema
+            .set_equal_to_canonical_type(type_a, type_b, &mut CheckedTypes::new())
+            .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_a)]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_b)]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2100,24 +2906,40 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         schema
-            .add_constraint(type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(type_b, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_b,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_a)]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_b)]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2126,24 +2948,40 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         schema
-            .add_constraint(type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(type_b, Constraint::HasName("b".to_string()))
+            .add_constraint(
+                type_b,
+                Constraint::HasName("b".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_a)]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_b)]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2151,19 +2989,27 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_id,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_id)]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2172,27 +3018,37 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_a,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("bar"),
                 field_type: type_b,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_a)]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2201,19 +3057,27 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_a,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("bar"), type_b)]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2221,19 +3085,27 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_id,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_id)]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2241,21 +3113,31 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
-        schema.set_equal_to_canonical_type(type_a, type_b).unwrap();
+        schema
+            .set_equal_to_canonical_type(type_a, type_b, &mut CheckedTypes::new())
+            .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_a,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_b)]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2264,25 +3146,41 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         schema
-            .add_constraint(type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(type_b, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_b,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_a,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_b)]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2291,25 +3189,41 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         schema
-            .add_constraint(type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(type_b, Constraint::HasName("b".to_string()))
+            .add_constraint(
+                type_b,
+                Constraint::HasName("b".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_a,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_b)]),
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2317,20 +3231,28 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_id,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_id,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2338,28 +3260,38 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_id,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("bar"),
                 field_type: type_id,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         parsed_constraint.add_constraints(new_constraint, &schema.types);
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_id,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2367,20 +3299,28 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_id,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("bar"),
                 field_type: type_id,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2388,20 +3328,28 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_id,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_id,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2409,22 +3357,32 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
-        schema.set_equal_to_canonical_type(type_a, type_b).unwrap();
+        schema
+            .set_equal_to_canonical_type(type_a, type_b, &mut CheckedTypes::new())
+            .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_a,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_b,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2433,26 +3391,42 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         schema
-            .add_constraint(type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(type_b, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_b,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_a,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_b,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2461,26 +3435,42 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         schema
-            .add_constraint(type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(type_b, Constraint::HasName("b".to_string()))
+            .add_constraint(
+                type_b,
+                Constraint::HasName("b".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_a,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_b,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2488,19 +3478,27 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_id)]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_id,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2508,22 +3506,30 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([
                     (String::from("foo"), type_id),
                     (String::from("bar"), type_id),
                 ]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_id,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2531,19 +3537,27 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_id)]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("bar"),
                 field_type: type_id,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2551,19 +3565,27 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_id)]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_id,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2571,21 +3593,31 @@ mod test {
         let mut schema = TypeSchema::new();
         let type_a = schema.make_id();
         let type_b = schema.make_id();
-        schema.set_equal_to_canonical_type(type_a, type_b).unwrap();
+        schema
+            .set_equal_to_canonical_type(type_a, type_b, &mut CheckedTypes::new())
+            .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_a)]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_b,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2594,25 +3626,41 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         schema
-            .add_constraint(type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(type_b, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_b,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_a)]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_b,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2621,25 +3669,41 @@ mod test {
         let type_a = schema.make_id();
         let type_b = schema.make_id();
         schema
-            .add_constraint(type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(type_b, Constraint::HasName("b".to_string()))
+            .add_constraint(
+                type_b,
+                Constraint::HasName("b".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), type_a)]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type: type_b,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2647,20 +3711,28 @@ mod test {
         let mut schema = TypeSchema::new();
         let return_type = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasFunctionShape(HasFunctionShape {
                 argument_types: Vec::new(),
                 return_type,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasFunctionShape(HasFunctionShape {
                 argument_types: Vec::new(),
                 return_type,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2669,23 +3741,31 @@ mod test {
         let return_type_a = schema.make_id();
         let return_type_b = schema.make_id();
         schema
-            .set_equal_to_canonical_type(return_type_a, return_type_b)
+            .set_equal_to_canonical_type(return_type_a, return_type_b, &mut CheckedTypes::new())
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasFunctionShape(HasFunctionShape {
                 argument_types: Vec::new(),
                 return_type: return_type_a,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasFunctionShape(HasFunctionShape {
                 argument_types: Vec::new(),
                 return_type: return_type_b,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2694,26 +3774,42 @@ mod test {
         let return_type_a = schema.make_id();
         let return_type_b = schema.make_id();
         schema
-            .add_constraint(return_type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                return_type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(return_type_b, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                return_type_b,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasFunctionShape(HasFunctionShape {
                 argument_types: Vec::new(),
                 return_type: return_type_a,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasFunctionShape(HasFunctionShape {
                 argument_types: Vec::new(),
                 return_type: return_type_b,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2722,26 +3818,42 @@ mod test {
         let return_type_a = schema.make_id();
         let return_type_b = schema.make_id();
         schema
-            .add_constraint(return_type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                return_type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(return_type_b, Constraint::HasName("b".to_string()))
+            .add_constraint(
+                return_type_b,
+                Constraint::HasName("b".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasFunctionShape(HasFunctionShape {
                 argument_types: Vec::new(),
                 return_type: return_type_a,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasFunctionShape(HasFunctionShape {
                 argument_types: Vec::new(),
                 return_type: return_type_b,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2750,20 +3862,28 @@ mod test {
         let mut schema = TypeSchema::new();
         let return_type = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasFunctionShape(HasFunctionShape {
                 argument_types: Vec::new(),
                 return_type,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasFunctionShape(HasFunctionShape {
                 argument_types: vec![schema.make_id()],
                 return_type,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2772,20 +3892,28 @@ mod test {
         let return_type = schema.make_id();
         let argument_type = schema.make_id();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasFunctionShape(HasFunctionShape {
                 argument_types: vec![argument_type],
                 return_type,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasFunctionShape(HasFunctionShape {
                 argument_types: vec![argument_type],
                 return_type,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2795,23 +3923,31 @@ mod test {
         let argument_type_a = schema.make_id();
         let argument_type_b = schema.make_id();
         schema
-            .set_equal_to_canonical_type(argument_type_a, argument_type_b)
+            .set_equal_to_canonical_type(argument_type_a, argument_type_b, &mut CheckedTypes::new())
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasFunctionShape(HasFunctionShape {
                 argument_types: vec![argument_type_a],
                 return_type,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasFunctionShape(HasFunctionShape {
                 argument_types: vec![argument_type_b],
                 return_type,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2821,26 +3957,42 @@ mod test {
         let argument_type_a = schema.make_id();
         let argument_type_b = schema.make_id();
         schema
-            .add_constraint(argument_type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                argument_type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(argument_type_b, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                argument_type_b,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasFunctionShape(HasFunctionShape {
                 argument_types: vec![argument_type_a],
                 return_type,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasFunctionShape(HasFunctionShape {
                 argument_types: vec![argument_type_b],
                 return_type,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     #[test]
@@ -2850,26 +4002,42 @@ mod test {
         let argument_type_a = schema.make_id();
         let argument_type_b = schema.make_id();
         schema
-            .add_constraint(argument_type_a, Constraint::HasName("a".to_string()))
+            .add_constraint(
+                argument_type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         schema
-            .add_constraint(argument_type_b, Constraint::HasName("b".to_string()))
+            .add_constraint(
+                argument_type_b,
+                Constraint::HasName("b".to_string()),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasFunctionShape(HasFunctionShape {
                 argument_types: vec![argument_type_a],
                 return_type,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasFunctionShape(HasFunctionShape {
                 argument_types: vec![argument_type_b],
                 return_type,
             }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
             &schema,
-        );
-        assert!(!parsed_constraint.is_compatible_with(&other_constraint, &schema));
+            &mut CheckedTypes::new(),
+        ));
     }
 
     //
@@ -2878,9 +4046,13 @@ mod test {
 
     #[test]
     fn unknown_category_becomes_compiler_boolean() {
-        let schema = TypeSchema::new();
-        let parsed_constraint =
-            ParsedConstraint::new(Constraint::HasName(String::from("foo")), &schema);
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasName(String::from("foo")),
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.to_concrete_type(&schema),
             ConcreteType::Primitive(PrimitiveType::CompilerBoolean)
@@ -2889,9 +4061,13 @@ mod test {
 
     #[test]
     fn number_to_concrete_type() {
-        let schema = TypeSchema::new();
-        let parsed_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Int), &schema);
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EqualToPrimitive(PrimitiveType::Int),
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.to_concrete_type(&schema),
             ConcreteType::Primitive(PrimitiveType::Int)
@@ -2900,9 +4076,13 @@ mod test {
 
     #[test]
     fn string_to_concrete_type() {
-        let schema = TypeSchema::new();
-        let parsed_constraint =
-            ParsedConstraint::new(Constraint::EqualToPrimitive(PrimitiveType::Str), &schema);
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EqualToPrimitive(PrimitiveType::Str),
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.to_concrete_type(&schema),
             ConcreteType::Primitive(PrimitiveType::Str)
@@ -2917,10 +4097,15 @@ mod test {
             .add_constraint(
                 element_type,
                 Constraint::EqualToPrimitive(PrimitiveType::Int),
+                &mut CheckedTypes::new(),
             )
             .unwrap();
-        let parsed_constraint =
-            ParsedConstraint::new(Constraint::ListOfType(element_type), &schema);
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::ListOfType(element_type),
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.to_concrete_type(&schema),
             ConcreteType::List(Box::new(ConcreteListType {
@@ -2938,21 +4123,25 @@ mod test {
             .add_constraint(
                 return_type,
                 Constraint::EqualToPrimitive(PrimitiveType::Int),
+                &mut CheckedTypes::new(),
             )
             .unwrap();
         schema
             .add_constraint(
                 argument_type,
                 Constraint::EqualToPrimitive(PrimitiveType::Str),
+                &mut CheckedTypes::new(),
             )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasFunctionShape(HasFunctionShape {
                 argument_types: vec![argument_type],
                 return_type,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.to_concrete_type(&schema),
             ConcreteType::Function(Box::new(ConcreteFunctionType {
@@ -2967,14 +4156,20 @@ mod test {
         let mut schema = TypeSchema::new();
         let field_type = schema.make_id();
         schema
-            .add_constraint(field_type, Constraint::EqualToPrimitive(PrimitiveType::Int))
+            .add_constraint(
+                field_type,
+                Constraint::EqualToPrimitive(PrimitiveType::Int),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasExactFields(HasExactFieldsConstraint {
                 fields: HashMap::from([(String::from("foo"), field_type)]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.to_concrete_type(&schema),
             ConcreteType::Record(Box::new(ConcreteRecordType {
@@ -2991,15 +4186,21 @@ mod test {
         let mut schema = TypeSchema::new();
         let field_type = schema.make_id();
         schema
-            .add_constraint(field_type, Constraint::EqualToPrimitive(PrimitiveType::Int))
+            .add_constraint(
+                field_type,
+                Constraint::EqualToPrimitive(PrimitiveType::Int),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasField(HasFieldConstraint {
                 field_name: String::from("foo"),
                 field_type,
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.to_concrete_type(&schema),
             ConcreteType::Record(Box::new(ConcreteRecordType {
@@ -3016,14 +4217,20 @@ mod test {
         let mut schema = TypeSchema::new();
         let tag_type = schema.make_id();
         schema
-            .add_constraint(tag_type, Constraint::EqualToPrimitive(PrimitiveType::Int))
+            .add_constraint(
+                tag_type,
+                Constraint::EqualToPrimitive(PrimitiveType::Int),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([(String::from("foo"), vec![tag_type])]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.to_concrete_type(&schema),
             ConcreteType::TagUnion(Box::new(ConcreteTagUnionType {
@@ -3040,15 +4247,21 @@ mod test {
         let mut schema = TypeSchema::new();
         let tag_type = schema.make_id();
         schema
-            .add_constraint(tag_type, Constraint::EqualToPrimitive(PrimitiveType::Int))
+            .add_constraint(
+                tag_type,
+                Constraint::EqualToPrimitive(PrimitiveType::Int),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::HasTag(HasTagConstraint {
                 tag_name: String::from("foo"),
                 tag_content_types: vec![tag_type],
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.to_concrete_type(&schema),
             ConcreteType::TagUnion(Box::new(ConcreteTagUnionType {
@@ -3062,13 +4275,15 @@ mod test {
 
     #[test]
     fn close_tag_to_compiler_boolean_for_true() {
-        let schema = TypeSchema::new();
+        let mut schema = TypeSchema::new();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([(String::from("true"), Vec::new())]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.to_concrete_type(&schema),
             ConcreteType::Primitive(PrimitiveType::CompilerBoolean)
@@ -3077,13 +4292,15 @@ mod test {
 
     #[test]
     fn close_tag_to_compiler_boolean_for_false() {
-        let schema = TypeSchema::new();
+        let mut schema = TypeSchema::new();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([(String::from("false"), Vec::new())]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.to_concrete_type(&schema),
             ConcreteType::Primitive(PrimitiveType::CompilerBoolean)
@@ -3092,16 +4309,18 @@ mod test {
 
     #[test]
     fn close_tag_to_compiler_boolean_for_true_and_false() {
-        let schema = TypeSchema::new();
+        let mut schema = TypeSchema::new();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([
                     (String::from("true"), Vec::new()),
                     (String::from("false"), Vec::new()),
                 ]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.to_concrete_type(&schema),
             ConcreteType::Primitive(PrimitiveType::CompilerBoolean)
@@ -3113,14 +4332,20 @@ mod test {
         let mut schema = TypeSchema::new();
         let tag_type = schema.make_id();
         schema
-            .add_constraint(tag_type, Constraint::EqualToPrimitive(PrimitiveType::Int))
+            .add_constraint(
+                tag_type,
+                Constraint::EqualToPrimitive(PrimitiveType::Int),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([(String::from("true"), vec![tag_type])]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.to_concrete_type(&schema),
             ConcreteType::TagUnion(Box::new(ConcreteTagUnionType {
@@ -3137,14 +4362,20 @@ mod test {
         let mut schema = TypeSchema::new();
         let tag_type = schema.make_id();
         schema
-            .add_constraint(tag_type, Constraint::EqualToPrimitive(PrimitiveType::Int))
+            .add_constraint(
+                tag_type,
+                Constraint::EqualToPrimitive(PrimitiveType::Int),
+                &mut CheckedTypes::new(),
+            )
             .unwrap();
         let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
             Constraint::TagAtMost(TagAtMostConstraint {
                 tags: HashMap::from([(String::from("false"), vec![tag_type])]),
             }),
-            &schema,
-        );
+            &mut schema,
+        )
+        .unwrap();
         assert_eq!(
             parsed_constraint.to_concrete_type(&schema),
             ConcreteType::TagUnion(Box::new(ConcreteTagUnionType {
