@@ -1,0 +1,10 @@
+@export
+someThree = [0, 1, 2, 3, 4]:get(3)
+
+@export
+none = [0, 1, 2, 3, 4]:get(50)
+
+one = () => 1
+
+@export
+someOne = [0, 1, 2, 3, 4]:get(one())
