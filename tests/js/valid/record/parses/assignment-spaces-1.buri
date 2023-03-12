@@ -1,0 +1,16 @@
+hello = { name: "" }
+a = {
+
+hello
+
+|
+
+name
+
+:
+
+"world"
+
+,
+
+}
