@@ -1,0 +1,2 @@
+foo: Int = -- comment
+1
