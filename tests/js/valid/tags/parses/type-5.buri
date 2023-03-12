@@ -1,0 +1,8 @@
+Hello = #hello(--comment
+Int
+--comment
+,
+--comment
+[Str]
+--comment
+)
