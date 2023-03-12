@@ -1,0 +1,11 @@
+A = {-- hello
+--hello
+foo--hello
+:--hello
+Str--hello
+,--hello
+bar--hello
+:--hello
+[Int]--hello
+-- I'm another comment
+}

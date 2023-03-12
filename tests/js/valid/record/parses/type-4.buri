@@ -1,0 +1,9 @@
+A = {
+foo
+:
+Str
+,
+bar
+:
+[Int]
+}
