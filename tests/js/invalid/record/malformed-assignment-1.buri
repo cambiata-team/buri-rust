@@ -1,0 +1,2 @@
+Hello = {name: Str}
+a = {Hello|name:"world"}
