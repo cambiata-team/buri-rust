@@ -1,0 +1,8 @@
+hello = #hello(--comment
+1
+--comment
+,
+--comment
+""
+--comment
+)
