@@ -1,0 +1,9 @@
+hello = "hello"
+
+@export
+helloSize = hello:size()
+
+helloWorld = "hello world"
+
+@export
+helloWorldSize = helloWorld:size()
