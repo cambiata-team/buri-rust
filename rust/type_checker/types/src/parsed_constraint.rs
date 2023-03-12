@@ -1,6 +1,6 @@
 use crate::{
     constraints::{Constraint, HasMethodConstraint},
-    default_types::create_list_default_methods,
+    default_types::{create_list_default_methods, create_string_default_methods},
     type_checking_call_stack::CheckedTypes,
     type_schema::{CanonicalIds, TypeSchema},
     TypeId,
@@ -363,7 +363,16 @@ impl ParsedConstraint {
         let mut name = ParsedNameConstraint::new();
         let mut methods = ParsedMethodsConstraint::new();
         let category = match constraint {
-            Constraint::EqualToPrimitive(p) => CategoryConstraints::Primitive(p),
+            Constraint::EqualToPrimitive(p) => {
+                let (_, primitive_methods) = match p {
+                    PrimitiveType::Str => create_string_default_methods(schema)?,
+                    _ => (0, vec![]),
+                };
+                for method in primitive_methods {
+                    methods.add(method.method_name, method.method_type, &schema.types);
+                }
+                CategoryConstraints::Primitive(p)
+            }
             Constraint::ListOfType(t) => {
                 let (_, list_methods) = create_list_default_methods(schema, type_id, t)?;
                 for method in list_methods {

@@ -1120,7 +1120,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let expression = parse_test_expression("314 + 271");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
-        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 3);
+        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 5);
     }
 
     #[test]
@@ -1130,7 +1130,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 3
+            INITIAL_CONSTRAINT_COUNT + 5
         );
     }
 
@@ -1141,7 +1141,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 3
+            INITIAL_CONSTRAINT_COUNT + 15
         );
     }
 
@@ -1154,7 +1154,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 3
+            INITIAL_CONSTRAINT_COUNT + 5
         );
     }
 
@@ -1165,7 +1165,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 2
+            INITIAL_CONSTRAINT_COUNT + 4
         );
     }
 
@@ -1176,7 +1176,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 2
+            INITIAL_CONSTRAINT_COUNT + 4
         );
     }
 
@@ -1188,7 +1188,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 3
+            INITIAL_CONSTRAINT_COUNT + 5
         );
     }
 
@@ -1201,7 +1201,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 5
+            INITIAL_CONSTRAINT_COUNT + 9
         );
     }
 
@@ -1214,7 +1214,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 5
+            INITIAL_CONSTRAINT_COUNT + 9
         );
     }
 
@@ -1228,7 +1228,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 3
+            INITIAL_CONSTRAINT_COUNT + 5
         );
     }
 
@@ -1242,7 +1242,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 3
+            INITIAL_CONSTRAINT_COUNT + 5
         );
     }
 
@@ -1256,7 +1256,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 3
+            INITIAL_CONSTRAINT_COUNT + 5
         );
     }
 
@@ -1270,7 +1270,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 3
+            INITIAL_CONSTRAINT_COUNT + 5
         );
     }
 
@@ -1308,7 +1308,7 @@ mod test {
             ],
         });
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
-        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 4);
+        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 6);
     }
 
     #[test]
@@ -1363,7 +1363,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 3
+            INITIAL_CONSTRAINT_COUNT + 5
         );
     }
 
@@ -1376,7 +1376,7 @@ mod test {
                 value: FunctionApplicationArgumentsValue { arguments: vec![] },
             });
         let _ = translate_parsed_expression_to_generic_expression(&mut schema, expression);
-        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT);
+        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 2);
     }
 
     #[test]
@@ -1412,7 +1412,7 @@ mod test {
         schema.make_identifier_for_test("b").unwrap();
         let expression = parse_test_expression("if a do b");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
-        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 3);
+        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 5);
     }
 
     #[test]
@@ -1423,7 +1423,7 @@ mod test {
         schema.make_identifier_for_test("c").unwrap();
         let expression = parse_test_expression("if a do b else c");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
-        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 4);
+        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 6);
     }
 
     #[test]
@@ -1437,7 +1437,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 2
+            INITIAL_CONSTRAINT_COUNT + 4
         );
     }
 
@@ -1450,7 +1450,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 3
+            INITIAL_CONSTRAINT_COUNT + 5
         );
     }
 
@@ -1464,7 +1464,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 2
+            INITIAL_CONSTRAINT_COUNT + 4
         );
     }
 
@@ -1490,7 +1490,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let expression = parse_test_expression("314");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
-        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 1);
+        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 3);
     }
 
     #[test]
@@ -1500,7 +1500,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 1
+            INITIAL_CONSTRAINT_COUNT + 3
         );
     }
 
@@ -1522,7 +1522,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let expression = parse_test_expression("[2, 3, 5]");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
-        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 10);
+        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 12);
     }
 
     #[test]
@@ -1532,7 +1532,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 7
+            INITIAL_CONSTRAINT_COUNT + 9
         );
     }
 
@@ -1556,7 +1556,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 7
+            INITIAL_CONSTRAINT_COUNT + 9
         );
     }
 
@@ -1573,7 +1573,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let expression = parse_test_expression("{ a: 3, b: 4 }");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
-        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 5);
+        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 7);
     }
 
     #[test]
@@ -1585,7 +1585,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 5
+            INITIAL_CONSTRAINT_COUNT + 7
         );
     }
 
@@ -1611,7 +1611,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 3
+            INITIAL_CONSTRAINT_COUNT + 5
         );
     }
 
@@ -1650,7 +1650,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let expression = parse_test_expression("\"hello\"");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
-        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 1);
+        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 5);
     }
 
     #[test]
@@ -1660,7 +1660,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 1
+            INITIAL_CONSTRAINT_COUNT + 5
         );
     }
 
@@ -1682,7 +1682,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let expression = parse_test_expression("#a");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
-        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 1);
+        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 3);
     }
 
     #[test]
@@ -1692,7 +1692,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 1
+            INITIAL_CONSTRAINT_COUNT + 3
         );
     }
 
@@ -1714,7 +1714,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let expression = parse_test_expression("-314");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
-        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 2);
+        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 4);
     }
 
     #[test]
@@ -1724,7 +1724,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 2
+            INITIAL_CONSTRAINT_COUNT + 4
         );
     }
 
@@ -1736,7 +1736,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 2
+            INITIAL_CONSTRAINT_COUNT + 4
         );
     }
 

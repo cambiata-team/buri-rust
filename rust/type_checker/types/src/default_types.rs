@@ -33,6 +33,19 @@ pub fn create_list_default_methods(
     )
 }
 
+pub fn create_string_default_methods(
+    schema: &mut TypeSchema,
+) -> Result<(TypeId, Vec<HasMethodConstraint>), String> {
+    create_parsed_constraint_from_methods(
+        vec![Method {
+            name: "size",
+            arguments: vec![],
+            return_type: INT_TYPE_ID,
+        }],
+        schema,
+    )
+}
+
 struct Method {
     name: &'static str,
     arguments: Vec<TypeId>,
