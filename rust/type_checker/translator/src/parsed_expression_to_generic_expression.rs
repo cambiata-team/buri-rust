@@ -1522,7 +1522,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let expression = parse_test_expression("[2, 3, 5]");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
-        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 9);
+        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 10);
     }
 
     #[test]
@@ -1532,7 +1532,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 6
+            INITIAL_CONSTRAINT_COUNT + 7
         );
     }
 
@@ -1556,7 +1556,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 6
+            INITIAL_CONSTRAINT_COUNT + 7
         );
     }
 

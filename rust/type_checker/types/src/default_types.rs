@@ -23,6 +23,11 @@ pub fn create_list_default_methods(
                 arguments: vec![list_contents_type],
                 return_type: list_type_id,
             },
+            Method {
+                name: "size",
+                arguments: vec![],
+                return_type: INT_TYPE_ID,
+            },
         ],
         schema,
     )
