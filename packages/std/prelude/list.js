@@ -21,4 +21,8 @@ Object.assign(Array.prototype, {
     append(value) {
         return [...this, value]
     },
+
+    size() {
+        return this.length
+    },
 })

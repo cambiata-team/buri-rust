@@ -1,0 +1,14 @@
+emptyList = []
+
+@export
+emptyListSize = emptyList:size()
+
+zeroThroughFour = [0, 1, 2, 3, 4]
+
+@export
+zeroThroughFourSize = zeroThroughFour:size()
+
+zeroThroughFive = [0, 1, 2, 3, 4, 5]
+
+@export
+zeroThroughFiveSize = zeroThroughFive:size()
