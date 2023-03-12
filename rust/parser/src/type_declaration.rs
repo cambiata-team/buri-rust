@@ -78,7 +78,7 @@ mod test {
 
     #[test]
     fn parses_without_space_between_equal_sign_and_type_expression() {
-        let input = ParserInput::new("Hello= World");
+        let input = ParserInput::new("Hello =World");
         let result = type_declaration(input.clone());
         assert!(result.is_ok());
     }
