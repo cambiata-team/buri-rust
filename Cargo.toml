@@ -2,6 +2,7 @@
 
 members = [
     "rust/ast",
+    "rust/buri_js_lite",
     "rust/compiler",
     "rust/e2e",
     "rust/parser",

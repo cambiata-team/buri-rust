@@ -41,6 +41,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "buri_js_lite"
+version = "0.1.0"
+dependencies = [
+ "compiler",
+ "walkdir",
+]
+
+[[package]]
 name = "bytecount"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
