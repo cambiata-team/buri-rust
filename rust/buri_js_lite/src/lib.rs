@@ -55,12 +55,26 @@ pub fn get_file_paths(arguments: &Vec<String>) -> Result<CliArguments, String> {
         None => return Err(String::from("No source file provided")),
     };
     verify_path(source_path, "buri")?;
+    if !source_path.is_file() {
+        return Err(format!(
+            "Source file {} does not exist",
+            stringify_path(source_path)?
+        ));
+    };
     let derived_destination_path = derive_destination_path_from_source_path(source_path)?;
     let destination_path = arguments.get(2).map_or_else(
         || Path::new(&derived_destination_path),
         |destination_path| Path::new(destination_path),
     );
     verify_path(destination_path, "mjs")?;
+    if let Some(parent) = destination_path.parent() {
+        if !parent.is_dir() {
+            return Err(format!(
+                "Destination directory {} does not exist",
+                stringify_path(parent)?
+            ));
+        }
+    };
     Ok(CliArguments {
         source: stringify_path(source_path)?,
         destination: stringify_path(destination_path)?,
