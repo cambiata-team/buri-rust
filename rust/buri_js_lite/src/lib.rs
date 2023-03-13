@@ -1,4 +1,5 @@
 use std::ffi::OsStr;
+use std::fs::create_dir_all;
 use std::path::Path;
 
 pub struct CliArguments {
@@ -46,6 +47,20 @@ fn derive_destination_path_from_source_path(source_path: &Path) -> Result<String
     stringify_path(source_path.with_extension("mjs").as_path())
 }
 
+fn create_destination_directory(destination_path: &Path) -> Result<(), String> {
+    match destination_path.parent() {
+        None => Ok(()),
+        Some(parent_path) => match create_dir_all(parent_path) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(format!(
+                "Error creating destination directory {}: {}",
+                stringify_path(parent_path)?,
+                e
+            )),
+        },
+    }
+}
+
 pub fn get_file_paths(arguments: &Vec<String>) -> Result<CliArguments, String> {
     if arguments.len() > 3 {
         return Err(String::from("Too many arguments provided"));
@@ -67,14 +82,7 @@ pub fn get_file_paths(arguments: &Vec<String>) -> Result<CliArguments, String> {
         |destination_path| Path::new(destination_path),
     );
     verify_path(destination_path, "mjs")?;
-    if let Some(parent) = destination_path.parent() {
-        if !parent.is_dir() {
-            return Err(format!(
-                "Destination directory {} does not exist",
-                stringify_path(parent)?
-            ));
-        }
-    };
+    create_destination_directory(destination_path)?;
     Ok(CliArguments {
         source: stringify_path(source_path)?,
         destination: stringify_path(destination_path)?,
