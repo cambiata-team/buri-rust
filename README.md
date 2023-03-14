@@ -44,3 +44,17 @@ cargo cranky # Lint the Buri Rust compiler (wraps Clippy)
 ```
 
 Lastly, ensure you install all the recommended VS Code extensions for an optimal developer experience.
+
+## Compiling Buri code using Cargo
+
+This project contains an example compiler for Buri called "Buri JS Lite". Currently this compiler can only compile to JavaScript, and can only compile Buri programs consisting of a single source file.
+
+To invoke this compiler using Cargo, use the following:
+
+```
+cargo run --bin buri_js_lite source.buri <destination.mjs>
+```
+
+Where `source.buri` is the file path of the Buri file you want to compile, and `destination.mjs` is the file path where you want to save the compiled output.
+
+The destination parameter is optional. If not supplied, the compiler will write to a file with the same name as the source, replacing the `.buri` extension with `.mjs`.
