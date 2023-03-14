@@ -6,6 +6,7 @@ members = [
     "rust/e2e",
     "rust/parser",
     "rust/js_backend",
+    "rust/mjolnirjs_spark",
     "rust/type_checker/errors",
     "rust/type_checker/resolver",
     "rust/type_checker/translator",

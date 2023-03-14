@@ -44,3 +44,15 @@ cargo cranky # Lint the Buri Rust compiler (wraps Clippy)
 ```
 
 Lastly, ensure you install all the recommended VS Code extensions for an optimal developer experience.
+
+## Compiling Buri code using Cargo
+
+This project contains an example compiler for Buri called "MjolnirJS Spark". Currently this compiler can only compile to JavaScript, and can only compile Buri programs consisting of a single source file.
+
+To invoke this compiler using Cargo, use the following:
+
+```
+cargo run --bin mjolnirjs_spark source.buri
+```
+
+Where `source.buri` is the file path of the Buri file you want to compile. The result is saved in a `.buri` directory in the current workspace.
