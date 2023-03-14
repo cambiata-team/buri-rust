@@ -7,7 +7,7 @@ This folder contains the end-to-end tests for the Buri JS output. This doc outli
 From the repo root, run the following commands:
 
 ```bash
-cargo run rust/e2e # build the JS outputs
+cargo run --bin e2e # build the JS outputs
 bun wiptest # test the JS outputs
 ```
 
