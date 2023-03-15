@@ -1,0 +1,5 @@
+@export
+fizzbuzz = (n) =>
+    firstWord = if n % 3 == 0 do "fizz" else ""
+    secondWord = if n % 5 == 0 do "buzz" else ""
+    firstWord ++ secondWord

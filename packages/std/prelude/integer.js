@@ -4,24 +4,24 @@ Object.assign(Number.prototype, {
     },
 
     add(num) {
-        return new this.constructor(this.valueOf() + num.valueOf())
+        return this.constructor(this.valueOf() + num.valueOf())
     },
 
     subtract(num) {
-        return new this.constructor(this.valueOf() - num.valueOf())
+        return this.constructor(this.valueOf() - num.valueOf())
     },
 
     multiply(num) {
         let result = this.valueOf() * num.valueOf()
         if (result === -0) result = 0
-        return new this.constructor(result)
+        return this.constructor(result)
     },
 
     divide(num) {
         const result = this.valueOf() / num.valueOf()
         const truncated = Math.trunc(result)
-        if (truncated === -0) return new this.constructor(0)
-        return new this.constructor(truncated)
+        if (truncated === -0) return this.constructor(0)
+        return this.constructor(truncated)
     },
 
     // Using a custom modulo function because the built-in one is mathematically incorrect.
@@ -31,11 +31,11 @@ Object.assign(Number.prototype, {
         let n = num.valueOf()
         let result = ((m % n) + n) % n
         if (result === -0) result = 0
-        return new this.constructor(result)
+        return this.constructor(result)
     },
 
     power(num) {
-        return new this.constructor(this.valueOf() ** num.valueOf())
+        return this.constructor(this.valueOf() ** num.valueOf())
     },
 
     equals(num) {
