@@ -1,0 +1,14 @@
+aOrLargerDividesB = (a, b) =>
+    if a >= b do
+        #false
+    else if b % a == 0 do
+        #true
+    else
+        aOrLargerDividesB(a + 1, b)
+
+@export
+isPrime = (n) =>
+    if n < 2 do
+        #false
+    else
+        not aOrLargerDividesB(2, n)
