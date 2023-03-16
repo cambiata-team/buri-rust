@@ -80,3 +80,5 @@ jobs:
         run: ~/.bun/bin/bun install
       - name: Run JS tests
         run: ~/.bun/bin/bun wiptest
+      - name: Check Filename Delimiters
+        run: ~/.bun/bin/bun run ${{github.workspace}}/.github/workflows/check-filename-delimiter.js ${{github.workspace}}

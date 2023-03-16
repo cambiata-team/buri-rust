@@ -1,4 +1,4 @@
-import { Bfizzbuzz } from "@tests/js/valid/simple_programs/fizzbuzz.mjs"
+import { Bfizzbuzz } from "@tests/js/valid/simple-programs/fizzbuzz.mjs"
 import { expect, it } from "bun:test"
 
 it("fizzbuzz(0)", () => {
