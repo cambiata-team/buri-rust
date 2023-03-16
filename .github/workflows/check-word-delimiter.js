@@ -42,14 +42,14 @@ function computePathStyle(path) {
     return style
 }
 
-function checkDirectory(directory) {
-    let contents = readdirSync(directory)
+function checkDirectory(workspaceRoot, directory) {
+    let contents = readdirSync(join(workspaceRoot, directory))
     for (let i = 0; i < contents.length; ++i) {
         let style = computePathStyle(contents[i])
         if (style == "invalid") {
             throw new Error(`Invalid path style: ${join(directory, contents[i])}`)
         }
-        else if (directory.startsWith("/workspaces/buri/rust")) {
+        else if (directory.startsWith("rust")) {
             if (style == "kebab") {
                 throw new Error(`Unexpected kebab case path: ${join(directory, contents[i])}`)
             }
@@ -58,13 +58,13 @@ function checkDirectory(directory) {
             throw new Error(`Unexpected snake case path: ${join(directory, contents[i])}`)
         }
         if (contents[i].startsWith(".")) continue
-        if (directory === "/workspaces/buri" && contents[i] === "target") continue
+        if (directory === "" && contents[i] === "target") continue
         let joinedPath = join(directory, contents[i])
         let stats = lstatSync(joinedPath)
         if (stats.isDirectory() && !stats.isSymbolicLink()) {
-            checkDirectory(joinedPath)
+            checkDirectory(workspaceRoot, joinedPath)
         }
     }
 }
 
-checkDirectory(realpathSync(process.argv[2]))
+checkDirectory(realpathSync(process.argv[2]), "")
