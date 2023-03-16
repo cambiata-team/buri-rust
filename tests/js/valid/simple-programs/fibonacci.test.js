@@ -1,4 +1,4 @@
-import { Bfib } from "@tests/js/valid/simple_programs/fibonacci.mjs"
+import { Bfib } from "@tests/js/valid/simple-programs/fibonacci.mjs"
 import { expect, it } from "bun:test"
 
 it("fib(0)", () => {
