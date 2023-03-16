@@ -110,6 +110,21 @@ pub struct TypedUnaryOperatorExpression<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypedWhenCase<T> {
+    pub expression_type: T,
+    /// case_name == None indicates the default case
+    pub case_name: Option<TypedIdentifierExpression<T>>,
+    pub case_arguments: Vec<TypedIdentifierExpression<T>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypedWhenExpression<T> {
+    pub expression_type: T,
+    pub condition: TypedExpression<T>,
+    pub cases: Vec<TypedWhenCase<T>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypedExpression<T> {
     BinaryOperator(Box<TypedBinaryOperatorExpression<T>>),
     Block(Box<TypedBlockExpression<T>>),
@@ -128,6 +143,7 @@ pub enum TypedExpression<T> {
     TypeDeclaration(Box<TypedTypeDeclarationExpression<T>>),
     TypeIdentifier(Box<TypedTypeIdentifierExpression<T>>),
     UnaryOperator(Box<TypedUnaryOperatorExpression<T>>),
+    When(Box<TypedWhenExpression<T>>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
