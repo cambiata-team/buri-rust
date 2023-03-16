@@ -1,4 +1,4 @@
-import { BisPrime } from "@tests/js/valid/simple_programs/is_prime.mjs"
+import { BisPrime } from "@tests/js/valid/simple-programs/is-prime.mjs"
 import { expect, it } from "bun:test"
 import { tag } from "../helpers"
 

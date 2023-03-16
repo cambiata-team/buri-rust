@@ -80,3 +80,5 @@ jobs:
         run: ~/.bun/bin/bun install
       - name: Run JS tests
         run: ~/.bun/bin/bun wiptest
+      - name: Check Word Delimiters
+        run: ~/.bun/bin/bun /workspaces/buri/.github/workflows/check-word-delimiter.js
