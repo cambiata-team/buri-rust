@@ -67,4 +67,4 @@ function checkDirectory(directory) {
     }
 }
 
-checkDirectory(realpathSync("/"))
+checkDirectory(realpathSync(process.argv[2]))
