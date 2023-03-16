@@ -58,7 +58,7 @@ function checkDirectory(workspaceRoot, directory) {
             throw new Error(`Unexpected snake case path: ${join(directory, contents[i])}`)
         }
         if (contents[i].startsWith(".")) continue
-        if (directory === "" && contents[i] === "target") continue
+        if (directory === "" && (contents[i] === "target" || contents[i] === "node_modules")) continue
         let joinedPath = join(directory, contents[i])
         let stats = lstatSync(joinedPath)
         if (stats.isDirectory() && !stats.isSymbolicLink()) {
