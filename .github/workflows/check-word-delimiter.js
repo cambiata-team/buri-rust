@@ -67,4 +67,4 @@ function checkDirectory(directory) {
     }
 }
 
-checkDirectory("/workspaces/buri")
+checkDirectory(realpathSync("/"))
