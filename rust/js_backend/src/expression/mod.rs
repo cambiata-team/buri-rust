@@ -51,6 +51,7 @@ fn print_expression(expression: &ConcreteExpression) -> String {
         ConcreteExpression::TypeDeclaration(_) | ConcreteExpression::TypeIdentifier(_) => {
             String::new()
         }
+        ConcreteExpression::When(_) => todo!(),
     }
 }
 
