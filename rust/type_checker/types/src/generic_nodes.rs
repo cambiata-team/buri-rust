@@ -6,7 +6,7 @@ use typed_ast::{
     TypedIdentifierExpression, TypedIfExpression, TypedIntegerLiteralExpression,
     TypedListExpression, TypedRecordAssignmentExpression, TypedRecordExpression,
     TypedStringLiteralExpression, TypedTagExpression, TypedTypeDeclarationExpression,
-    TypedTypeIdentifierExpression, TypedUnaryOperatorExpression,
+    TypedTypeIdentifierExpression, TypedUnaryOperatorExpression, TypedWhenExpression,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -38,6 +38,7 @@ pub type GenericTypeDeclarationExpression<'a> =
 pub type GenericTypeIdentifierExpression<'a> =
     TypedTypeIdentifierExpression<GenericSourcedType<'a>>;
 pub type GenericUnaryOperatorExpression<'a> = TypedUnaryOperatorExpression<GenericSourcedType<'a>>;
+pub type GenericWhenExpression<'a> = TypedWhenExpression<GenericSourcedType<'a>>;
 
 pub type GenericExpression<'a> = TypedExpression<GenericSourcedType<'a>>;
 
@@ -70,5 +71,6 @@ pub const fn get_generic_type_id(input: &GenericExpression) -> TypeId {
         GenericExpression::TypeDeclaration(node) => node.expression_type.type_id,
         GenericExpression::TypeIdentifier(node) => node.expression_type.type_id,
         GenericExpression::UnaryOperator(node) => node.expression_type.type_id,
+        GenericExpression::When(node) => node.expression_type.type_id,
     }
 }
