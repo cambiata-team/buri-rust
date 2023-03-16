@@ -239,6 +239,7 @@ pub enum Expression<'a> {
     Tag(TagNode<'a>),
     TypeDeclaration(TypeDeclarationNode<'a>),
     UnaryOperator(UnaryOperatorNode<'a>),
+    When(WhenNode<'a>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
