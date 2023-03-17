@@ -32,6 +32,7 @@ mod type_expression;
 mod type_identifier;
 mod unary_operator;
 mod variable_declaration;
+mod when_statement;
 
 use binary_operator_or_if::binary_operator_or_if as expression;
 use expression_context::ExpressionContext;
