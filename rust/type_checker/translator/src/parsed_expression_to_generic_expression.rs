@@ -1102,6 +1102,7 @@ pub fn translate_parsed_expression_to_generic_expression<'a>(
         Expression::UnaryOperator(node) => translate_unary_operator(schema, node)
             .map(Box::new)
             .map(GenericExpression::UnaryOperator),
+        Expression::When(_) => todo!(),
     }
 }
 

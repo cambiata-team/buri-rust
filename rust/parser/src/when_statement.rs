@@ -137,37 +137,39 @@ fn when_default_case<'a>(
 pub fn when_statement<'a>(
     context: ExpressionContext,
 ) -> impl FnMut(ParserInput<'a>) -> IResult<'a, WhenNode<'a>> {
-    verify(
-        map(
-            consumed(tuple((
-                when_condition(context),
-                tuple((
-                    separated_list1(newline, when_case(context.increment_indentation())),
-                    opt(preceded(
-                        newline,
-                        when_default_case(context.increment_indentation()),
+    move |input| {
+        verify(
+            map(
+                consumed(tuple((
+                    when_condition(context),
+                    tuple((
+                        separated_list1(newline, when_case(context.increment_indentation())),
+                        opt(preceded(
+                            newline,
+                            when_default_case(context.increment_indentation()),
+                        )),
                     )),
-                )),
-            ))),
-            |(source, (condition, (cases, default_case)))| WhenNode {
-                source,
-                value: WhenValue {
-                    condition: Box::new(condition),
-                    cases,
-                    default_case: default_case.map(Box::new),
+                ))),
+                |(source, (condition, (cases, default_case)))| WhenNode {
+                    source,
+                    value: WhenValue {
+                        condition: Box::new(condition),
+                        cases,
+                        default_case: default_case.map(Box::new),
+                    },
                 },
-            },
-        ),
-        |node| {
-            let mut case_name = HashSet::new();
-            for case in &node.value.cases {
-                if !case_name.insert(case.case_name.value.clone()) {
-                    return false;
+            ),
+            |node| {
+                let mut case_name = HashSet::new();
+                for case in &node.value.cases {
+                    if !case_name.insert(case.case_name.value.clone()) {
+                        return false;
+                    }
                 }
-            }
-            true
-        },
-    )
+                true
+            },
+        )(input)
+    }
 }
 
 #[cfg(test)]

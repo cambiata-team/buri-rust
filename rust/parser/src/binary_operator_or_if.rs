@@ -1,6 +1,6 @@
 use crate::{
     binary_operator_expression::binary_operator_expression, if_statement::if_statement,
-    ExpressionContext,
+    when_statement::when_statement, ExpressionContext,
 };
 use ast::Expression;
 use ast::{IResult, ParserInput};
@@ -12,5 +12,6 @@ pub fn binary_operator_or_if<'a>(
     alt((
         binary_operator_expression(context),
         map(if_statement(context), Expression::If),
+        map(when_statement(context), Expression::When),
     ))
 }
