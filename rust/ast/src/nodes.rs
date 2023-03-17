@@ -167,6 +167,26 @@ pub struct UnaryOperatorValue<'a> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WhenCaseArgumentValue<'a> {
+    pub identifier: IdentifierNode<'a>,
+    pub type_expression: Option<TypeExpression<'a>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WhenCase<'a> {
+    pub case_name: TagIdentifierNode<'a>,
+    pub case_arguments: Vec<WhenCaseArgumentValue<'a>>,
+    pub expression: Expression<'a>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WhenValue<'a> {
+    pub condition: Box<Expression<'a>>,
+    pub cases: Vec<WhenCase<'a>>,
+    pub default_case: Option<Box<Expression<'a>>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeclarationValue<'a> {
     pub identifier: IdentifierNode<'a>,
     pub type_expression: Option<TypeExpression<'a>>,
@@ -199,6 +219,7 @@ pub type TagTypeNode<'a> = ParsedNode<'a, TagTypeValue<'a>>;
 pub type TypeIdentifierNode<'a> = ParsedNode<'a, String>;
 pub type TypeDeclarationNode<'a> = ParsedNode<'a, TypeDeclarationValue<'a>>;
 pub type UnaryOperatorNode<'a> = ParsedNode<'a, UnaryOperatorValue<'a>>;
+pub type WhenNode<'a> = ParsedNode<'a, WhenValue<'a>>;
 pub type DeclarationNode<'a> = ParsedNode<'a, DeclarationValue<'a>>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
