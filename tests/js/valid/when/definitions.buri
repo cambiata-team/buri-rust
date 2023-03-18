@@ -1,0 +1,15 @@
+Color = #red | #green | #blue
+
+@export
+colorToString = (color: Color) =>
+    when color is
+        #red do "red"
+        #green do "green"
+        #blue do "blue"
+
+Rgb = #rgb(Int, Int, Int)
+
+@export
+getRedComponent = (color: Rgb) =>
+    when color is
+        #rgb(r, g, b) do r

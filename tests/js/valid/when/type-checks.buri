@@ -1,0 +1,12 @@
+color: #red | #rgb(Int, Int, Int) = #red
+result1 = when color is
+    #rgb(red, green, blue) do "custom color"
+    #red do "red"
+
+result2 = when #rgb(0, 0, 0) is
+    #rgb(red, green, blue) do 1
+
+blue: #red | #blue = #blue
+result3 = when blue is
+    #red do 1
+    _ do 2

@@ -284,6 +284,7 @@ fn resolve_when(
                     .into_iter()
                     .map(|argument| resolve_identifier(simplified_schema, argument))
                     .collect(),
+                case_expression: resolve_expression(simplified_schema, case.case_expression),
             })
             .collect(),
     }))

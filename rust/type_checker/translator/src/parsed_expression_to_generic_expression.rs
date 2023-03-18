@@ -1071,6 +1071,7 @@ fn translate_when_expression<'a>(
         schema.scope.start_sub_scope();
 
         let mut tag_content_types = Vec::new();
+        let mut case_arguments = Vec::new();
         let tag_name = case.case_name.value;
         for argument in case.case_arguments {
             let name_type_id = schema.make_id();
@@ -1078,6 +1079,14 @@ fn translate_when_expression<'a>(
                 .scope
                 .declare_identifier(argument.identifier.value.name.clone(), name_type_id)?;
             tag_content_types.push(name_type_id);
+            case_arguments.push(GenericIdentifierExpression {
+                expression_type: GenericSourcedType {
+                    type_id: name_type_id,
+                    source_of_type: expression.source.clone(),
+                },
+                name: argument.identifier.value.name,
+                is_disregarded: argument.identifier.value.is_disregarded,
+            });
         }
         schema.set_equal_to_tag_contents(condition_type, &tag_name, &tag_content_types)?;
 
@@ -1107,11 +1116,12 @@ fn translate_when_expression<'a>(
 
         cases.push(GenericWhenCase {
             case_name: GenericWhenCaseName::Name(tag_name),
-            case_arguments: vec![],
+            case_arguments,
             expression_type: GenericSourcedType {
                 type_id: case_expression_type,
                 source_of_type: expression.source.clone(),
             },
+            case_expression: translated_expression,
         });
     }
 
@@ -1142,6 +1152,7 @@ fn translate_when_expression<'a>(
                 type_id: case_expression_type,
                 source_of_type: expression.source.clone(),
             },
+            case_expression: translated_expression,
         });
     }
 
