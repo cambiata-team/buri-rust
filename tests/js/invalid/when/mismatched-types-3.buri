@@ -1,0 +1,2 @@
+result = when #rgb(0, 0, 0) is
+    #rgb do 1

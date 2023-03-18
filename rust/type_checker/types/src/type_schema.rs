@@ -268,6 +268,38 @@ impl TypeSchema {
         Ok(())
     }
 
+    pub fn set_equal_to_tag_contents(
+        &mut self,
+        tag_type_id: TypeId,
+        tag_name: &String,
+        tag_content_types: &Vec<TypeId>,
+    ) -> Result<(), String> {
+        let tag_type_canonical_id = self.get_canonical_id(tag_type_id);
+        match self.constraints.get(&tag_type_canonical_id) {
+            Some(parsed_constraint) => {
+                let existing_contents = parsed_constraint.get_tag_content_types(tag_name)?;
+                if existing_contents.len() != tag_content_types.len() {
+                    return Err(generate_backtrace_error(format!(
+                        "TagContentsHaveDifferentLengths: {tag_name}"
+                    )));
+                }
+                for (existing_content, new_content) in
+                    existing_contents.iter().zip(tag_content_types.iter())
+                {
+                    self.set_equal_to_canonical_type(
+                        *existing_content,
+                        *new_content,
+                        &mut CheckedTypes::new(),
+                    )?;
+                }
+                Ok(())
+            }
+            _ => Err(generate_backtrace_error(format!(
+                "NoConstraintForType: {tag_type_id}"
+            ))),
+        }
+    }
+
     // TODO(aaron) B-279
     // #[cfg(test)]
     pub fn make_identifier_for_test<S: Into<String>>(

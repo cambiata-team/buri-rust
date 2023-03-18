@@ -6,7 +6,7 @@ use type_checker_types::{
         GenericFunctionExpression, GenericIdentifierExpression, GenericIfExpression,
         GenericIntegerLiteralExpression, GenericListExpression, GenericRecordAssignmentExpression,
         GenericRecordExpression, GenericStringLiteralExpression, GenericTagExpression,
-        GenericUnaryOperatorExpression,
+        GenericUnaryOperatorExpression, GenericWhenExpression,
     },
     type_schema::TypeSchema,
     TypeId,
@@ -17,7 +17,8 @@ use typed_ast::{
     ConcreteFunctionExpression, ConcreteIdentifierExpression, ConcreteIfExpression,
     ConcreteIntegerLiteralExpression, ConcreteListExpression, ConcreteRecordAssignmentExpression,
     ConcreteRecordExpression, ConcreteStringLiteralExpression, ConcreteTagExpression, ConcreteType,
-    ConcreteUnaryOperatorExpression, PrimitiveType, TypedDeclarationExpression,
+    ConcreteUnaryOperatorExpression, ConcreteWhenCase, ConcreteWhenExpression, PrimitiveType,
+    TypedDeclarationExpression,
 };
 
 fn resolve_generic_type(schema: &mut TypeSchema, type_id: TypeId) -> ConcreteType {
@@ -259,6 +260,35 @@ fn resolve_unary_operator(
     }))
 }
 
+fn resolve_when(
+    simplified_schema: &mut TypeSchema,
+    generic_when_expression: GenericWhenExpression,
+) -> ConcreteExpression {
+    ConcreteExpression::When(Box::new(ConcreteWhenExpression {
+        expression_type: resolve_generic_type(
+            simplified_schema,
+            generic_when_expression.expression_type.type_id,
+        ),
+        condition: resolve_expression(simplified_schema, generic_when_expression.condition),
+        cases: generic_when_expression
+            .cases
+            .into_iter()
+            .map(|case| ConcreteWhenCase {
+                expression_type: resolve_generic_type(
+                    simplified_schema,
+                    case.expression_type.type_id,
+                ),
+                case_name: case.case_name,
+                case_arguments: case
+                    .case_arguments
+                    .into_iter()
+                    .map(|argument| resolve_identifier(simplified_schema, argument))
+                    .collect(),
+            })
+            .collect(),
+    }))
+}
+
 fn resolve_expression(
     simplified_schema: &mut TypeSchema,
     expression: GenericExpression,
@@ -301,6 +331,7 @@ fn resolve_expression(
         GenericExpression::UnaryOperator(generic_unary_operator) => {
             resolve_unary_operator(simplified_schema, *generic_unary_operator)
         }
+        GenericExpression::When(when) => resolve_when(simplified_schema, *when),
         _ => unimplemented!(),
     }
 }

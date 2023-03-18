@@ -110,10 +110,16 @@ pub struct TypedUnaryOperatorExpression<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TypedWhenCaseName {
+    Name(String),
+    DefaultCase,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypedWhenCase<T> {
     pub expression_type: T,
     /// case_name == None indicates the default case
-    pub case_name: Option<TypedIdentifierExpression<T>>,
+    pub case_name: TypedWhenCaseName,
     pub case_arguments: Vec<TypedIdentifierExpression<T>>,
 }
 

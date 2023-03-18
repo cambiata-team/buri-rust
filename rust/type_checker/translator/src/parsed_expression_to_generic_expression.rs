@@ -3,7 +3,7 @@ use ast::{
     FunctionTypeNode, IdentifierNode, IfNode, IntegerNode, ListNode, ListTypeNode,
     RecordAssignmentNode, RecordNode, RecordTypeNode, StringLiteralNode, TagGroupTypeNode, TagNode,
     TypeDeclarationNode, TypeExpression, TypeIdentifierNode, UnaryOperatorNode,
-    UnaryOperatorSymbol,
+    UnaryOperatorSymbol, WhenNode,
 };
 use std::collections::HashMap;
 use type_checker_errors::generate_backtrace_error;
@@ -19,7 +19,8 @@ use type_checker_types::{
         GenericListExpression, GenericRecordAssignmentExpression, GenericRecordExpression,
         GenericSourcedType, GenericStringLiteralExpression, GenericTagExpression,
         GenericTypeDeclarationExpression, GenericTypeIdentifierExpression,
-        GenericUnaryOperatorExpression,
+        GenericUnaryOperatorExpression, GenericWhenCase, GenericWhenCaseName,
+        GenericWhenExpression,
     },
     type_checking_call_stack::CheckedTypes,
     type_schema::TypeSchema,
@@ -1052,6 +1053,108 @@ fn translate_parsed_type_expression(
     }
 }
 
+fn translate_when_expression<'a>(
+    schema: &mut TypeSchema,
+    expression: WhenNode<'a>,
+) -> Result<GenericWhenExpression<'a>, String> {
+    let expression_type = schema.make_id();
+    let cases_type = schema.make_id();
+    let translated_condition =
+        translate_parsed_expression_to_generic_expression(schema, *expression.value.condition)?;
+    let condition_type = get_generic_type_id(&translated_condition);
+
+    let mut cases = Vec::new();
+    let is_open = expression.value.default_case.is_some();
+    let mut at_most_tags = HashMap::new();
+
+    for case in expression.value.cases {
+        schema.scope.start_sub_scope();
+
+        let mut tag_content_types = Vec::new();
+        let tag_name = case.case_name.value;
+        for argument in case.case_arguments {
+            let name_type_id = schema.make_id();
+            schema
+                .scope
+                .declare_identifier(argument.identifier.value.name.clone(), name_type_id)?;
+            tag_content_types.push(name_type_id);
+        }
+        schema.set_equal_to_tag_contents(condition_type, &tag_name, &tag_content_types)?;
+
+        if is_open {
+            schema.add_constraint(
+                cases_type,
+                Constraint::HasTag(HasTagConstraint {
+                    tag_name: tag_name.clone(),
+                    tag_content_types,
+                }),
+                &mut CheckedTypes::new(),
+            )?;
+        } else {
+            at_most_tags.insert(tag_name.clone(), tag_content_types);
+        }
+
+        let translated_expression =
+            translate_parsed_expression_to_generic_expression(schema, case.expression)?;
+        let case_expression_type = get_generic_type_id(&translated_expression);
+        schema.set_equal_to_canonical_type(
+            expression_type,
+            case_expression_type,
+            &mut CheckedTypes::new(),
+        )?;
+
+        schema.scope.end_sub_scope();
+
+        cases.push(GenericWhenCase {
+            case_name: GenericWhenCaseName::Name(tag_name),
+            case_arguments: vec![],
+            expression_type: GenericSourcedType {
+                type_id: case_expression_type,
+                source_of_type: expression.source.clone(),
+            },
+        });
+    }
+
+    if !is_open {
+        schema.add_constraint(
+            cases_type,
+            Constraint::TagAtMost(TagAtMostConstraint { tags: at_most_tags }),
+            &mut CheckedTypes::new(),
+        )?;
+    }
+
+    schema.set_equal_to_canonical_type(condition_type, cases_type, &mut CheckedTypes::new())?;
+
+    if let Some(default_case) = expression.value.default_case {
+        let translated_expression =
+            translate_parsed_expression_to_generic_expression(schema, *default_case)?;
+        let case_expression_type = get_generic_type_id(&translated_expression);
+        schema.set_equal_to_canonical_type(
+            expression_type,
+            case_expression_type,
+            &mut CheckedTypes::new(),
+        )?;
+
+        cases.push(GenericWhenCase {
+            case_name: GenericWhenCaseName::DefaultCase,
+            case_arguments: vec![],
+            expression_type: GenericSourcedType {
+                type_id: case_expression_type,
+                source_of_type: expression.source.clone(),
+            },
+        });
+    }
+
+    Ok(GenericWhenExpression {
+        expression_type: GenericSourcedType {
+            type_id: expression_type,
+            source_of_type: expression.source,
+        },
+        condition: translated_condition,
+        cases,
+    })
+}
+
 pub fn translate_parsed_expression_to_generic_expression<'a>(
     schema: &mut TypeSchema,
     expression: Expression<'a>,
@@ -1102,7 +1205,9 @@ pub fn translate_parsed_expression_to_generic_expression<'a>(
         Expression::UnaryOperator(node) => translate_unary_operator(schema, node)
             .map(Box::new)
             .map(GenericExpression::UnaryOperator),
-        Expression::When(_) => todo!(),
+        Expression::When(node) => translate_when_expression(schema, node)
+            .map(Box::new)
+            .map(GenericExpression::When),
     }
 }
 
@@ -1926,5 +2031,118 @@ mod test {
         let expression = parse_test_expression("age = getAge(person)");
         let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn succeeds_for_basic_when() {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression(indoc! {"
+            when #red is
+                #red do 1
+        "});
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn errors_when_cases_are_not_the_same_type() {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression("x: #red | #green = #red");
+        translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
+        let expression = parse_test_expression(indoc! {"
+            when x is
+                #red do 1
+                #green do \"hello\"
+        "});
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn errors_when_default_case_is_not_the_same_type_as_the_other_cases() {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression("x: #red | #green = #red");
+        translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
+        let expression = parse_test_expression(indoc! {"
+            when x is
+                #red do 1
+                _ do \"hello\"
+        "});
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn errors_when_case_does_not_match_type() {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression("blue = #blue");
+        translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
+        let expression = parse_test_expression(indoc! {"
+            when blue is
+                #red do 1
+        "});
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn succeeds_when_type_matches_default_case() {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression("blue: #red | #blue = #blue");
+        translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
+        let expression = parse_test_expression(indoc! {"
+            when blue is
+                #red do 1
+                _ do 2
+        "});
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn errors_if_case_tag_does_not_have_same_number_of_content_items_as_conditional() {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression(indoc! {"
+            when #rgb(0, 0, 0) is
+                #rgb do 1
+        "});
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn succeeds_when_tag_case_has_same_content_count_as_items_in_conditional() {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression(indoc! {"
+            when #rgb(0, 0, 0) is
+                #rgb(red, green, blue) do 1
+        "});
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn when_case_tag_contents_infers_correct_type() {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression(indoc! {"
+            when #rgb(0, 0, 0) is
+                #rgb(red, green, blue) do red == \"0\"
+        "});
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn when_case_tags_can_have_different_content_lengths() {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression("color: #red | #rgb(Int, Int, Int) = #red");
+        translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
+        let expression = parse_test_expression(indoc! {"
+            when color is
+                #rgb(red, green, blue) do \"custom color\"
+                #red do \"red\"
+        "});
+        let result = translate_parsed_expression_to_generic_expression(&mut schema, expression);
+        assert!(result.is_ok());
     }
 }
