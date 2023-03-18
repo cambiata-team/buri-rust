@@ -5,7 +5,7 @@ use crate::{
     TypedIntegerLiteralExpression, TypedListExpression, TypedRecordAssignmentExpression,
     TypedRecordExpression, TypedStringLiteralExpression, TypedTagExpression,
     TypedTypeDeclarationExpression, TypedTypeIdentifierExpression, TypedUnaryOperatorExpression,
-    TypedWhenExpression,
+    TypedWhenCase, TypedWhenExpression,
 };
 
 pub type ConcreteBinaryOperatorExpression = TypedBinaryOperatorExpression<ConcreteType>;
@@ -25,6 +25,7 @@ pub type ConcreteTypeDeclarationExpression = TypedTypeDeclarationExpression<Conc
 pub type ConcreteTypeIdentifierExpression = TypedTypeIdentifierExpression<ConcreteType>;
 pub type ConcreteUnaryOperatorExpression = TypedUnaryOperatorExpression<ConcreteType>;
 pub type ConcreteWhenExpression = TypedWhenExpression<ConcreteType>;
+pub type ConcreteWhenCase = TypedWhenCase<ConcreteType>;
 
 pub type ConcreteExpression = TypedExpression<ConcreteType>;
 

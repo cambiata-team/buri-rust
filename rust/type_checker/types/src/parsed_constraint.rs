@@ -246,6 +246,20 @@ impl CategoryConstraints {
             _ => None,
         }
     }
+
+    pub fn get_tag_content_types(&self, tag_name: &String) -> Result<Vec<TypeId>, String> {
+        match self {
+            Self::TagGroup(tag_group) => match tag_group {
+                TagGroupConstraints::ClosedTags(tags) | TagGroupConstraints::OpenTags(tags) => {
+                    tags.get(tag_name).map_or_else(
+                        || Err(format!("Tag {tag_name} not found")),
+                        |types| Ok(types.clone()),
+                    )
+                }
+            },
+            _ => Err(format!("Expected tag group, got {self:?}")),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -518,6 +532,10 @@ impl ParsedConstraint {
     ) -> Result<Option<TypeId>, String> {
         self.methods
             .get_same_method_type(schema, method_name, method_type, checked_types)
+    }
+
+    pub fn get_tag_content_types(&self, tag_name: &String) -> Result<Vec<TypeId>, String> {
+        self.category.get_tag_content_types(tag_name)
     }
 }
 

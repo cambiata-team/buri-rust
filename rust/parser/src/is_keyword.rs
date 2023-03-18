@@ -1,5 +1,5 @@
 pub fn is_keyword(value: &str) -> bool {
-    matches!(value, "if" | "do" | "else" | "and" | "or")
+    matches!(value, "if" | "when" | "do" | "else" | "and" | "or")
 }
 
 #[cfg(test)]

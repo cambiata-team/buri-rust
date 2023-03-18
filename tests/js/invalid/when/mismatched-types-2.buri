@@ -1,0 +1,3 @@
+blue = #blue
+result = when blue is
+    #red do 1

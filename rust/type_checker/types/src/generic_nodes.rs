@@ -6,7 +6,8 @@ use typed_ast::{
     TypedIdentifierExpression, TypedIfExpression, TypedIntegerLiteralExpression,
     TypedListExpression, TypedRecordAssignmentExpression, TypedRecordExpression,
     TypedStringLiteralExpression, TypedTagExpression, TypedTypeDeclarationExpression,
-    TypedTypeIdentifierExpression, TypedUnaryOperatorExpression, TypedWhenExpression,
+    TypedTypeIdentifierExpression, TypedUnaryOperatorExpression, TypedWhenCase, TypedWhenCaseName,
+    TypedWhenExpression,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -39,6 +40,8 @@ pub type GenericTypeIdentifierExpression<'a> =
     TypedTypeIdentifierExpression<GenericSourcedType<'a>>;
 pub type GenericUnaryOperatorExpression<'a> = TypedUnaryOperatorExpression<GenericSourcedType<'a>>;
 pub type GenericWhenExpression<'a> = TypedWhenExpression<GenericSourcedType<'a>>;
+pub type GenericWhenCase<'a> = TypedWhenCase<GenericSourcedType<'a>>;
+pub type GenericWhenCaseName<'a> = TypedWhenCaseName;
 
 pub type GenericExpression<'a> = TypedExpression<GenericSourcedType<'a>>;
 

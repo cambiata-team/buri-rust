@@ -1,0 +1,4 @@
+x: #red | #green = #red
+result = when x is
+    #red do 1
+    _ do "hello"
