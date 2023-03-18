@@ -3,6 +3,9 @@
         "types": [
             "bun-types" // add Bun global
         ],
+        "module": "esnext",
+        "moduleResolution": "node",
+        "target": "es2017",
         "rootDir": ".",
         "allowJs": true,
         "paths": {

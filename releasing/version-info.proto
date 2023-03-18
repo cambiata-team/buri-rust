@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+message VersionInfo {
+    // The release tag for the version. For example: "nightly", "stable", "1.0.0".
+    string tag = 1;
+    // The build date in ISO format. For example: "2019-01-01T00:00:00Z".
+    string date_iso = 2;
+    // The git commit sha for the version.
+    string commit_sha = 3;
+    // All binaries in the current version.
+    repeated Binary binaries = 4;
+}
+
+message Binary {
+    // The name of the binary. For example: "mjolnir-aarch64-macos".
+    string name = 1;
+    // The sha256 hash of the binary.
+    string sha256 = 2;
+}
