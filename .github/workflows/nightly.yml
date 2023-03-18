@@ -1,0 +1,55 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: "0 8 * * *" # 8am UTC, 12am PST
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  nightly:
+    name: Publish nightly builds (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-dependencies
+        with:
+          path: |
+            node_modules
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            ~/.cargo/bin
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git
+            ./target
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('bun.lockb') }}-${{ hashFiles('Cargo.lock') }}
+
+      - name: Install bun
+        run: curl -fsSL https://bun.sh/install | bash
+      - name: Install bun dependencies
+        run: ~/.bun/bin/bun install
+
+      - name: Install bkg
+        run: curl -fsSL https://github.com/theseyan/bkg/raw/main/install.sh | sudo sh
+
+      - name: Build binaries
+        run: ~/.bun/bin/bun run ${{github.workspace}}/releasing/build.ts ${{github.workspace}}
+
+      - name: Create version info
+        run: ~/.bun/bin/bun run ${{github.workspace}}/releasing/version-info.js ${{github.workspace}}
+
+      - name: Update nightly release
+        uses: eine/tip@master
+        with:
+          tag: nightly
+          rm: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: .releases/*
