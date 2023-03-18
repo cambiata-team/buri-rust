@@ -118,9 +118,9 @@ pub enum TypedWhenCaseName {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypedWhenCase<T> {
     pub expression_type: T,
-    /// case_name == None indicates the default case
     pub case_name: TypedWhenCaseName,
     pub case_arguments: Vec<TypedIdentifierExpression<T>>,
+    pub case_expression: TypedExpression<T>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

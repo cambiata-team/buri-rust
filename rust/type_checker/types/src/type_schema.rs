@@ -294,9 +294,7 @@ impl TypeSchema {
                 }
                 Ok(())
             }
-            _ => Err(generate_backtrace_error(format!(
-                "NoConstraintForType: {tag_type_id}"
-            ))),
+            _ => Ok(()),
         }
     }
 

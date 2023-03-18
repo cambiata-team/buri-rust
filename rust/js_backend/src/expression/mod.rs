@@ -11,6 +11,7 @@ mod record_assignment;
 mod tag;
 mod unary_operator;
 mod variable_name_mangling;
+mod when;
 
 use crate::{
     identifier::print_identifier,
@@ -20,6 +21,8 @@ use typed_ast::ConcreteExpression;
 
 pub use declaration::print_declaration;
 pub use variable_name_mangling::mangle_variable_name;
+
+use self::when::print_when;
 
 fn print_expression(expression: &ConcreteExpression) -> String {
     match expression {
@@ -51,7 +54,7 @@ fn print_expression(expression: &ConcreteExpression) -> String {
         ConcreteExpression::TypeDeclaration(_) | ConcreteExpression::TypeIdentifier(_) => {
             String::new()
         }
-        ConcreteExpression::When(_) => todo!(),
+        ConcreteExpression::When(when) => print_when(when),
     }
 }
 
