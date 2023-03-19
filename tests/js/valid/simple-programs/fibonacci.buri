@@ -1,3 +1,5 @@
+--- This program's algorithm is intentionally inefficient to test language features.
+
 @export
 fib = (n) =>
     if n < 2 do

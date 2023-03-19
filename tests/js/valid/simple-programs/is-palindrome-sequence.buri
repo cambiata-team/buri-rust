@@ -1,0 +1,22 @@
+--- This program's algorithm is intentionally inefficient to test language features.
+
+trimListImpl = (originalList, originalListIndex, resultList) =>
+    if originalListIndex >= originalList:size() - 1 do
+        resultList
+    else when originalList:get(originalListIndex) is
+        #some(elementAtIndex) do trimListImpl(originalList, originalListIndex + 1, resultList:append(elementAtIndex))
+        #none do []
+
+--- Return a list with the first and last elements removed.
+trimList = (originalList) => trimListImpl(originalList, 1, [])
+
+@export
+isPalindromeSequence = (list) =>
+    when list:get(0) is
+        #none do #true
+        #some(firstElement) do when list:get(list:size() - 1) is
+            #some(lastElement) do if firstElement != lastElement do
+                #false
+            else
+                isPalindromeSequence(trimList(list))
+            #none do #true
