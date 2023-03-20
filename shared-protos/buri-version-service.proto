@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+enum HashingAlgorithm {
+    Unknown = 0;
+    SHA256 = 1;
+    SHA512 = 2;
+}
+
+enum HashEncodingFormat {
+    Unknown = 0;
+    Hex = 1;
+}
+
+enum OperatingSystem {
+    Unknown = 0;
+    Linux = 1;
+    MacOs = 2;
+}
+
+enum Architecture {
+    Unknown = 0;
+    Aarch64 = 1;
+    X86_64 = 2;
+}
+
+// next: 3
+message MachineInfo {
+    OperatingSystem operatingSystem = 1;
+    Architecture architecture = 2;
+}
+
+// next: 4
+message BuriVersionServiceRequest {
+    // The release tag for the version. For example: "nightly", "stable",
+    // "1.0.0", "nightly@2023-03-20"
+    string tag = 1;
+    // The hashing algorithms supported by the Buri CLI.
+    repeated HashingAlgorithm supportedHashingAlgorithm = 2;
+    // The machine info for the Buri CLI.
+    MachineInfo machineInfo = 3;
+}
+
+// next: 6
+message BuriVersionServiceResponse {
+    // The URL to download the binary from.
+    string url = 1;
+    // The hashing algorithm used to verify hash the binary. This will
+    // be determined by the version service to be the strongest hash supported
+    // by the Buri CLI.
+    HashingAlgorithm hashingAlgorithm = 2;
+    // The encoding format of the hash.
+    HashEncodingFormat hashEncodingFormat = 3;
+    // The hash of the binary.
+    string hash = 4;
+    // When this response expires (i.e., you should re-request the version
+    // info) if the current time is past this time.
+    uint64 expirationTimeUnixMs = 5;
+}
