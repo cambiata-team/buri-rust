@@ -10,5 +10,8 @@
     "files.exclude": {
         "target": true
     },
-    "rust-analyzer.checkOnSave.command": "cranky"
+    "rust-analyzer.checkOnSave.command": "cranky",
+    "cSpell.words": [
+        "canonicalize"
+    ]
 }
