@@ -1,2 +1,14 @@
+parse = (input) => #ok(#parserDocument)
+
+typeCheck = (input) => #ok(#genericDocument)
+
+typeResolve = (input) => #ok(#concreteDocument)
+
+writeJavaScript = (input) => "2"
+
 @export
-compile = (input) => #ok("2")
+compile = (input) =>
+    when parse(input) is
+        #ok(parsedTree) do when typeCheck(parsedTree) is
+            #ok(typeCheckedTree) do when typeResolve(typeCheckedTree) is
+                #ok(typeResolvedTree) do #ok(writeJavaScript(typeResolvedTree))
