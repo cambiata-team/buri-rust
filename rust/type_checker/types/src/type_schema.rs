@@ -1,3 +1,4 @@
+use crate::constraints::HasTagConstraint;
 use crate::{
     constraints::{Constraint, HasMethodConstraint},
     parsed_constraint::ParsedConstraint,
@@ -279,24 +280,33 @@ impl TypeSchema {
     ) -> Result<(), String> {
         let tag_type_canonical_id = self.get_canonical_id(tag_type_id);
         match self.constraints.get(&tag_type_canonical_id) {
-            Some(parsed_constraint) => {
-                let existing_contents = parsed_constraint.get_tag_content_types(tag_name)?;
-                if existing_contents.len() != tag_content_types.len() {
-                    return Err(generate_backtrace_error(format!(
-                        "TagContentsHaveDifferentLengths: {tag_name}"
-                    )));
+            Some(parsed_constraint) => match parsed_constraint.get_tag_content_types(tag_name) {
+                Ok(existing_contents) => {
+                    if existing_contents.len() != tag_content_types.len() {
+                        return Err(generate_backtrace_error(format!(
+                            "TagContentsHaveDifferentLengths: {tag_name}"
+                        )));
+                    }
+                    for (existing_content, new_content) in
+                        existing_contents.iter().zip(tag_content_types.iter())
+                    {
+                        self.set_equal_to_canonical_type(
+                            *existing_content,
+                            *new_content,
+                            &mut CheckedTypes::new(),
+                        )?;
+                    }
+                    Ok(())
                 }
-                for (existing_content, new_content) in
-                    existing_contents.iter().zip(tag_content_types.iter())
-                {
-                    self.set_equal_to_canonical_type(
-                        *existing_content,
-                        *new_content,
-                        &mut CheckedTypes::new(),
-                    )?;
-                }
-                Ok(())
-            }
+                Err(_) => self.add_constraint(
+                    tag_type_id,
+                    Constraint::HasTag(HasTagConstraint {
+                        tag_name: tag_name.clone(),
+                        tag_content_types: tag_content_types.clone(),
+                    }),
+                    &mut CheckedTypes::new(),
+                ),
+            },
             _ => Ok(()),
         }
     }

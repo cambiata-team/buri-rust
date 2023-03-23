@@ -10,3 +10,7 @@ blue: #red | #blue = #blue
 result3 = when blue is
     #red do 1
     _ do 2
+
+result4 = when #red is
+    #blue do 1
+    _ do 2
