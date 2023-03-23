@@ -1,0 +1,51 @@
+a = (x) =>
+    when x is
+        #none do
+            #none
+
+b = (x) =>
+    when x is
+        #none do #none
+
+c = (x) =>
+    when x is
+        #none do
+            #none
+        _ do
+            #some
+
+d = (x) =>
+    when x is
+        #none do #none
+        _ do #some
+
+e = (x) =>
+    when x is
+        #none do
+            #none
+        #some do #some
+
+f = (x) =>
+    when x is
+        #none do #none
+        #some do
+            #some
+
+g = (x) =>
+    when x is
+        #none do
+            #none
+        _ do #some
+
+h = (x) =>
+    when x is
+        #none do #none
+        _ do
+            #some
+
+i = (x) =>
+    when x is
+        #none do
+            314
+        #some do
+            "hello"

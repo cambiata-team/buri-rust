@@ -30,6 +30,7 @@ function getOutputPathFromCanonicalSourcePath(inputPath) {
 function validateCompilerResult(compilerResult) {
     if (!Array.isArray(compilerResult)) {
         console.log("Malformed Compiler Result. Compiler did not return an array.")
+        console.log(compilerResult)
         process.exit(1)
     }
     if (compilerResult.length !== 2) {
