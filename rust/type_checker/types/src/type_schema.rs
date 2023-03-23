@@ -196,7 +196,10 @@ impl TypeSchema {
         if !self.types_are_compatible(canonical_type_id, other_type_id, checked_types) {
             return Err(generate_backtrace_error("TypesAreNotCompatible".to_owned()));
         }
-        match self.constraints.remove(&other_type_id) {
+        match self
+            .constraints
+            .remove(&self.get_canonical_id(other_type_id))
+        {
             None => {}
             Some(merged_constraint) => match self.constraints.get_mut(&canonical_type_id) {
                 None => {
