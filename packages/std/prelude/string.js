@@ -42,8 +42,16 @@ Object.assign(String.prototype, {
         return new this.constructor(this.valueOf())
     },
 
+    /// Assume that the string is valid UTF-16.
+    /// Return the number of characters in the string.
     size() {
-        return this.length
+        let characterCount = 0
+        let jsIndex = 0
+        while (jsIndex < this.length) {
+            characterCount += 1
+            jsIndex += 1 + ((this.charCodeAt(jsIndex) & 0xF800) === 0xD800)
+        }
+        return characterCount
     },
 
     getCharCode(n) {
