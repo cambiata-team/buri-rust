@@ -24,10 +24,38 @@ parseInteger = (string, index) =>
 
 parse = (input) =>
     when parseInteger(input, 0) is
-        #some(integer) do #ok(#parserDocument(#integer(integer)))
+        #some(integer) do #ok(#parserDocument({
+            typeDeclarations: [],
+            variableDeclarations: [#parserDeclaration({
+                name: "x",
+                value: #parserInteger(integer),
+                isExported: #false
+            })]
+        }))
         #none do #error("Unable to parse input")
 
-typeCheck = (input) => #ok(#genericDocument)
+typeCheckInteger = (integer) => #ok(#genericInteger(integer))
+
+typeCheckDeclaration = (declaration) =>
+    when declaration.value is
+        #parserInteger(integer) do when typeCheckInteger(integer) is
+            #ok(genericInteger) do #ok(#genericDeclaration({
+                name: declaration.name,
+                value: genericInteger,
+                isExported: declaration.isExported
+            }))
+
+loopTypeCheckDeclaration = (declarations, index, results) =>
+    when declarations:get(index) is
+        #some(declaration) do when typeCheckDeclaration(declaration) is
+            #ok(result) do loopTypeCheckDeclaration(declarations, index + 1, results:append(result))
+            #error(message) do #error(message)
+        #none do #ok(results)
+
+typeCheck = (parserDocument) =>
+    typeCheckedTypeDeclarations = []
+    typeCheckedVariableDeclarations = loopTypeCheckDeclaration(parserDocument.variableDeclarations, 0, [])
+    #ok(9)
 
 typeResolve = (input) => #ok(#concreteDocument)
 
