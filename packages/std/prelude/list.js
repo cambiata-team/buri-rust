@@ -25,4 +25,18 @@ Object.assign(Array.prototype, {
     size() {
         return this.length
     },
+
+    mapWithResult(func) {
+        let results = []
+        for (let i = 0; i < this.length; i++) {
+            let result = func(this[i])
+            if (result[0] === "error") {
+                return result
+            }
+            else {
+                results.push(result[1])
+            }
+        }
+        return ["ok", results]
+    }
 })

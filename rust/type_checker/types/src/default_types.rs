@@ -28,6 +28,35 @@ pub fn create_list_default_methods(
                 arguments: vec![],
                 return_type: INT_TYPE_ID,
             },
+            let map_return_type = schema.make_id();
+            Method {
+                name: "map",
+                arguments: vec![create_function_type(
+                    list_contents_type,
+                    map_return_type,
+                    schema,
+                )?],
+                return_type: create_list_type(map_return_type, schema)?,
+            },
+            let map_with_result_error_type = schema.make_id();
+            let map_with_result_return_type = create_result_type(
+                map_return_type,
+                map_with_result_error_type,
+                schema,
+            )?;
+            Method {
+                name: "mapWithResult",
+                arguments: vec![create_function_type(
+                    list_contents_type,
+                    map_with_result_return_type,
+                    schema,
+                )?],
+                return_type: create_result_type(
+                    create_list_type(map_return_type, schema)?,
+                    map_with_result_error_type,
+                    schema,
+                )?,
+            },
         ],
         schema,
     )
@@ -90,6 +119,16 @@ fn create_parsed_constraint_from_methods(
     Ok((type_id, method_constraints))
 }
 
+fn create_list_type(content_type_id: TypeId, schema: &mut TypeSchema) -> Result<TypeId, String> {
+    let type_id = schema.make_id();
+    schema.add_constraint(
+        type_id,
+        Constraint::ListOfType(content_type_id),
+        &mut CheckedTypes::new(),
+    )?;
+    Ok(type_id)
+}
+
 fn create_option_type(content_type_id: TypeId, schema: &mut TypeSchema) -> Result<TypeId, String> {
     let type_id = schema.make_id();
     schema.add_constraint(
@@ -99,6 +138,42 @@ fn create_option_type(content_type_id: TypeId, schema: &mut TypeSchema) -> Resul
                 ("some".to_string(), vec![content_type_id]),
                 ("none".to_string(), vec![]),
             ]),
+        }),
+        &mut CheckedTypes::new(),
+    )?;
+    Ok(type_id)
+}
+
+fn create_result_type(
+    content_type_id: TypeId,
+    error_type_id: TypeId,
+    schema: &mut TypeSchema,
+) -> Result<TypeId, String> {
+    let type_id = schema.make_id();
+    schema.add_constraint(
+        type_id,
+        Constraint::TagAtMost(TagAtMostConstraint {
+            tags: HashMap::from([
+                ("ok".to_string(), vec![content_type_id]),
+                ("error".to_string(), vec![error_type_id]),
+            ]),
+        }),
+        &mut CheckedTypes::new(),
+    )?;
+    Ok(type_id)
+}
+
+fn create_function_type(
+    argument_type_id: TypeId,
+    return_type_id: TypeId,
+    schema: &mut TypeSchema,
+) -> Result<TypeId, String> {
+    let type_id = schema.make_id();
+    schema.add_constraint(
+        type_id,
+        Constraint::HasFunctionShape(HasFunctionShape {
+            argument_types: vec![argument_type_id],
+            return_type: return_type_id,
         }),
         &mut CheckedTypes::new(),
     )?;
