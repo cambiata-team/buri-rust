@@ -37,7 +37,17 @@ Object.assign(String.prototype, {
     },
 
     size() {
-        return this.length
+        let characterCount = 0
+        let jsIndex = 0
+        while (jsIndex < this.length) {
+            characterCount += 1
+            if (isUtf16SurrogateAtIndex(this, jsIndex)) {
+                jsIndex += 2
+            } else {
+                jsIndex += 1
+            }
+        }
+        return characterCount
     },
 
     getCharCode(n) {
