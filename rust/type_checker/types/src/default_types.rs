@@ -37,11 +37,18 @@ pub fn create_string_default_methods(
     schema: &mut TypeSchema,
 ) -> Result<(TypeId, Vec<HasMethodConstraint>), String> {
     create_parsed_constraint_from_methods(
-        vec![Method {
-            name: "size",
-            arguments: vec![],
-            return_type: INT_TYPE_ID,
-        }],
+        vec![
+            Method {
+                name: "size",
+                arguments: vec![],
+                return_type: INT_TYPE_ID,
+            },
+            Method {
+                name: "getCharCode",
+                arguments: vec![INT_TYPE_ID],
+                return_type: create_option_type(INT_TYPE_ID, schema)?,
+            },
+        ],
         schema,
     )
 }
