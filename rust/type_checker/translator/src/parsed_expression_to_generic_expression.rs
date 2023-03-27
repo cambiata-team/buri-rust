@@ -1230,7 +1230,7 @@ mod test {
     use parser::parse_test_expression;
     use typed_ast::ConcreteType;
 
-    const INITIAL_CONSTRAINT_COUNT: usize = 2;
+    const INITIAL_CONSTRAINT_COUNT: usize = 4;
 
     #[test]
     fn binary_operator_increments_id_counter_by_one_more_than_total_number_of_ids_in_children() {
@@ -1258,7 +1258,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 15
+            INITIAL_CONSTRAINT_COUNT + 25
         );
     }
 
@@ -1318,7 +1318,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 9
+            INITIAL_CONSTRAINT_COUNT + 11
         );
     }
 
@@ -1331,7 +1331,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 9
+            INITIAL_CONSTRAINT_COUNT + 11
         );
     }
 
@@ -1767,7 +1767,7 @@ mod test {
         let mut schema = TypeSchema::new();
         let expression = parse_test_expression("\"hello\"");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
-        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 5);
+        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 7);
     }
 
     #[test]
@@ -1777,7 +1777,7 @@ mod test {
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
             schema.get_total_canonical_ids(),
-            INITIAL_CONSTRAINT_COUNT + 5
+            INITIAL_CONSTRAINT_COUNT + 7
         );
     }
 

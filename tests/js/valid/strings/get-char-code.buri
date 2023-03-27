@@ -1,0 +1,19 @@
+hello = "hello"
+
+@export
+codeOfLowercaseH = hello:getCharCode(0)
+
+@export
+codeOfLowercaseE = hello:getCharCode(1)
+
+@export
+codeOfLowercaseO = hello:getCharCode(-1)
+
+@export
+codeOfLowercaseL = hello:getCharCode(-2)
+
+@export
+codeOfIndexBefore = hello:getCharCode(-50)
+
+@export
+codeOfIndexAfter = hello:getCharCode(50)
