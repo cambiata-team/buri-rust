@@ -1,4 +1,31 @@
-parse = (input) => #ok(#parserDocument)
+isDigitCharacter = (string, index) =>
+    when string:getCharCode(index) is
+        #some(codePoint) do
+            if codePoint >= 48 and codePoint <= 57 do
+                #some(codePoint - 48)
+            else
+                #none
+        #none do
+            #none
+
+parseIntegerContinuation = (string, index, integerValueSoFar) =>
+    when isDigitCharacter(string, index) is
+        #some(digit) do
+            parseIntegerContinuation(string, index + 1, (integerValueSoFar * 10) + digit)
+        #none do
+            integerValueSoFar
+
+parseInteger = (string, index) =>
+    when isDigitCharacter(string, index) is
+        #some(digit) do
+            #some(parseIntegerContinuation(string, index + 1, digit))
+        #none do
+            #none
+
+parse = (input) =>
+    when parseInteger(input, 0) is
+        #some(integer) do #ok(#parserDocument(#integer(integer)))
+        #none do #error("Unable to parse input")
 
 typeCheck = (input) => #ok(#genericDocument)
 
@@ -9,6 +36,7 @@ writeJavaScript = (input) => "2"
 @export
 compile = (input) =>
     when parse(input) is
+        #error(message) do #error(message)
         #ok(parsedTree) do when typeCheck(parsedTree) is
             #ok(typeCheckedTree) do when typeResolve(typeCheckedTree) is
                 #ok(typeResolvedTree) do #ok(writeJavaScript(typeResolvedTree))

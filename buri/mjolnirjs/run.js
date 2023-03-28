@@ -48,6 +48,10 @@ function validateCompilerResult(compilerResult) {
         console.log("Malformed Compiler Result. Compiler did not return \"ok\" or \"error\" as the first element of the array.")
         process.exit(1)
     }
+    if (compilerResult[0] === "error") {
+        console.log("Compiler Error: " + compilerResult[1])
+        process.exit(1)
+    }
     return compilerResult
 }
 
