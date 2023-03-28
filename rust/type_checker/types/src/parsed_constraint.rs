@@ -252,7 +252,11 @@ impl CategoryConstraints {
             Self::TagGroup(tag_group) => match tag_group {
                 TagGroupConstraints::ClosedTags(tags) | TagGroupConstraints::OpenTags(tags) => {
                     tags.get(tag_name).map_or_else(
-                        || Err(format!("Tag {tag_name} not found")),
+                        || {
+                            Err(generate_backtrace_error(format!(
+                                "Tag #{tag_name} not found"
+                            )))
+                        },
                         |types| Ok(types.clone()),
                     )
                 }

@@ -18,14 +18,7 @@ pub fn compile_buri_file(contents: &str) -> Result<String, String> {
             return Err(message);
         }
     };
-    let (generic_document, type_schema) = match apply_constraints(parsed_ast) {
-        Ok(items) => items,
-        Err(error) => {
-            let mut message = "Type Checking Error: ".to_owned();
-            message.push_str(error.as_str());
-            return Err(message);
-        }
-    };
+    let (generic_document, type_schema) = apply_constraints(parsed_ast)?;
     let concrete_document = resolve_concrete_types(type_schema, generic_document);
     Ok(print_js_document(&concrete_document))
 }
