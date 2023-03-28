@@ -614,15 +614,15 @@ fn translate_if<'a>(
     schema.scope.start_sub_scope();
     let translated_false_path = if let Some(false_path) = node.value.path_if_false {
         schema.set_equal_to_canonical_type(
-            get_generic_type_id(&translated_true_path),
             type_id,
+            get_generic_type_id(&translated_true_path),
             &mut CheckedTypes::new(),
         )?;
         let translated_false_path =
             translate_parsed_expression_to_generic_expression(schema, *false_path)?;
         schema.set_equal_to_canonical_type(
-            get_generic_type_id(&translated_false_path),
             type_id,
+            get_generic_type_id(&translated_false_path),
             &mut CheckedTypes::new(),
         )?;
         Some(translated_false_path)
