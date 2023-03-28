@@ -17,12 +17,10 @@ fn stringify_path(path: &Path) -> Result<String, String> {
 /// Verify that a string encodes a valid file path with a specific extension.
 fn verify_path(path: &Path, required_extension: &str) -> Result<(), String> {
     match path.extension() {
-        None => {
-            return Err(format!(
-                "No extension provided for {}",
-                stringify_path(path)?
-            ))
-        }
+        None => Err(format!(
+            "No extension provided for {}",
+            stringify_path(path)?
+        )),
         Some(extension) => {
             if extension != OsStr::new(required_extension) {
                 return Err(format!(
