@@ -217,4 +217,13 @@ mod test {
         assert_eq!(remainder, "");
         assert_eq!(lines.value.len(), 2);
     }
+
+    #[test]
+    fn comment_can_appear_in_block() {
+        let input = ParserInput::new("    x = 1 + 1\n    -- this is a comment\n    x");
+        let result = block(ExpressionContext::new().increment_indentation())(input);
+        let (remainder, lines) = result.unwrap();
+        assert_eq!(remainder, "");
+        assert_eq!(lines.value.len(), 2);
+    }
 }

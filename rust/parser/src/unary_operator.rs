@@ -9,7 +9,7 @@ use ast::{
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    combinator::{consumed, map, opt, verify},
+    combinator::{consumed, map, not, opt, peek, verify},
     sequence::preceded,
 };
 
@@ -49,7 +49,7 @@ pub fn unary_operator_expression(
             ),
             map(
                 preceded(
-                    tag("-"),
+                    preceded(tag("-"), not(peek(tag("-")))),
                     preceded(
                         opt(intra_expression_whitespace(context)),
                         basic_expression(context),
@@ -149,5 +149,15 @@ mod test {
         let (remainder, consumed) = result.unwrap();
         assert_eq!(remainder, "");
         assert!(matches!(consumed.value.symbol, UnaryOperatorSymbol::Not));
+    }
+
+    #[test]
+    fn comment_symbol_is_not_unary_operator() {
+        let input = ParserInput::new("--1");
+        let result = unary_operator_expression(
+            ExpressionContext::new().allow_newlines_in_expressions(),
+            input,
+        );
+        assert!(result.is_err());
     }
 }

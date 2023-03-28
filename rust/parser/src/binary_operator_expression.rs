@@ -11,7 +11,7 @@ use nom::sequence::delimited;
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    combinator::{consumed, map, opt, value},
+    combinator::{consumed, map, not, opt, peek, value},
     multi::{many0, separated_list0},
     sequence::{preceded, tuple},
 };
@@ -70,7 +70,10 @@ fn binary_operator_segment_not_requiring_spaces<'a>(
                 value(BinaryOperatorSymbol::LessThan, tag("<")),
                 value(BinaryOperatorSymbol::GreaterThan, tag(">")),
                 value(BinaryOperatorSymbol::Add, tag("+")),
-                value(BinaryOperatorSymbol::Subtract, tag("-")),
+                value(
+                    BinaryOperatorSymbol::Subtract,
+                    preceded(tag("-"), not(peek(tag("-")))),
+                ),
                 value(BinaryOperatorSymbol::Multiply, tag("*")),
                 value(BinaryOperatorSymbol::Divide, tag("/")),
                 value(BinaryOperatorSymbol::Modulus, tag("%")),
@@ -1061,5 +1064,15 @@ mod test {
                 ..
             })
         ));
+    }
+
+    #[test]
+    fn comment_symbol_is_not_binary_operator() {
+        let input = ParserInput::new("1--2");
+        let result = binary_operator_expression(
+            ExpressionContext::new().allow_newlines_in_expressions(),
+        )(input);
+        let (remainder, _) = result.unwrap();
+        assert_eq!(remainder, "--2");
     }
 }
