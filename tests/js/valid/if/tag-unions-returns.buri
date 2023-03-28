@@ -1,0 +1,8 @@
+result = if #true do
+    #some(1)
+else
+    #none
+
+result2 = when result is
+    #some(num) do 1
+    #none do 2
