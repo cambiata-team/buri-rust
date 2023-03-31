@@ -12,7 +12,7 @@ pub fn tag_identifier(input: ParserInput) -> IResult<TagIdentifierNode> {
         consumed(preceded(
             char('#'),
             verify(
-                take_while(|character: char| character.is_alphanumeric() || character == '_'),
+                take_while(|character: char| character.is_ascii_alphanumeric() || character == '_'),
                 |name: &ParserInput| !name.value().is_empty(),
             ),
         )),
@@ -82,5 +82,12 @@ mod test {
         let (remainder, parsed) = tag_identifier(input).unwrap();
         assert!(!remainder.is_empty());
         assert_eq!(parsed.value, "hello".to_string());
+    }
+
+    #[test]
+    fn tag_identifier_may_not_contain_non_ascii_characters() {
+        let input = ParserInput::new("#π");
+        let result = tag_identifier(input);
+        assert!(result.is_err());
     }
 }

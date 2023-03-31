@@ -15,7 +15,7 @@ pub fn identifier(input: ParserInput) -> IResult<IdentifierNode> {
             alt((
                 recognize(tuple((
                     many0(tag("_")),
-                    take_while(|char: char| char == '_' || char.is_alphanumeric()),
+                    take_while(|char: char| char == '_' || char.is_ascii_alphanumeric()),
                 ))),
                 recognize(many1(tag("_"))),
             )),
@@ -27,14 +27,17 @@ pub fn identifier(input: ParserInput) -> IResult<IdentifierNode> {
                     return false;
                 }
                 if !consumed.value().starts_with('_') {
-                    return consumed.chars().next().map_or(false, char::is_lowercase);
+                    return consumed
+                        .chars()
+                        .next()
+                        .map_or(false, |character| character.is_ascii_lowercase());
                 }
                 consumed
                     .value()
                     .trim_start_matches('_')
                     .chars()
                     .next()
-                    .map_or(true, |char| !char.is_uppercase())
+                    .map_or(true, |character| !character.is_ascii_uppercase())
             },
         ),
         |consumed: ParserInput| ParsedNode {
@@ -168,6 +171,13 @@ mod test {
     #[test]
     fn keyword_is_not_identifier() {
         let input = ParserInput::new("else");
+        let result = identifier(input);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn identifier_may_not_contain_non_ascii_characters() {
+        let input = ParserInput::new("π");
         let result = identifier(input);
         assert!(result.is_err());
     }

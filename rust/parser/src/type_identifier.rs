@@ -14,9 +14,9 @@ pub fn type_identifier(input: ParserInput) -> IResult<TypeIdentifierNode> {
                     .value()
                     .chars()
                     .next()
-                    .map_or(false, char::is_uppercase)
+                    .map_or(false, |character| character.is_ascii_uppercase())
             }),
-            take_while(|char: char| char == '_' || char.is_alphanumeric()),
+            take_while(|char: char| char == '_' || char.is_ascii_alphanumeric()),
         ))),
         |consumed: ParserInput| ParsedNode {
             value: consumed.value().to_string(),
@@ -76,5 +76,12 @@ mod test {
         let input = ParserInput::new("Hello_World");
         let (_, parsed_node) = type_identifier(input).unwrap();
         assert_eq!(parsed_node.value, "Hello_World");
+    }
+
+    #[test]
+    fn type_identifier_may_not_contain_non_ascii_characters() {
+        let input = ParserInput::new("Σ");
+        let result = type_identifier(input);
+        assert!(result.is_err());
     }
 }
