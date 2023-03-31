@@ -2,7 +2,7 @@ use ast::TopLevelDeclaration;
 use type_checker_types::{
     generic_nodes::{
         GenericBinaryOperatorExpression, GenericBlockExpression, GenericBooleanExpression,
-        GenericDeclarationExpression, GenericDocument, GenericExpression,
+        GenericDeclarationExpression, GenericDocument, GenericEnumExpression, GenericExpression,
         GenericFunctionExpression, GenericIdentifierExpression, GenericIfExpression,
         GenericIntegerLiteralExpression, GenericListExpression, GenericRecordAssignmentExpression,
         GenericRecordExpression, GenericStringLiteralExpression, GenericTagExpression,
@@ -13,7 +13,7 @@ use type_checker_types::{
 };
 use typed_ast::{
     ConcreteBinaryOperatorExpression, ConcreteBlockExpression, ConcreteBooleanExpression,
-    ConcreteDeclarationExpression, ConcreteDocument, ConcreteExpression,
+    ConcreteDeclarationExpression, ConcreteDocument, ConcreteEnumExpression, ConcreteExpression,
     ConcreteFunctionExpression, ConcreteIdentifierExpression, ConcreteIfExpression,
     ConcreteIntegerLiteralExpression, ConcreteListExpression, ConcreteRecordAssignmentExpression,
     ConcreteRecordExpression, ConcreteStringLiteralExpression, ConcreteTagExpression, ConcreteType,
@@ -246,6 +246,23 @@ fn resolve_tag(
     }))
 }
 
+fn resolve_enum(
+    simplified_schema: &mut TypeSchema,
+    generic_enum: GenericEnumExpression,
+) -> ConcreteExpression {
+    let expression_type =
+        resolve_generic_type(simplified_schema, generic_enum.expression_type.type_id);
+    ConcreteExpression::Enum(Box::new(ConcreteEnumExpression {
+        expression_type,
+        name: generic_enum.name,
+        payload: generic_enum
+            .payload
+            .into_iter()
+            .map(|x| resolve_expression(simplified_schema, x))
+            .collect(),
+    }))
+}
+
 fn resolve_unary_operator(
     simplified_schema: &mut TypeSchema,
     generic_unary_operator: GenericUnaryOperatorExpression,
@@ -329,6 +346,9 @@ fn resolve_expression(
             resolve_string_literal(simplified_schema, *generic_string_literal)
         }
         GenericExpression::Tag(tag) => resolve_tag(simplified_schema, *tag),
+        GenericExpression::Enum(enum_expression) => {
+            resolve_enum(simplified_schema, *enum_expression)
+        }
         GenericExpression::UnaryOperator(generic_unary_operator) => {
             resolve_unary_operator(simplified_schema, *generic_unary_operator)
         }
