@@ -3,6 +3,15 @@ use std::collections::HashMap;
 use typed_ast::PrimitiveType;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+/// Constrain that a generic type is an enum with a specific
+/// set of variants, each of which has a specific set of types.
+pub struct EnumConstraint {
+    /// The keys are the names of the variants in the enum.
+    /// The values are the types of the variant payloads.
+    pub variants: HashMap<String, Vec<TypeId>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// Constrain that a generic type is a tag union
 /// with a tag of given name whose payload has particular types.
 pub struct HasTagConstraint {
@@ -52,6 +61,8 @@ pub enum Constraint {
     EqualToPrimitive(PrimitiveType),
     /// Constrain that a generic type is a list whose contents have a particular type.
     ListOfType(TypeId),
+    /// Constrain that a generic type is an enum with a given set of variants.
+    Enum(EnumConstraint),
     /// Constrain that a generic type is a tag union with at least a given set of tags.
     HasTag(HasTagConstraint),
     /// Constrain that a generic type is a tag union with at most a given set of tags.

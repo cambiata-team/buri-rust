@@ -41,6 +41,9 @@ fn print_expression(expression: &ConcreteExpression) -> String {
             unary_operator::print_unary_operator(operator)
         }
         ConcreteExpression::Tag(tag) => tag::print_tag(tag),
+        ConcreteExpression::Enum(_) => {
+            unimplemented!("Unable to print enum expression")
+        }
         ConcreteExpression::If(if_expression) => if_expression::print_if_expression(if_expression),
         ConcreteExpression::Block(block) => block::print_block(block),
         ConcreteExpression::Function(function) => {

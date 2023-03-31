@@ -90,6 +90,13 @@ pub struct TypedTagExpression<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypedEnumExpression<T> {
+    pub expression_type: T,
+    pub name: String,
+    pub contents: Vec<TypedExpression<T>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypedTypeDeclarationExpression<T> {
     pub declaration_type: T,
     pub expression_type: T,
@@ -146,6 +153,7 @@ pub enum TypedExpression<T> {
     RecordAssignment(Box<TypedRecordAssignmentExpression<T>>),
     StringLiteral(Box<TypedStringLiteralExpression<T>>),
     Tag(Box<TypedTagExpression<T>>),
+    Enum(Box<TypedEnumExpression<T>>),
     TypeDeclaration(Box<TypedTypeDeclarationExpression<T>>),
     TypeIdentifier(Box<TypedTypeIdentifierExpression<T>>),
     UnaryOperator(Box<TypedUnaryOperatorExpression<T>>),

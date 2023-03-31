@@ -24,6 +24,12 @@ pub struct ConcreteTagUnionType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConcreteEnumType {
+    /// Map the name of a variant to an array of the types of its payload types.
+    pub variants: HashMap<String, Vec<ConcreteType>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConcreteListType {
     pub element_type: ConcreteType,
 }
@@ -39,6 +45,7 @@ pub enum ConcreteType {
     Primitive(PrimitiveType),
     Function(Box<ConcreteFunctionType>),
     TagUnion(Box<ConcreteTagUnionType>),
+    Enum(Box<ConcreteEnumType>),
     List(Box<ConcreteListType>),
     Record(Box<ConcreteRecordType>),
 }
