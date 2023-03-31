@@ -1,6 +1,6 @@
 use ast::{
-    BinaryOperatorNode, BinaryOperatorSymbol, BlockNode, DeclarationNode, Expression, FunctionNode,
-    FunctionTypeNode, IdentifierNode, IfNode, IntegerNode, ListNode, ListTypeNode,
+    BinaryOperatorNode, BinaryOperatorSymbol, BlockNode, DeclarationNode, EnumTypeNode, Expression,
+    FunctionNode, FunctionTypeNode, IdentifierNode, IfNode, IntegerNode, ListNode, ListTypeNode,
     RecordAssignmentNode, RecordNode, RecordTypeNode, StringLiteralNode, TagGroupTypeNode, TagNode,
     TypeDeclarationNode, TypeExpression, TypeIdentifierNode, UnaryOperatorNode,
     UnaryOperatorSymbol, WhenNode,
@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use type_checker_errors::generate_backtrace_error;
 use type_checker_types::{
     constraints::{
-        Constraint, HasExactFieldsConstraint, HasFieldConstraint, HasFunctionShape,
+        Constraint, EnumConstraint, HasExactFieldsConstraint, HasFieldConstraint, HasFunctionShape,
         HasTagConstraint, TagAtMostConstraint,
     },
     generic_nodes::{
@@ -1038,12 +1038,40 @@ fn translate_tag_group_type(
     Ok(type_id)
 }
 
+fn translate_enum_type(
+    schema: &mut TypeSchema,
+    expression: &EnumTypeNode,
+) -> Result<TypeId, String> {
+    let type_id = schema.make_id();
+
+    let mut variants: HashMap<String, Vec<TypeId>> = HashMap::new();
+    for variant in &expression.value.variants {
+        let variant_name = variant.value.variant_name.clone();
+        if variants.contains_key(&variant_name) {
+            return Err(generate_backtrace_error(
+                "DuplicateVariantNamesInEnum".to_owned(),
+            ));
+        }
+        let mut content_item_ids = vec![];
+        for content_item in &variant.value.payload {
+            let content_item_id = translate_parsed_type_expression(schema, content_item)?;
+            content_item_ids.push(content_item_id);
+        }
+        variants.insert(variant_name, content_item_ids);
+    }
+    schema.add_constraint(
+        type_id,
+        Constraint::Enum(EnumConstraint { variants }),
+        &mut CheckedTypes::new(),
+    )?;
+    Ok(type_id)
+}
+
 fn translate_parsed_type_expression(
     schema: &mut TypeSchema,
     expression: &TypeExpression,
 ) -> Result<TypeId, String> {
     match expression {
-        TypeExpression::Enum(_) => unimplemented!("Enum types are not yet supported"),
         TypeExpression::Function(function) => translate_function_type(schema, function),
         TypeExpression::Identifier(identifier) => {
             translate_type_identifier_type(schema, identifier)
@@ -1051,6 +1079,7 @@ fn translate_parsed_type_expression(
         TypeExpression::List(list) => translate_list_type(schema, list),
         TypeExpression::Record(record) => translate_record_type(schema, record),
         TypeExpression::TagGroup(tags) => translate_tag_group_type(schema, tags),
+        TypeExpression::Enum(enum_type) => translate_enum_type(schema, enum_type),
     }
 }
 
