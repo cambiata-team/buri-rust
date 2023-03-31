@@ -1180,6 +1180,7 @@ pub fn translate_parsed_expression_to_generic_expression<'a>(
         Expression::Declaration(node) => translate_declaration(schema, node)
             .map(Box::new)
             .map(GenericExpression::Declaration),
+        Expression::EnumLiteral(_) => unimplemented!("EnumLiteral in Type Checker"),
         Expression::Function(node) => translate_function(schema, node, None)
             .map(Box::new)
             .map(GenericExpression::Function),

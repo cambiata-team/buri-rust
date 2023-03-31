@@ -1,6 +1,6 @@
 use crate::{
-    function::function, identifier::identifier, integer::integer, list::list,
-    parentheses::parentheses, record::record, record_assignment::record_assignment,
+    enum_literal::enum_literal, function::function, identifier::identifier, integer::integer,
+    list::list, parentheses::parentheses, record::record, record_assignment::record_assignment,
     string_literal::string_literal, tag::tag, type_declaration::type_declaration,
     unary_operator::unary_operator_expression, variable_declaration::variable_declaration,
     ExpressionContext,
@@ -26,6 +26,7 @@ pub fn basic_expression<'a>(
         map(identifier, Expression::Identifier),
         map(integer, Expression::Integer),
         map(string_literal, Expression::StringLiteral),
+        map(enum_literal(context), Expression::EnumLiteral),
         map(list, Expression::List),
         map(record, Expression::Record),
         map(tag, Expression::Tag),

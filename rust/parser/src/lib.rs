@@ -3,6 +3,7 @@ mod binary_operator_expression;
 mod binary_operator_or_if;
 mod block;
 mod document;
+mod enum_literal;
 mod expression_context;
 mod file;
 mod function;
