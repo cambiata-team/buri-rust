@@ -1,0 +1,2 @@
+Color = .red | .green | .blue
+myColor = Color.red
