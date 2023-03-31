@@ -96,6 +96,13 @@ impl ConcreteType {
     }
 
     #[must_use]
+    pub fn default_enum_for_test() -> Self {
+        Self::Enum(Box::new(ConcreteEnumType {
+            variants: HashMap::new(),
+        }))
+    }
+
+    #[must_use]
     pub fn default_function_for_test() -> Self {
         Self::Function(Box::new(ConcreteFunctionType {
             argument_types: vec![],
