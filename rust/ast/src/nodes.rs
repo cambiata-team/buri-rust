@@ -72,6 +72,17 @@ pub struct EnumLiteralValue<'a> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnumVariantTypeValue<'a> {
+    pub variant_name: String,
+    pub payload: Vec<TypeExpression<'a>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnumTypeValue<'a> {
+    pub variants: Vec<EnumVariantTypeNode<'a>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionValue<'a> {
     pub arguments: Vec<FunctionArgumentNode<'a>>,
     pub return_type: Option<TypeIdentifierNode<'a>>,
@@ -204,6 +215,8 @@ pub type BinaryOperatorNode<'a> = ParsedNode<'a, BinaryOperatorValue<'a>>;
 pub type BlockNode<'a> = ParsedNode<'a, Vec<Expression<'a>>>;
 pub type DocumentNode<'a> = ParsedNode<'a, DocumentValue<'a>>;
 pub type EnumLiteralNode<'a> = ParsedNode<'a, EnumLiteralValue<'a>>;
+pub type EnumVariantTypeNode<'a> = ParsedNode<'a, EnumVariantTypeValue<'a>>;
+pub type EnumTypeNode<'a> = ParsedNode<'a, EnumTypeValue<'a>>;
 pub type FunctionNode<'a> = ParsedNode<'a, FunctionValue<'a>>;
 pub type FunctionApplicationArgumentsNode<'a> =
     ParsedNode<'a, FunctionApplicationArgumentsValue<'a>>;
@@ -253,6 +266,7 @@ pub enum Expression<'a> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeExpression<'a> {
+    Enum(EnumTypeNode<'a>),
     Function(FunctionTypeNode<'a>),
     Identifier(TypeIdentifierNode<'a>),
     List(Box<ListTypeNode<'a>>),

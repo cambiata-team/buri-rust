@@ -1043,6 +1043,7 @@ fn translate_parsed_type_expression(
     expression: &TypeExpression,
 ) -> Result<TypeId, String> {
     match expression {
+        TypeExpression::Enum(_) => unimplemented!("Enum types are not yet supported"),
         TypeExpression::Function(function) => translate_function_type(schema, function),
         TypeExpression::Identifier(identifier) => {
             translate_type_identifier_type(schema, identifier)

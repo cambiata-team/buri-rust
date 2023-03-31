@@ -1,7 +1,8 @@
+use crate::enum_type::enum_type;
 use crate::tag_group_type::tag_group_type;
 use crate::{
     function_type::function_type, list_type::list_type, record_type::record_type,
-    type_identifier::type_identifier,
+    type_identifier::type_identifier, ExpressionContext,
 };
 use ast::TypeExpression;
 use ast::{IResult, ParserInput};
@@ -11,6 +12,7 @@ pub fn type_expression(input: ParserInput) -> IResult<TypeExpression> {
     alt((
         map(type_identifier, TypeExpression::Identifier),
         map(list_type, |list| TypeExpression::List(Box::new(list))),
+        map(enum_type(ExpressionContext::new()), TypeExpression::Enum),
         map(tag_group_type, TypeExpression::TagGroup),
         map(record_type, TypeExpression::Record),
         map(function_type, TypeExpression::Function),

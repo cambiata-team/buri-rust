@@ -4,6 +4,7 @@ mod binary_operator_or_if;
 mod block;
 mod document;
 mod enum_literal;
+mod enum_type;
 mod expression_context;
 mod file;
 mod function;

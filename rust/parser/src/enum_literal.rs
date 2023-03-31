@@ -11,7 +11,7 @@ use nom::{
     sequence::{delimited, tuple},
 };
 
-fn variant_name(input: ParserInput) -> IResult<ParserInput> {
+pub fn variant_name(input: ParserInput) -> IResult<ParserInput> {
     verify(
         recognize(take_while1(|character: char| {
             character.is_ascii_alphanumeric() || character == '_'
