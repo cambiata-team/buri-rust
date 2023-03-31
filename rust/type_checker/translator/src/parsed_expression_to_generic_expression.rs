@@ -1,24 +1,24 @@
 use ast::{
-    BinaryOperatorNode, BinaryOperatorSymbol, BlockNode, DeclarationNode, EnumTypeNode, Expression,
-    FunctionNode, FunctionTypeNode, IdentifierNode, IfNode, IntegerNode, ListNode, ListTypeNode,
-    RecordAssignmentNode, RecordNode, RecordTypeNode, StringLiteralNode, TagGroupTypeNode, TagNode,
-    TypeDeclarationNode, TypeExpression, TypeIdentifierNode, UnaryOperatorNode,
-    UnaryOperatorSymbol, WhenNode,
+    BinaryOperatorNode, BinaryOperatorSymbol, BlockNode, DeclarationNode, EnumLiteralNode,
+    EnumTypeNode, Expression, FunctionNode, FunctionTypeNode, IdentifierNode, IfNode, IntegerNode,
+    ListNode, ListTypeNode, RecordAssignmentNode, RecordNode, RecordTypeNode, StringLiteralNode,
+    TagGroupTypeNode, TagNode, TypeDeclarationNode, TypeExpression, TypeIdentifierNode,
+    UnaryOperatorNode, UnaryOperatorSymbol, WhenNode,
 };
 use std::collections::HashMap;
 use type_checker_errors::generate_backtrace_error;
 use type_checker_types::{
     constraints::{
-        Constraint, EnumConstraint, HasExactFieldsConstraint, HasFieldConstraint, HasFunctionShape,
-        HasTagConstraint, TagAtMostConstraint,
+        Constraint, EnumExactConstraint, HasEnumVariantConstraint, HasExactFieldsConstraint,
+        HasFieldConstraint, HasFunctionShape, HasTagConstraint, TagAtMostConstraint,
     },
     generic_nodes::{
         get_generic_type_id, GenericBinaryOperatorExpression, GenericBlockExpression,
-        GenericDeclarationExpression, GenericExpression, GenericFunctionExpression,
-        GenericIdentifierExpression, GenericIfExpression, GenericIntegerLiteralExpression,
-        GenericListExpression, GenericRecordAssignmentExpression, GenericRecordExpression,
-        GenericSourcedType, GenericStringLiteralExpression, GenericTagExpression,
-        GenericTypeDeclarationExpression, GenericTypeIdentifierExpression,
+        GenericDeclarationExpression, GenericEnumExpression, GenericExpression,
+        GenericFunctionExpression, GenericIdentifierExpression, GenericIfExpression,
+        GenericIntegerLiteralExpression, GenericListExpression, GenericRecordAssignmentExpression,
+        GenericRecordExpression, GenericSourcedType, GenericStringLiteralExpression,
+        GenericTagExpression, GenericTypeDeclarationExpression, GenericTypeIdentifierExpression,
         GenericUnaryOperatorExpression, GenericWhenCase, GenericWhenCaseName,
         GenericWhenExpression,
     },
@@ -793,6 +793,50 @@ fn translate_tag<'a>(
     })
 }
 
+fn translate_enum<'a>(
+    schema: &mut TypeSchema,
+    node: EnumLiteralNode<'a>,
+) -> Result<GenericEnumExpression<'a>, String> {
+    let type_id = schema.make_id();
+    let translated_content_expressions: Vec<GenericExpression> = match node
+        .value
+        .payload
+        .into_iter()
+        .map(|expression| translate_parsed_expression_to_generic_expression(schema, expression))
+        .collect()
+    {
+        Ok(x) => x,
+        Err(x) => {
+            return Err(x);
+        }
+    };
+    let translated_content_types: Vec<TypeId> = translated_content_expressions
+        .iter()
+        .map(get_generic_type_id)
+        .collect();
+    schema.add_constraint(
+        type_id,
+        Constraint::HasVariant(HasEnumVariantConstraint {
+            name: node.value.variant_name.clone(),
+            payload: translated_content_types,
+        }),
+        &mut CheckedTypes::new(),
+    )?;
+    schema.add_constraint(
+        type_id,
+        Constraint::HasName(node.value.qualifier.value.clone()),
+        &mut CheckedTypes::new(),
+    )?;
+    Ok(GenericEnumExpression {
+        expression_type: GenericSourcedType {
+            type_id,
+            source_of_type: node.source,
+        },
+        name: node.value.variant_name.clone(),
+        payload: translated_content_expressions,
+    })
+}
+
 fn translate_unary_operator<'a>(
     schema: &mut TypeSchema,
     node: UnaryOperatorNode<'a>,
@@ -1061,7 +1105,7 @@ fn translate_enum_type(
     }
     schema.add_constraint(
         type_id,
-        Constraint::Enum(EnumConstraint { variants }),
+        Constraint::EnumExact(EnumExactConstraint { variants }),
         &mut CheckedTypes::new(),
     )?;
     Ok(type_id)
@@ -1210,7 +1254,9 @@ pub fn translate_parsed_expression_to_generic_expression<'a>(
         Expression::Declaration(node) => translate_declaration(schema, node)
             .map(Box::new)
             .map(GenericExpression::Declaration),
-        Expression::EnumLiteral(_) => unimplemented!("EnumLiteral in Type Checker"),
+        Expression::EnumLiteral(node) => translate_enum(schema, node)
+            .map(Box::new)
+            .map(GenericExpression::Enum),
         Expression::Function(node) => translate_function(schema, node, None)
             .map(Box::new)
             .map(GenericExpression::Function),
@@ -1852,6 +1898,38 @@ mod test {
             translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         if let GenericExpression::Tag(tag_expression) = result {
             assert_eq!(tag_expression.name, "a");
+        } else {
+            panic!();
+        }
+    }
+
+    #[test]
+    fn enum_increments_id_counter() {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression("A.a");
+        translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
+        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 3);
+    }
+
+    #[test]
+    fn enum_increments_constraint_count() {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression("A.a");
+        translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
+        assert_eq!(
+            schema.get_total_canonical_ids(),
+            INITIAL_CONSTRAINT_COUNT + 3
+        );
+    }
+
+    #[test]
+    fn enum_preserves_name() {
+        let mut schema = TypeSchema::new();
+        let expression = parse_test_expression("A.a");
+        let result =
+            translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
+        if let GenericExpression::Enum(enum_expression) = result {
+            assert_eq!(enum_expression.name, "a");
         } else {
             panic!();
         }
