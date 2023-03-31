@@ -1,7 +1,7 @@
 use crate::{
     ConcreteType, TypedBinaryOperatorExpression, TypedBlockExpression,
-    TypedBooleanLiteralExpression, TypedDeclarationExpression, TypedDocument, TypedExpression,
-    TypedFunctionExpression, TypedIdentifierExpression, TypedIfExpression,
+    TypedBooleanLiteralExpression, TypedDeclarationExpression, TypedDocument, TypedEnumExpression,
+    TypedExpression, TypedFunctionExpression, TypedIdentifierExpression, TypedIfExpression,
     TypedIntegerLiteralExpression, TypedListExpression, TypedRecordAssignmentExpression,
     TypedRecordExpression, TypedStringLiteralExpression, TypedTagExpression,
     TypedTypeDeclarationExpression, TypedTypeIdentifierExpression, TypedUnaryOperatorExpression,
@@ -21,6 +21,7 @@ pub type ConcreteRecordExpression = TypedRecordExpression<ConcreteType>;
 pub type ConcreteRecordAssignmentExpression = TypedRecordAssignmentExpression<ConcreteType>;
 pub type ConcreteStringLiteralExpression = TypedStringLiteralExpression<ConcreteType>;
 pub type ConcreteTagExpression = TypedTagExpression<ConcreteType>;
+pub type ConcreteEnumExpression = TypedEnumExpression<ConcreteType>;
 pub type ConcreteTypeDeclarationExpression = TypedTypeDeclarationExpression<ConcreteType>;
 pub type ConcreteTypeIdentifierExpression = TypedTypeIdentifierExpression<ConcreteType>;
 pub type ConcreteUnaryOperatorExpression = TypedUnaryOperatorExpression<ConcreteType>;

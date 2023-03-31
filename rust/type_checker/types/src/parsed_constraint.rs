@@ -8,8 +8,8 @@ use crate::{
 use std::collections::HashMap;
 use type_checker_errors::generate_backtrace_error;
 use typed_ast::{
-    ConcreteFunctionType, ConcreteListType, ConcreteRecordType, ConcreteTagUnionType, ConcreteType,
-    PrimitiveType,
+    ConcreteEnumType, ConcreteFunctionType, ConcreteListType, ConcreteRecordType,
+    ConcreteTagUnionType, ConcreteType, PrimitiveType,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -42,6 +42,7 @@ enum CategoryConstraints {
     Primitive(PrimitiveType),
     List(TypeId),
     TagGroup(TagGroupConstraints),
+    Enum(HashMap<String, Vec<TypeId>>),
     Record(RecordConstraints),
     Function(FunctionConstraints),
 }
@@ -403,6 +404,7 @@ impl ParsedConstraint {
                     .into_iter()
                     .collect(),
             )),
+            Constraint::Enum(e) => CategoryConstraints::Enum(e.variants),
             Constraint::TagAtMost(t) => {
                 CategoryConstraints::TagGroup(TagGroupConstraints::ClosedTags(t.tags))
             }
@@ -514,6 +516,20 @@ impl ParsedConstraint {
                         .collect(),
                 }))
             }
+            CategoryConstraints::Enum(e) => ConcreteType::Enum(Box::new(ConcreteEnumType {
+                variants: e
+                    .iter()
+                    .map(|(name, type_ids)| {
+                        (
+                            name.clone(),
+                            type_ids
+                                .iter()
+                                .map(|type_id| schema.get_concrete_type_from_id(*type_id))
+                                .collect(),
+                        )
+                    })
+                    .collect(),
+            })),
         }
     }
 

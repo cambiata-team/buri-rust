@@ -2,7 +2,7 @@ use crate::TypeId;
 use ast::{ImportNode, ParserInput, TopLevelDeclaration};
 use typed_ast::{
     TypedBinaryOperatorExpression, TypedBlockExpression, TypedBooleanLiteralExpression,
-    TypedDeclarationExpression, TypedExpression, TypedFunctionExpression,
+    TypedDeclarationExpression, TypedEnumExpression, TypedExpression, TypedFunctionExpression,
     TypedIdentifierExpression, TypedIfExpression, TypedIntegerLiteralExpression,
     TypedListExpression, TypedRecordAssignmentExpression, TypedRecordExpression,
     TypedStringLiteralExpression, TypedTagExpression, TypedTypeDeclarationExpression,
@@ -34,6 +34,7 @@ pub type GenericRecordAssignmentExpression<'a> =
 pub type GenericRecordExpression<'a> = TypedRecordExpression<GenericSourcedType<'a>>;
 pub type GenericStringLiteralExpression<'a> = TypedStringLiteralExpression<GenericSourcedType<'a>>;
 pub type GenericTagExpression<'a> = TypedTagExpression<GenericSourcedType<'a>>;
+pub type GenericEnumExpression<'a> = TypedEnumExpression<GenericSourcedType<'a>>;
 pub type GenericTypeDeclarationExpression<'a> =
     TypedTypeDeclarationExpression<GenericSourcedType<'a>>;
 pub type GenericTypeIdentifierExpression<'a> =
@@ -71,6 +72,7 @@ pub const fn get_generic_type_id(input: &GenericExpression) -> TypeId {
         GenericExpression::RecordAssignment(node) => node.expression_type.type_id,
         GenericExpression::StringLiteral(node) => node.expression_type.type_id,
         GenericExpression::Tag(node) => node.expression_type.type_id,
+        GenericExpression::Enum(node) => node.expression_type.type_id,
         GenericExpression::TypeDeclaration(node) => node.expression_type.type_id,
         GenericExpression::TypeIdentifier(node) => node.expression_type.type_id,
         GenericExpression::UnaryOperator(node) => node.expression_type.type_id,
