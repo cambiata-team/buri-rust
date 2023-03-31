@@ -249,4 +249,11 @@ mod test {
         let (remainder, _) = result.unwrap();
         assert_eq!(remainder, "(.b)");
     }
+
+    #[test]
+    fn enum_variant_name_may_not_contain_non_ascii_characters() {
+        let input = ParserInput::new(".π");
+        let result = enum_type(ExpressionContext::new())(input);
+        assert!(result.is_err());
+    }
 }
