@@ -257,4 +257,11 @@ mod test {
             Some(Expression::EnumLiteral(_))
         ));
     }
+
+    #[test]
+    fn enum_literal_name_may_not_contain_non_ascii_characters() {
+        let input = ParserInput::new("A.π");
+        let result = enum_literal(ExpressionContext::new())(input);
+        assert!(result.is_err());
+    }
 }
