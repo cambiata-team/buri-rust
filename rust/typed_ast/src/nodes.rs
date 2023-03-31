@@ -93,7 +93,7 @@ pub struct TypedTagExpression<T> {
 pub struct TypedEnumExpression<T> {
     pub expression_type: T,
     pub name: String,
-    pub contents: Vec<TypedExpression<T>>,
+    pub payload: Vec<TypedExpression<T>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

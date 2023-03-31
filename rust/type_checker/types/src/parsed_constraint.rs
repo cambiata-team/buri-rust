@@ -21,6 +21,14 @@ enum TagGroupConstraints {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+enum EnumConstraints {
+    /// For enums that need to have at least these variants.
+    OpenVariants(HashMap<String, Vec<TypeId>>),
+    /// For enums that can accept at exactly these variants.
+    ExactVariants(HashMap<String, Vec<TypeId>>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum RecordConstraints {
     /// For records that need to have at least these fields.
     OpenFields(HashMap<String, TypeId>),
@@ -42,7 +50,7 @@ enum CategoryConstraints {
     Primitive(PrimitiveType),
     List(TypeId),
     TagGroup(TagGroupConstraints),
-    Enum(HashMap<String, Vec<TypeId>>),
+    Enum(EnumConstraints),
     Record(RecordConstraints),
     Function(FunctionConstraints),
 }
@@ -404,9 +412,16 @@ impl ParsedConstraint {
                     .into_iter()
                     .collect(),
             )),
-            Constraint::Enum(e) => CategoryConstraints::Enum(e.variants),
             Constraint::TagAtMost(t) => {
                 CategoryConstraints::TagGroup(TagGroupConstraints::ClosedTags(t.tags))
+            }
+            Constraint::HasVariant(e) => {
+                let mut variants = HashMap::new();
+                variants.insert(e.name, e.payload);
+                CategoryConstraints::Enum(EnumConstraints::OpenVariants(variants))
+            }
+            Constraint::EnumExact(e) => {
+                CategoryConstraints::Enum(EnumConstraints::ExactVariants(e.variants))
             }
             Constraint::HasField(f) => CategoryConstraints::Record(RecordConstraints::OpenFields(
                 vec![(f.field_name, f.field_type)].into_iter().collect(),
@@ -516,7 +531,9 @@ impl ParsedConstraint {
                         .collect(),
                 }))
             }
-            CategoryConstraints::Enum(e) => ConcreteType::Enum(Box::new(ConcreteEnumType {
+            CategoryConstraints::Enum(
+                EnumConstraints::OpenVariants(e) | EnumConstraints::ExactVariants(e),
+            ) => ConcreteType::Enum(Box::new(ConcreteEnumType {
                 variants: e
                     .iter()
                     .map(|(name, type_ids)| {
