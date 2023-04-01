@@ -1,3 +1,9 @@
+@export
+booleanTrue = Bool.true
+
+@export
+booleanFalse = Bool.false
+
 Hello = .hello
 
 @export
