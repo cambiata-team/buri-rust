@@ -1307,7 +1307,7 @@ mod test {
     use parser::parse_test_expression;
     use typed_ast::ConcreteType;
 
-    const INITIAL_CONSTRAINT_COUNT: usize = 4;
+    const INITIAL_CONSTRAINT_COUNT: usize = 5;
 
     #[test]
     fn binary_operator_increments_id_counter_by_one_more_than_total_number_of_ids_in_children() {

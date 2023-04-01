@@ -1,5 +1,5 @@
 use crate::{
-    constraints::{Constraint, HasMethodConstraint},
+    constraints::{Constraint, EnumExactConstraint, HasMethodConstraint},
     parsed_constraint::ParsedConstraint,
     scope::Scope,
     type_checking_call_stack::CheckedTypes,
@@ -87,6 +87,18 @@ impl TypeSchema {
             .declare_identifier_with_constraint(
                 String::from("Str"),
                 Constraint::EqualToPrimitive(PrimitiveType::Str),
+                &mut CheckedTypes::new(),
+            )
+            .unwrap();
+        schema
+            .declare_identifier_with_constraint(
+                String::from("Bool"),
+                Constraint::EnumExact(EnumExactConstraint {
+                    variants: HashMap::from([
+                        (String::from("true"), Vec::new()),
+                        (String::from("false"), Vec::new()),
+                    ]),
+                }),
                 &mut CheckedTypes::new(),
             )
             .unwrap();
