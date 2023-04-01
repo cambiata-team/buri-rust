@@ -5,7 +5,7 @@ use typed_ast::PrimitiveType;
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Constrain that a generic type is an enum with at least a specific
 /// variants with a specific set of types.
-pub struct HasEnumVariantConstraint {
+pub struct HasVariantConstraint {
     pub name: String,
     pub payload: Vec<TypeId>,
 }
@@ -74,7 +74,7 @@ pub enum Constraint {
     /// Constrain that a generic type is a tag union with at most a given set of tags.
     TagAtMost(TagAtMostConstraint),
     /// Constrain that a generic type is an enum with at least a given set of variants.
-    HasVariant(HasEnumVariantConstraint),
+    HasVariant(HasVariantConstraint),
     /// Constrain that a generic type is an enum with exactly a given set of variants.
     EnumExact(EnumExactConstraint),
     HasField(HasFieldConstraint),

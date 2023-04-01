@@ -1,0 +1,5 @@
+A = Int
+B = Int
+
+a: A = 1
+b: B = a

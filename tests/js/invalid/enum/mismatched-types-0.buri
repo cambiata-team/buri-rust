@@ -1,4 +1,0 @@
-Color = .red | .green | .blue
-Block = .red | .green | .blue
-
-blue: Block = Color.blue

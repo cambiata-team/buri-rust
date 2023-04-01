@@ -128,6 +128,62 @@ impl CategoryConstraints {
                 })
             }),
             (
+                Self::Enum(EnumConstraints::ExactVariants(self_variants)),
+                Self::Enum(EnumConstraints::ExactVariants(other_variants)),
+            ) => other_variants.iter().all(|(name, other_payload)| {
+                self_variants.get(name).map_or(false, |self_payload| {
+                    other_payload.len() == self_payload.len()
+                        && other_payload.iter().all(|type_id| {
+                            self_payload.iter().any(|self_type_id| {
+                                schema.types_are_compatible(*self_type_id, *type_id, checked_types)
+                            })
+                        })
+                })
+            }),
+            (
+                Self::Enum(EnumConstraints::OpenVariants(self_variants)),
+                Self::Enum(EnumConstraints::ExactVariants(other_variants)),
+            ) => self_variants.iter().all(|(name, self_payload)| {
+                other_variants.get(name).map_or(false, |other_payload| {
+                    self_payload.len() == other_payload.len()
+                        && self_payload.iter().all(|self_type_id| {
+                            other_payload.iter().any(|other_type_id| {
+                                schema.types_are_compatible(
+                                    *self_type_id,
+                                    *other_type_id,
+                                    checked_types,
+                                )
+                            })
+                        })
+                })
+            }),
+            (
+                Self::Enum(EnumConstraints::OpenVariants(self_variants)),
+                Self::Enum(EnumConstraints::OpenVariants(other_variants)),
+            ) => other_variants.iter().all(|(name, other_payload)| {
+                self_variants.get(name).map_or(true, |self_payload| {
+                    other_payload.len() == self_payload.len()
+                        && other_payload.iter().all(|type_id| {
+                            self_payload.iter().any(|self_type_id| {
+                                schema.types_are_compatible(*self_type_id, *type_id, checked_types)
+                            })
+                        })
+                })
+            }),
+            (
+                Self::Enum(EnumConstraints::ExactVariants(self_variants)),
+                Self::Enum(EnumConstraints::OpenVariants(other_variants)),
+            ) => other_variants.iter().all(|(name, other_payload)| {
+                self_variants.get(name).map_or(false, |self_payload| {
+                    self_payload.len() == other_payload.len()
+                        && other_payload.iter().all(|other_type_id| {
+                            self_payload.iter().any(|type_id| {
+                                schema.types_are_compatible(*type_id, *other_type_id, checked_types)
+                            })
+                        })
+                })
+            }),
+            (
                 Self::Record(RecordConstraints::ExactFields(self_items)),
                 Self::Record(RecordConstraints::ExactFields(other_items)),
             ) => {
@@ -209,6 +265,26 @@ impl CategoryConstraints {
             ) => {
                 for (k, v) in other_tags {
                     self_tags.insert(k, v.iter().map(|id| ids.get_canonical_id(*id)).collect());
+                }
+            }
+            (
+                Self::Enum(EnumConstraints::ExactVariants(self_variants)),
+                Self::Enum(EnumConstraints::ExactVariants(other_variants)),
+            ) => {
+                let mut new_variants = self_variants.clone();
+                for (k, _) in self_variants.iter() {
+                    if other_variants.get(k).is_none() {
+                        new_variants.remove(k);
+                    }
+                }
+                *self_variants = new_variants;
+            }
+            (
+                Self::Enum(EnumConstraints::OpenVariants(self_variants)),
+                Self::Enum(EnumConstraints::OpenVariants(other_variants)),
+            ) => {
+                for (k, v) in other_variants {
+                    self_variants.insert(k, v.iter().map(|id| ids.get_canonical_id(*id)).collect());
                 }
             }
             (
@@ -580,8 +656,8 @@ impl ParsedConstraint {
 mod test {
     use super::*;
     use crate::constraints::{
-        HasExactFieldsConstraint, HasFieldConstraint, HasFunctionShape, HasMethodConstraint,
-        HasTagConstraint, TagAtMostConstraint,
+        EnumExactConstraint, HasExactFieldsConstraint, HasFieldConstraint, HasFunctionShape,
+        HasMethodConstraint, HasTagConstraint, HasVariantConstraint, TagAtMostConstraint,
     };
 
     //
@@ -730,6 +806,53 @@ mod test {
         assert_eq!(
             parsed_constraint.category,
             CategoryConstraints::TagGroup(TagGroupConstraints::ClosedTags(
+                vec![("foo".to_string(), vec![type_id])]
+                    .into_iter()
+                    .collect()
+            ))
+        );
+    }
+
+    #[test]
+    fn new_parsed_constraint_with_has_variant_constraint_sets_enum() {
+        let mut schema = TypeSchema::new();
+        let type_id = schema.make_id();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: "foo".to_string(),
+                payload: vec![type_id],
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert_eq!(
+            parsed_constraint.category,
+            CategoryConstraints::Enum(EnumConstraints::OpenVariants(
+                vec![("foo".to_string(), vec![type_id])]
+                    .into_iter()
+                    .collect()
+            ))
+        );
+    }
+
+    #[test]
+    fn new_parsed_constraint_with_enum_exact_constraint_sets_enum() {
+        let mut schema = TypeSchema::new();
+        let type_id = schema.make_id();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: vec![("foo".to_string(), vec![type_id])]
+                    .into_iter()
+                    .collect(),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert_eq!(
+            parsed_constraint.category,
+            CategoryConstraints::Enum(EnumConstraints::ExactVariants(
                 vec![("foo".to_string(), vec![type_id])]
                     .into_iter()
                     .collect()
@@ -1132,6 +1255,91 @@ mod test {
                 ("foo".to_string(), vec![]),
                 ("bar".to_string(), vec![])
             ])))
+        );
+    }
+
+    #[test]
+    fn adding_enum_exact_constraint_saves_constraint() {
+        let mut schema = TypeSchema::new();
+        let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasName("foo".to_string()),
+            &mut schema,
+        )
+        .unwrap();
+        let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("bar".to_string(), Vec::new())]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        parsed_constraint.add_constraints(new_constraint, &schema.types);
+        assert_eq!(
+            parsed_constraint.category,
+            CategoryConstraints::Enum(EnumConstraints::ExactVariants(HashMap::from([(
+                "bar".to_string(),
+                Vec::new()
+            )])))
+        );
+    }
+
+    #[test]
+    fn adding_has_variant_saves_enum() {
+        let mut schema = TypeSchema::new();
+        let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasName("foo".to_string()),
+            &mut schema,
+        )
+        .unwrap();
+        let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: "bar".to_string(),
+                payload: Vec::new(),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        parsed_constraint.add_constraints(new_constraint, &schema.types);
+        assert_eq!(
+            parsed_constraint.category,
+            CategoryConstraints::Enum(EnumConstraints::OpenVariants(HashMap::from([(
+                "bar".to_string(),
+                Vec::new()
+            )])))
+        );
+    }
+
+    #[test]
+    fn adding_has_variant_constraint_when_enum_exact_constraint_already_exists() {
+        let mut schema = TypeSchema::new();
+        let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), Vec::new())]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: "foo".to_string(),
+                payload: Vec::new(),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        parsed_constraint.add_constraints(new_constraint, &schema.types);
+        assert_eq!(
+            parsed_constraint.category,
+            CategoryConstraints::Enum(EnumConstraints::ExactVariants(HashMap::from([(
+                "foo".to_string(),
+                vec![]
+            ),])))
         );
     }
 
@@ -2821,6 +3029,1077 @@ mod test {
     }
 
     #[test]
+    fn is_compatible_with_enum_exact_constraint_with_same_variants() {
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), Vec::new())]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), Vec::new())]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_compatible_with_enum_exact_constraint_that_is_a_subset_of_current_variants() {
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([
+                    ("foo".to_string(), Vec::new()),
+                    ("bar".to_string(), Vec::new()),
+                ]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), Vec::new())]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_not_compatible_with_enum_exact_constraint_that_does_not_overlap_with_current_variants() {
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), Vec::new())]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("bar".to_string(), Vec::new())]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_not_compatible_with_enum_exact_constraint_that_is_a_superset_of_current_variants() {
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), Vec::new())]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([
+                    ("foo".to_string(), Vec::new()),
+                    ("bar".to_string(), Vec::new()),
+                ]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_not_compatible_with_enum_exact_constraint_when_variant_has_different_payload() {
+        let mut schema = TypeSchema::new();
+        let type_id = schema.make_id();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), Vec::new())]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), vec![type_id])]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_compatible_with_enum_exact_constraint_when_payload_has_same_type_id() {
+        let mut schema = TypeSchema::new();
+        let type_id = schema.make_id();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), vec![type_id])]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), vec![type_id])]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_compatible_with_enum_exact_constraint_when_payload_has_same_canonical_id() {
+        let mut schema = TypeSchema::new();
+        let type_a = schema.make_id();
+        let type_b = schema.make_id();
+        schema
+            .set_equal_to_canonical_type(type_a, type_b, &mut CheckedTypes::new())
+            .unwrap();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), vec![type_a])]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), vec![type_b])]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_compatible_with_enum_exact_constraint_when_payloads_are_compatible() {
+        let mut schema = TypeSchema::new();
+        let type_a = schema.make_id();
+        let type_b = schema.make_id();
+        schema
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
+            .unwrap();
+        schema
+            .add_constraint(
+                type_b,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
+            .unwrap();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), vec![type_a])]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), vec![type_b])]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_not_compatible_with_enum_exact_constraint_when_payloadss_are_not_compatible() {
+        let mut schema = TypeSchema::new();
+        let type_a = schema.make_id();
+        let type_b = schema.make_id();
+        schema
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
+            .unwrap();
+        schema
+            .add_constraint(
+                type_b,
+                Constraint::HasName("b".to_string()),
+                &mut CheckedTypes::new(),
+            )
+            .unwrap();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), vec![type_a])]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), vec![type_b])]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_compatible_with_enum_exact_constraint_with_same_variant() {
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: Vec::new(),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), Vec::new())]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_not_compatible_with_enum_exact_constraint_that_is_a_subset_of_current_has_variants() {
+        let mut schema = TypeSchema::new();
+        let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: Vec::new(),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("bar"),
+                payload: Vec::new(),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        parsed_constraint.add_constraints(new_constraint, &schema.types);
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), Vec::new())]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_not_compatible_with_enum_exact_constraint_that_does_not_overlap_with_current_has_variant()
+    {
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: Vec::new(),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("bar".to_string(), Vec::new())]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_not_compatible_with_enum_exact_constraint_when_variant_has_different_contents() {
+        let mut schema = TypeSchema::new();
+        let type_id = schema.make_id();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: Vec::new(),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), vec![type_id])]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_compatible_with_enum_exact_constraint_when_has_variant_payload_has_same_type_id() {
+        let mut schema = TypeSchema::new();
+        let type_id = schema.make_id();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: vec![type_id],
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), vec![type_id])]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_compatible_with_enum_exact_constraint_when_has_variant_payload_has_same_canonical_id() {
+        let mut schema = TypeSchema::new();
+        let type_a = schema.make_id();
+        let type_b = schema.make_id();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: vec![type_a],
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), vec![type_b])]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_compatible_with_enum_exact_constraint_when_has_variant_payloads_are_compatible() {
+        let mut schema = TypeSchema::new();
+        let type_a = schema.make_id();
+        let type_b = schema.make_id();
+        schema
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
+            .unwrap();
+        schema
+            .add_constraint(
+                type_b,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
+            .unwrap();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: vec![type_a],
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), vec![type_b])]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_not_compatible_with_enum_exact_constraint_when_has_variant_payloads_are_not_compatible() {
+        let mut schema = TypeSchema::new();
+        let type_a = schema.make_id();
+        let type_b = schema.make_id();
+        schema
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
+            .unwrap();
+        schema
+            .add_constraint(
+                type_b,
+                Constraint::HasName("b".to_string()),
+                &mut CheckedTypes::new(),
+            )
+            .unwrap();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: vec![type_a],
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([("foo".to_string(), vec![type_b])]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_compatible_with_has_variant_constraint_when_variants_are_the_same() {
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: Vec::new(),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: Vec::new(),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_compatible_with_has_variant_constraint_when_variant_is_in_a_group() {
+        let mut schema = TypeSchema::new();
+        let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: Vec::new(),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let new_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("bar"),
+                payload: Vec::new(),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        parsed_constraint.add_constraints(new_constraint, &schema.types);
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("bar"),
+                payload: Vec::new(),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_compatible_with_has_variant_constraint_when_variant_is_not_in_has_variant_group() {
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: Vec::new(),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("bar"),
+                payload: Vec::new(),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_not_compatible_with_has_variant_constraint_when_payloads_are_different() {
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: Vec::new(),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: vec![schema.make_id()],
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_compatible_with_has_variant_constraint_when_payloads_have_same_type_id() {
+        let mut schema = TypeSchema::new();
+        let type_id = schema.make_id();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: vec![type_id],
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: vec![type_id],
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_compatible_with_has_variant_constraint_when_payloads_have_same_canonical_id() {
+        let mut schema = TypeSchema::new();
+        let type_a = schema.make_id();
+        let type_b = schema.make_id();
+        schema
+            .set_equal_to_canonical_type(type_a, type_b, &mut CheckedTypes::new())
+            .unwrap();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: vec![type_a],
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: vec![type_b],
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_compatible_with_has_variant_constraint_when_payloads_are_compatible() {
+        let mut schema = TypeSchema::new();
+        let type_a = schema.make_id();
+        let type_b = schema.make_id();
+        schema
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
+            .unwrap();
+        schema
+            .add_constraint(
+                type_b,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
+            .unwrap();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: vec![type_a],
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: vec![type_b],
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_not_compatible_with_has_variant_constraint_when_payloads_are_not_compatible() {
+        let mut schema = TypeSchema::new();
+        let type_a = schema.make_id();
+        let type_b = schema.make_id();
+        schema
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
+            .unwrap();
+        schema
+            .add_constraint(
+                type_b,
+                Constraint::HasName("b".to_string()),
+                &mut CheckedTypes::new(),
+            )
+            .unwrap();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: vec![type_a],
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: vec![type_b],
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_compatible_with_has_variant_constraint_when_enum_variants_are_the_same() {
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([(String::from("foo"), Vec::new())]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: Vec::new(),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_compatible_with_has_variant_constraint_when_variant_is_in_enum() {
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([
+                    (String::from("foo"), Vec::new()),
+                    (String::from("bar"), Vec::new()),
+                ]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: Vec::new(),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_not_compatible_with_has_variant_constraint_when_variant_is_not_in_enum() {
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([(String::from("foo"), Vec::new())]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("bar"),
+                payload: Vec::new(),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_not_compatible_with_has_variant_constraint_when_enum_variant_payload_is_different() {
+        let mut schema = TypeSchema::new();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([(String::from("foo"), Vec::new())]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: vec![schema.make_id()],
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_compatible_with_has_variant_constraint_when_enum_palyoad_has_same_type_id() {
+        let mut schema = TypeSchema::new();
+        let type_id = schema.make_id();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([(String::from("foo"), vec![type_id])]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: vec![type_id],
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_compatible_with_has_variant_constraint_when_enum_payload_has_same_canonical_id() {
+        let mut schema = TypeSchema::new();
+        let type_a = schema.make_id();
+        let type_b = schema.make_id();
+        schema
+            .set_equal_to_canonical_type(type_a, type_b, &mut CheckedTypes::new())
+            .unwrap();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([(String::from("foo"), vec![type_a])]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: vec![type_b],
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_compatible_with_has_variant_constraint_when_enum_variant_payload_is_compatible() {
+        let mut schema = TypeSchema::new();
+        let type_a = schema.make_id();
+        let type_b = schema.make_id();
+        schema
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
+            .unwrap();
+        schema
+            .add_constraint(
+                type_b,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
+            .unwrap();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([(String::from("foo"), vec![type_a])]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: vec![type_b],
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
+    fn is_not_compatible_with_has_variant_constraint_when_enum_variant_payload_is_not_compatible() {
+        let mut schema = TypeSchema::new();
+        let type_a = schema.make_id();
+        let type_b = schema.make_id();
+        schema
+            .add_constraint(
+                type_a,
+                Constraint::HasName("a".to_string()),
+                &mut CheckedTypes::new(),
+            )
+            .unwrap();
+        schema
+            .add_constraint(
+                type_b,
+                Constraint::HasName("b".to_string()),
+                &mut CheckedTypes::new(),
+            )
+            .unwrap();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([(String::from("foo"), vec![type_a])]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        let other_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: vec![type_b],
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert!(!parsed_constraint.is_compatible_with(
+            &other_constraint,
+            &schema,
+            &mut CheckedTypes::new(),
+        ));
+    }
+
+    #[test]
     fn is_compatible_with_exact_fields_constraint_when_fields_are_the_same() {
         let mut schema = TypeSchema::new();
         let type_id = schema.make_id();
@@ -4445,6 +5724,67 @@ mod test {
             ConcreteType::TagUnion(Box::new(ConcreteTagUnionType {
                 tag_types: HashMap::from([(
                     String::from("false"),
+                    vec![ConcreteType::Primitive(PrimitiveType::Int)]
+                )])
+            }))
+        );
+    }
+
+    #[test]
+    fn exact_enum_to_concrete_type() {
+        let mut schema = TypeSchema::new();
+        let tag_type = schema.make_id();
+        schema
+            .add_constraint(
+                tag_type,
+                Constraint::EqualToPrimitive(PrimitiveType::Int),
+                &mut CheckedTypes::new(),
+            )
+            .unwrap();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::EnumExact(EnumExactConstraint {
+                variants: HashMap::from([(String::from("foo"), vec![tag_type])]),
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert_eq!(
+            parsed_constraint.to_concrete_type(&schema),
+            ConcreteType::Enum(Box::new(ConcreteEnumType {
+                variants: HashMap::from([(
+                    String::from("foo"),
+                    vec![ConcreteType::Primitive(PrimitiveType::Int)]
+                )])
+            }))
+        );
+    }
+
+    #[test]
+    fn has_variants_to_concrete_type() {
+        let mut schema = TypeSchema::new();
+        let tag_type = schema.make_id();
+        schema
+            .add_constraint(
+                tag_type,
+                Constraint::EqualToPrimitive(PrimitiveType::Int),
+                &mut CheckedTypes::new(),
+            )
+            .unwrap();
+        let parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasVariant(HasVariantConstraint {
+                name: String::from("foo"),
+                payload: vec![tag_type],
+            }),
+            &mut schema,
+        )
+        .unwrap();
+        assert_eq!(
+            parsed_constraint.to_concrete_type(&schema),
+            ConcreteType::Enum(Box::new(ConcreteEnumType {
+                variants: HashMap::from([(
+                    String::from("foo"),
                     vec![ConcreteType::Primitive(PrimitiveType::Int)]
                 )])
             }))

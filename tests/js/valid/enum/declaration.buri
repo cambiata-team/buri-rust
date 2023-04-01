@@ -13,3 +13,11 @@ IpAddress = .v4(Int, Int, Int, Int)
 
 @export
 localhost = IpAddress.v4(127, 0, 0, 1)
+
+Color = .red | .green
+
+@export
+red = Color.red
+
+@export
+green = Color.green
