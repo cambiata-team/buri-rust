@@ -252,6 +252,12 @@ fn resolve_enum(
 ) -> ConcreteExpression {
     let expression_type =
         resolve_generic_type(simplified_schema, generic_enum.expression_type.type_id);
+    if expression_type == ConcreteType::Primitive(PrimitiveType::CompilerBoolean) {
+        return ConcreteExpression::Boolean(Box::new(ConcreteBooleanExpression {
+            expression_type,
+            value: generic_enum.name == "true",
+        }));
+    }
     ConcreteExpression::Enum(Box::new(ConcreteEnumExpression {
         expression_type,
         name: generic_enum.name,

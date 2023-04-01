@@ -1,4 +1,6 @@
 import {
+    BbooleanFalse,
+    BbooleanTrue,
     Bgreen,
     Bhello,
     Blocalhost,
@@ -6,6 +8,14 @@ import {
 } from "@tests/js/valid/enum/declaration.mjs"
 import { expect, it } from "bun:test"
 import { getEnumContents, getEnumValue } from "../helpers"
+
+it("compiler boolean true", () => {
+    expect(BbooleanTrue).toBeTruthy()
+})
+
+it("compiler boolean false", () => {
+    expect(BbooleanFalse).toBeFalsy()
+})
 
 it("enums are serialized to integers", () => {
     expect(typeof getEnumValue(Bhello)).toBe("number")

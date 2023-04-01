@@ -609,20 +609,25 @@ impl ParsedConstraint {
             }
             CategoryConstraints::Enum(
                 EnumConstraints::OpenVariants(e) | EnumConstraints::ExactVariants(e),
-            ) => ConcreteType::Enum(Box::new(ConcreteEnumType {
-                variants: e
-                    .iter()
-                    .map(|(name, type_ids)| {
-                        (
-                            name.clone(),
-                            type_ids
-                                .iter()
-                                .map(|type_id| schema.get_concrete_type_from_id(*type_id))
-                                .collect(),
-                        )
-                    })
-                    .collect(),
-            })),
+            ) => match &self.name.0 {
+                Some(name) if name == "Bool" => {
+                    ConcreteType::Primitive(PrimitiveType::CompilerBoolean)
+                }
+                _ => ConcreteType::Enum(Box::new(ConcreteEnumType {
+                    variants: e
+                        .iter()
+                        .map(|(name, type_ids)| {
+                            (
+                                name.clone(),
+                                type_ids
+                                    .iter()
+                                    .map(|type_id| schema.get_concrete_type_from_id(*type_id))
+                                    .collect(),
+                            )
+                        })
+                        .collect(),
+                })),
+            },
         }
     }
 
@@ -5788,6 +5793,35 @@ mod test {
                     vec![ConcreteType::Primitive(PrimitiveType::Int)]
                 )])
             }))
+        );
+    }
+
+    #[test]
+    fn enum_is_compiler_boolean_for_bool_enum() {
+        let mut schema = TypeSchema::new();
+        let mut parsed_constraint = ParsedConstraint::new(
+            schema.make_id(),
+            Constraint::HasName(String::from("Bool")),
+            &mut schema,
+        )
+        .unwrap();
+        parsed_constraint.add_constraints(
+            ParsedConstraint::new(
+                schema.make_id(),
+                Constraint::EnumExact(EnumExactConstraint {
+                    variants: HashMap::from([
+                        (String::from("true"), Vec::new()),
+                        (String::from("false"), Vec::new()),
+                    ]),
+                }),
+                &mut schema,
+            )
+            .unwrap(),
+            &schema.types,
+        );
+        assert_eq!(
+            parsed_constraint.to_concrete_type(&schema),
+            ConcreteType::Primitive(PrimitiveType::CompilerBoolean)
         );
     }
 }
