@@ -13,3 +13,13 @@ export const tag = (name, ...contents) => {
     if (name == "false" && contents.length == 0) return false
     return [name, ...contents]
 }
+
+export const getEnumValue = (buriEnum) => {
+    return typeof buriEnum === "number" ? buriEnum : buriEnum[0]
+}
+
+export const getEnumContents = (buriEnum) => {
+    let contents = [...buriEnum]
+    contents.shift()
+    return contents
+}
