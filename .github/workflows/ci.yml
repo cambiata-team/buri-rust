@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        rust: [1.66.0]
+        rust: [1.68.2]
         task:
           - name: Clippy
             components: clippy
