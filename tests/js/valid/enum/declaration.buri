@@ -1,0 +1,9 @@
+Hello = .hello
+
+@export
+hello = Hello.hello
+
+IpAddress = .v4(Int, Int, Int, Int)
+
+@export
+localhost = IpAddress.v4(127, 0, 0, 1)

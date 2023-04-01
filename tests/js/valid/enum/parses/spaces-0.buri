@@ -1,0 +1,2 @@
+Items = .hello(Int, Str)
+item = Items.hello( 1 , "" )

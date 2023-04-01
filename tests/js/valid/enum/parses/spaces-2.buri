@@ -1,0 +1,10 @@
+Items = .hello(Int, Str)
+item = Items.hello(--comment
+--comment
+1--comment
+--comment
+,--comment
+--comment
+""--comment
+--comment
+)--comment
