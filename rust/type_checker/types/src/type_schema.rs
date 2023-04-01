@@ -77,28 +77,31 @@ impl TypeSchema {
         };
         // if-change: update type id constants at the top of the file
         schema
-            .declare_identifier_with_constraint(
+            .declare_identifier_with_constraints(
                 String::from("Int"),
-                Constraint::EqualToPrimitive(PrimitiveType::Int),
+                vec![Constraint::EqualToPrimitive(PrimitiveType::Int)],
                 &mut CheckedTypes::new(),
             )
             .unwrap();
         schema
-            .declare_identifier_with_constraint(
+            .declare_identifier_with_constraints(
                 String::from("Str"),
-                Constraint::EqualToPrimitive(PrimitiveType::Str),
+                vec![Constraint::EqualToPrimitive(PrimitiveType::Str)],
                 &mut CheckedTypes::new(),
             )
             .unwrap();
         schema
-            .declare_identifier_with_constraint(
+            .declare_identifier_with_constraints(
                 String::from("Bool"),
-                Constraint::EnumExact(EnumExactConstraint {
-                    variants: HashMap::from([
-                        (String::from("true"), Vec::new()),
-                        (String::from("false"), Vec::new()),
-                    ]),
-                }),
+                vec![
+                    Constraint::EnumExact(EnumExactConstraint {
+                        variants: HashMap::from([
+                            (String::from("true"), Vec::new()),
+                            (String::from("false"), Vec::new()),
+                        ]),
+                    }),
+                    Constraint::HasName(String::from("Bool")),
+                ],
                 &mut CheckedTypes::new(),
             )
             .unwrap();
@@ -106,18 +109,20 @@ impl TypeSchema {
         schema
     }
 
-    fn declare_identifier_with_constraint(
+    fn declare_identifier_with_constraints(
         &mut self,
         identifier_name: String,
-        constraint: Constraint,
+        constraints: Vec<Constraint>,
         checked_types: &mut CheckedTypes,
     ) -> Result<(), String> {
         let type_id = self.types.make_id();
         self.scope
             .declare_identifier(identifier_name, type_id)
             .map_err(generate_backtrace_error)?;
-        self.add_constraint(type_id, constraint, checked_types)
-            .map_err(generate_backtrace_error)?;
+        for constraint in constraints {
+            self.add_constraint(type_id, constraint, checked_types)
+                .map_err(generate_backtrace_error)?;
+        }
         Ok(())
     }
 
