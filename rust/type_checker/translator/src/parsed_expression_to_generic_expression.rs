@@ -9,8 +9,8 @@ use std::collections::HashMap;
 use type_checker_errors::generate_backtrace_error;
 use type_checker_types::{
     constraints::{
-        Constraint, EnumExactConstraint, HasEnumVariantConstraint, HasExactFieldsConstraint,
-        HasFieldConstraint, HasFunctionShape, HasTagConstraint, TagAtMostConstraint,
+        Constraint, EnumExactConstraint, HasExactFieldsConstraint, HasFieldConstraint,
+        HasFunctionShape, HasTagConstraint, HasVariantConstraint, TagAtMostConstraint,
     },
     generic_nodes::{
         get_generic_type_id, GenericBinaryOperatorExpression, GenericBlockExpression,
@@ -816,7 +816,7 @@ fn translate_enum<'a>(
         .collect();
     schema.add_constraint(
         type_id,
-        Constraint::HasVariant(HasEnumVariantConstraint {
+        Constraint::HasVariant(HasVariantConstraint {
             name: node.value.variant_name.clone(),
             payload: translated_content_types,
         }),
@@ -827,9 +827,13 @@ fn translate_enum<'a>(
         Constraint::HasName(node.value.qualifier.value.clone()),
         &mut CheckedTypes::new(),
     )?;
+    let Some(enum_type_id) = schema.scope.get_variable_declaration_type(&node.value.qualifier.value) else {
+        return Err(generate_backtrace_error(format!("Enum identifier not found: {}", node.value.qualifier.value)))
+    };
+    schema.set_equal_to_canonical_type(enum_type_id, type_id, &mut CheckedTypes::new())?;
     Ok(GenericEnumExpression {
         expression_type: GenericSourcedType {
-            type_id,
+            type_id: enum_type_id,
             source_of_type: node.source,
         },
         name: node.value.variant_name.clone(),
@@ -1906,14 +1910,16 @@ mod test {
     #[test]
     fn enum_increments_id_counter() {
         let mut schema = TypeSchema::new();
+        schema.make_identifier_for_test("A").unwrap();
         let expression = parse_test_expression("A.a");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
-        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 3);
+        assert_eq!(schema.count_ids(), INITIAL_CONSTRAINT_COUNT + 4);
     }
 
     #[test]
     fn enum_increments_constraint_count() {
         let mut schema = TypeSchema::new();
+        schema.make_identifier_for_test("A").unwrap();
         let expression = parse_test_expression("A.a");
         translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
         assert_eq!(
@@ -1925,6 +1931,7 @@ mod test {
     #[test]
     fn enum_preserves_name() {
         let mut schema = TypeSchema::new();
+        schema.make_identifier_for_test("A").unwrap();
         let expression = parse_test_expression("A.a");
         let result =
             translate_parsed_expression_to_generic_expression(&mut schema, expression).unwrap();
