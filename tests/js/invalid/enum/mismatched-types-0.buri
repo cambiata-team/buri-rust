@@ -1,0 +1,3 @@
+Color = .red | .green | .blue
+
+orange = Color.orange
