@@ -130,31 +130,44 @@ impl CategoryConstraints {
             (
                 Self::Enum(EnumConstraints::ExactVariants(self_variants)),
                 Self::Enum(EnumConstraints::ExactVariants(other_variants)),
-            ) => other_variants.iter().all(|(name, other_payload)| {
-                self_variants.get(name).map_or(false, |self_payload| {
-                    other_payload.len() == self_payload.len()
-                        && other_payload.iter().all(|type_id| {
-                            self_payload.iter().any(|self_type_id| {
-                                schema.types_are_compatible(*self_type_id, *type_id, checked_types)
-                            })
-                        })
+            ) => {
+                if self_variants.len() != other_variants.len() {
+                    return false;
+                }
+                self_variants.iter().all(|(name, self_payload)| {
+                    other_variants.get(name).map_or(false, |other_payload| {
+                        if other_payload.len() != self_payload.len() {
+                            return false;
+                        }
+                        other_payload.iter().zip(self_payload.iter()).all(
+                            |(other_type_id, self_type_id)| {
+                                schema.types_are_compatible(
+                                    *other_type_id,
+                                    *self_type_id,
+                                    checked_types,
+                                )
+                            },
+                        )
+                    })
                 })
-            }),
+            }
             (
                 Self::Enum(EnumConstraints::OpenVariants(self_variants)),
                 Self::Enum(EnumConstraints::ExactVariants(other_variants)),
             ) => self_variants.iter().all(|(name, self_payload)| {
                 other_variants.get(name).map_or(false, |other_payload| {
-                    self_payload.len() == other_payload.len()
-                        && self_payload.iter().all(|self_type_id| {
-                            other_payload.iter().any(|other_type_id| {
-                                schema.types_are_compatible(
-                                    *self_type_id,
-                                    *other_type_id,
-                                    checked_types,
-                                )
-                            })
-                        })
+                    if other_payload.len() != self_payload.len() {
+                        return false;
+                    }
+                    other_payload.iter().zip(self_payload.iter()).all(
+                        |(other_type_id, self_type_id)| {
+                            schema.types_are_compatible(
+                                *other_type_id,
+                                *self_type_id,
+                                checked_types,
+                            )
+                        },
+                    )
                 })
             }),
             (
@@ -162,12 +175,18 @@ impl CategoryConstraints {
                 Self::Enum(EnumConstraints::OpenVariants(other_variants)),
             ) => other_variants.iter().all(|(name, other_payload)| {
                 self_variants.get(name).map_or(true, |self_payload| {
-                    other_payload.len() == self_payload.len()
-                        && other_payload.iter().all(|type_id| {
-                            self_payload.iter().any(|self_type_id| {
-                                schema.types_are_compatible(*self_type_id, *type_id, checked_types)
-                            })
-                        })
+                    if self_payload.len() != other_payload.len() {
+                        return false;
+                    }
+                    self_payload.iter().zip(other_payload.iter()).all(
+                        |(self_type_id, other_type_id)| {
+                            schema.types_are_compatible(
+                                *self_type_id,
+                                *other_type_id,
+                                checked_types,
+                            )
+                        },
+                    )
                 })
             }),
             (
@@ -175,12 +194,18 @@ impl CategoryConstraints {
                 Self::Enum(EnumConstraints::OpenVariants(other_variants)),
             ) => other_variants.iter().all(|(name, other_payload)| {
                 self_variants.get(name).map_or(false, |self_payload| {
-                    self_payload.len() == other_payload.len()
-                        && other_payload.iter().all(|other_type_id| {
-                            self_payload.iter().any(|type_id| {
-                                schema.types_are_compatible(*type_id, *other_type_id, checked_types)
-                            })
-                        })
+                    if self_payload.len() != other_payload.len() {
+                        return false;
+                    }
+                    self_payload.iter().zip(other_payload.iter()).all(
+                        |(self_type_id, other_type_id)| {
+                            schema.types_are_compatible(
+                                *self_type_id,
+                                *other_type_id,
+                                checked_types,
+                            )
+                        },
+                    )
                 })
             }),
             (
@@ -3060,7 +3085,7 @@ mod test {
     }
 
     #[test]
-    fn is_compatible_with_enum_exact_constraint_that_is_a_subset_of_current_variants() {
+    fn is_not_compatible_with_enum_exact_constraint_that_is_a_subset_of_current_variants() {
         let mut schema = TypeSchema::new();
         let parsed_constraint = ParsedConstraint::new(
             schema.make_id(),
@@ -3081,7 +3106,7 @@ mod test {
             &mut schema,
         )
         .unwrap();
-        assert!(parsed_constraint.is_compatible_with(
+        assert!(!parsed_constraint.is_compatible_with(
             &other_constraint,
             &schema,
             &mut CheckedTypes::new(),
