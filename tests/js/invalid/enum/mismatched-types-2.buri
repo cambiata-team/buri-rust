@@ -1,0 +1,3 @@
+Color = .rgb(Int, Int, Int) | .hex(Str)
+
+blue = Color.rgb("0", "0", "255")
